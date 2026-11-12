@@ -195,7 +195,7 @@ export default function DashboardPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1" suppressHydrationWarning>
+                        <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 inline-flex items-center gap-1" suppressHydrationWarning={true}>
                           <Clock className="w-3 h-3" />
                           <FormattedDate date={post.scheduled_for} formatType="datetime" />
                         </span>

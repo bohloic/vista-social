@@ -54,7 +54,7 @@ export function CalendarView({ posts, accounts, onNewPostWithDate, onSelectPost 
       {/* Calendar Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800 gap-4">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize" suppressHydrationWarning>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize" suppressHydrationWarning={true}>
             {format(currentDate, 'MMMM yyyy', { locale: fr })}
           </h3>
           <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold border border-indigo-200 dark:border-indigo-800">
@@ -159,7 +159,7 @@ export function CalendarView({ posts, accounts, onNewPostWithDate, onSelectPost 
                       }`}
                     >
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="font-semibold flex items-center gap-1" suppressHydrationWarning>
+                        <span className="font-semibold flex items-center gap-1" suppressHydrationWarning={true}>
                           <Clock className="w-2.5 h-2.5" />
                           {format(new Date(post.scheduled_for), 'HH:mm')}
                         </span>

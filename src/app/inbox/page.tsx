@@ -165,9 +165,7 @@ export default function InboxPage() {
                       <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
                         {conv.customer_name}
                       </span>
-                      <span className="text-[10px] text-slate-400" suppressHydrationWarning>
-                        <FormattedDate date={conv.last_message_at} formatType="time" />
-                      </span>
+                      <FormattedDate date={conv.last_message_at} formatType="time" className="text-[10px] text-slate-400" />
                     </div>
 
                     <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-1 leading-snug">
@@ -263,9 +261,7 @@ export default function InboxPage() {
                   >
                     <p className="whitespace-pre-line">{msg.content}</p>
                   </div>
-                  <span className="text-[9px] text-slate-400 mt-1 px-1" suppressHydrationWarning>
-                    <FormattedDate date={msg.created_at} formatType="time" />
-                  </span>
+                  <FormattedDate date={msg.created_at} formatType="time" className="text-[9px] text-slate-400 mt-1 px-1 block" />
                 </div>
               );
             })}

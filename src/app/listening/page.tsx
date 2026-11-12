@@ -173,9 +173,7 @@ export default function ListeningPage() {
                   >
                     {mention.sentiment === 'positive' ? '😊 Sentiment Positif' : 'Neutre'}
                   </span>
-                  <span className="text-xs text-slate-400 ml-auto" suppressHydrationWarning>
-                    <FormattedDate date={mention.published_at} formatType="time" />
-                  </span>
+                  <FormattedDate date={mention.published_at} formatType="time" className="text-xs text-slate-400 ml-auto" />
                 </div>
 
                 <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed">

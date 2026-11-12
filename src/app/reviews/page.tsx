@@ -152,9 +152,7 @@ export default function ReviewsPage() {
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600">
                       {review.platform}
                     </span>
-                    <span className="text-xs text-slate-400" suppressHydrationWarning>
-                      <FormattedDate date={review.review_date} formatType="date" />
-                    </span>
+                    <FormattedDate date={review.review_date} formatType="date" className="text-xs text-slate-400" />
                   </div>
 
                   {/* Rating Stars */}
@@ -188,7 +186,7 @@ export default function ReviewsPage() {
             {/* Response Section */}
             {review.response_text ? (
               <div className="ml-13 p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/60 space-y-1">
-                <span className="text-xs font-bold text-indigo-900 dark:text-indigo-300" suppressHydrationWarning>
+                <span className="text-xs font-bold text-indigo-900 dark:text-indigo-300" suppressHydrationWarning={true}>
                   Réponse de Studio Nova (<FormattedDate date={review.responded_at || ''} formatType="date" />) :
                 </span>
                 <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">

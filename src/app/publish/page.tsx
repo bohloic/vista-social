@@ -172,7 +172,7 @@ export default function PublishPage() {
 
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1" suppressHydrationWarning>
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 inline-flex items-center gap-1" suppressHydrationWarning={true}>
                         <Clock className="w-3.5 h-3.5" />
                         <FormattedDate date={post.scheduled_for} formatType="full" />
                       </span>
