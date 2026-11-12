@@ -1,0 +1,367 @@
+import { SocialAccount, Post, InboxConversation, InboxMessage, ListeningMention, ReviewItem, VistaPage } from './types';
+
+export const INITIAL_ACCOUNTS: SocialAccount[] = [
+  {
+    id: 'acc-ig-1',
+    workspace_id: 'ws-default',
+    platform: 'instagram',
+    account_name: 'Studio Nova',
+    username: '@studionova.agency',
+    avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
+    is_connected: true,
+    status: 'active',
+    followers_count: 24500,
+  },
+  {
+    id: 'acc-li-1',
+    workspace_id: 'ws-default',
+    platform: 'linkedin',
+    account_name: 'Studio Nova Inc.',
+    username: 'studio-nova-agency',
+    avatar_url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=150&auto=format&fit=crop&q=80',
+    is_connected: true,
+    status: 'active',
+    followers_count: 14200,
+  },
+  {
+    id: 'acc-x-1',
+    workspace_id: 'ws-default',
+    platform: 'twitter',
+    account_name: 'Studio Nova Official',
+    username: '@StudioNovaHQ',
+    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    is_connected: true,
+    status: 'active',
+    followers_count: 8900,
+  },
+  {
+    id: 'acc-tk-1',
+    workspace_id: 'ws-default',
+    platform: 'tiktok',
+    account_name: 'Studio Nova Trends',
+    username: '@studionovatok',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    is_connected: true,
+    status: 'active',
+    followers_count: 48900,
+  },
+  {
+    id: 'acc-fb-1',
+    workspace_id: 'ws-default',
+    platform: 'facebook',
+    account_name: 'Studio Nova Créatif',
+    username: 'StudioNovaFr',
+    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    is_connected: true,
+    status: 'active',
+    followers_count: 32400,
+  },
+];
+
+export const INITIAL_POSTS: Post[] = [
+  {
+    id: 'post-1',
+    workspace_id: 'ws-default',
+    author_name: 'Sarah Connor (Lead CM)',
+    content: "Lancement officiel de notre collection Automne/Hiver ! 🍂 Découvrez des matières éco-responsables et un design intemporel conçu pour durer. Quel est votre look préféré ?",
+    post_type: 'carousel',
+    media_urls: [
+      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1445205170230-053b83016050?w=800&auto=format&fit=crop&q=80'
+    ],
+    status: 'scheduled',
+    scheduled_for: '2026-11-12T14:30:00.000Z',
+    target_accounts: ['acc-ig-1', 'acc-li-1', 'acc-fb-1'],
+    first_comment: '#mode #automne #ecofashion #design #lifestyle #nouveauté',
+    tags: ['Campagne Hiver', 'Collection 2026'],
+    created_at: '2026-11-11T09:00:00.000Z',
+  },
+  {
+    id: 'post-2',
+    workspace_id: 'ws-default',
+    author_name: 'Sarah Connor (Lead CM)',
+    content: "💡 3 erreurs fatales à éviter absolument dans votre stratégie de contenu en 2026. La 2ème va vous surprendre ! À enregistrer pour plus tard 📌",
+    post_type: 'reel',
+    media_urls: [
+      'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&auto=format&fit=crop&q=80'
+    ],
+    status: 'scheduled',
+    scheduled_for: '2026-11-13T10:00:00.000Z',
+    target_accounts: ['acc-ig-1', 'acc-tk-1'],
+    first_comment: '#contentstrategy #communitymanager #marketingdigital #tips',
+    tags: ['Conseils CM', 'Reels'],
+    created_at: '2026-11-11T16:00:00.000Z',
+  },
+  {
+    id: 'post-3',
+    workspace_id: 'ws-default',
+    author_name: 'Alexandre Dumas',
+    content: "Nous sommes fiers d'annoncer que Studio Nova a reçu le trophée de la meilleure agence digitale éco-engagée de l'année 🏆 Merci à nos clients et partenaires pour leur confiance !",
+    post_type: 'post',
+    media_urls: [
+      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&auto=format&fit=crop&q=80'
+    ],
+    status: 'published',
+    scheduled_for: '2026-11-10T11:00:00.000Z',
+    published_at: '2026-11-10T11:00:00.000Z',
+    target_accounts: ['acc-li-1', 'acc-x-1'],
+    tags: ['Corporate', 'Trophée'],
+    created_at: '2026-11-09T08:00:00.000Z',
+  },
+  {
+    id: 'post-4',
+    workspace_id: 'ws-default',
+    author_name: 'Sarah Connor (Lead CM)',
+    content: "Behind the scenes : Une journée type dans nos studios créatifs à Paris. Restez connectés pour voir le résultat du shooting !",
+    post_type: 'story',
+    media_urls: [
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80'
+    ],
+    status: 'draft',
+    scheduled_for: '2026-11-15T15:00:00.000Z',
+    target_accounts: ['acc-ig-1'],
+    tags: ['BTS', 'Stories'],
+    created_at: '2026-11-12T04:00:00.000Z',
+  }
+];
+
+export const INITIAL_CONVERSATIONS: InboxConversation[] = [
+  {
+    id: 'conv-1',
+    workspace_id: 'ws-default',
+    social_account_id: 'acc-ig-1',
+    customer_name: 'Élodie Fontaine',
+    customer_username: '@elodie_ftn',
+    customer_avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    status: 'open',
+    sentiment: 'positive',
+    tags: ['Demande Partenariat', 'Influence'],
+    last_message_preview: "Bonjour ! J'adore votre nouvelle collection, collaborez-vous avec des créatrices de contenu sur Paris ?",
+    last_message_at: '2026-11-12T05:30:00.000Z',
+    unread_count: 1,
+  },
+  {
+    id: 'conv-2',
+    workspace_id: 'ws-default',
+    social_account_id: 'acc-li-1',
+    customer_name: 'Marc Lefèvre',
+    customer_username: 'marc-lefevre-cmo',
+    customer_avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    status: 'open',
+    sentiment: 'positive',
+    tags: ['B2B Lead', 'Devis'],
+    last_message_preview: "Félicitations pour votre trophée ! Seriez-vous disponibles pour un appel de 15 minutes mardi afin d'échanger sur nos besoins médias ?",
+    last_message_at: '2026-11-12T04:15:00.000Z',
+    unread_count: 2,
+  },
+  {
+    id: 'conv-3',
+    workspace_id: 'ws-default',
+    social_account_id: 'acc-x-1',
+    customer_name: 'Julien Perrot',
+    customer_username: '@jperrot_dev',
+    customer_avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    status: 'closed',
+    sentiment: 'neutral',
+    tags: ['Support', 'Question Technique'],
+    last_message_preview: "Merci pour la réponse rapide de votre équipe, c'est résolu !",
+    last_message_at: '2026-11-12T01:00:00.000Z',
+    unread_count: 0,
+  }
+];
+
+export const INITIAL_MESSAGES: Record<string, InboxMessage[]> = {
+  'conv-1': [
+    {
+      id: 'msg-1',
+      conversation_id: 'conv-1',
+      direction: 'inbound',
+      message_type: 'dm',
+      content: "Bonjour l'équipe Studio Nova ! Je suis créatrice de mode responsable sur Paris et j'ai repéré votre dernière publication.",
+      sentiment: 'positive',
+      created_at: '2026-11-12T05:15:00.000Z',
+    },
+    {
+      id: 'msg-2',
+      conversation_id: 'conv-1',
+      direction: 'inbound',
+      message_type: 'dm',
+      content: "Bonjour ! J'adore votre nouvelle collection, collaborez-vous avec des créatrices de contenu sur Paris ?",
+      sentiment: 'positive',
+      created_at: '2026-11-12T05:30:00.000Z',
+    }
+  ],
+  'conv-2': [
+    {
+      id: 'msg-3',
+      conversation_id: 'conv-2',
+      direction: 'inbound',
+      message_type: 'dm',
+      content: "Félicitations pour votre trophée ! Seriez-vous disponibles pour un appel de 15 minutes mardi afin d'échanger sur nos besoins médias ?",
+      sentiment: 'positive',
+      created_at: '2026-11-12T04:15:00.000Z',
+    }
+  ],
+  'conv-3': [
+    {
+      id: 'msg-4',
+      conversation_id: 'conv-3',
+      direction: 'inbound',
+      message_type: 'mention',
+      content: "@StudioNovaHQ Est-ce que votre nouvelle plateforme supporte l'authentification multi-facteurs ?",
+      sentiment: 'neutral',
+      created_at: '2026-11-11T23:30:00.000Z',
+    },
+    {
+      id: 'msg-5',
+      conversation_id: 'conv-3',
+      direction: 'outbound',
+      message_type: 'dm',
+      content: "Bonjour Julien, oui absolument ! Vous pouvez l'activer directement dans vos paramètres de sécurité.",
+      created_at: '2026-11-12T00:15:00.000Z',
+    },
+    {
+      id: 'msg-6',
+      conversation_id: 'conv-3',
+      direction: 'inbound',
+      message_type: 'dm',
+      content: "Merci pour la réponse rapide de votre équipe, c'est résolu !",
+      sentiment: 'positive',
+      created_at: '2026-11-12T01:00:00.000Z',
+    }
+  ]
+};
+
+export const INITIAL_MENTIONS: ListeningMention[] = [
+  {
+    id: 'men-1',
+    platform: 'twitter',
+    author_name: 'Tech & Trends Mag',
+    author_handle: '@TechTrendsMag',
+    author_avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+    content: "Dans notre classement des meilleures agences créatives 2026, @StudioNovaHQ se distingue par sa gestion unifiée des réseaux sociaux et son impact éco-responsable.",
+    url: 'https://twitter.com/status/1001',
+    sentiment: 'positive',
+    reach: 34500,
+    engagement: 480,
+    published_at: '2026-11-12T05:00:00.000Z',
+  },
+  {
+    id: 'men-2',
+    platform: 'linkedin',
+    author_name: 'Caroline Dupont (DirCom)',
+    author_handle: 'caroline-dupont-dircom',
+    author_avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+    content: "Retour d'expérience après 6 mois d'accompagnement par Studio Nova : +140% d'engagement organique sur nos pages B2B. Bravo à toute l'équipe !",
+    url: 'https://linkedin.com/posts/2002',
+    sentiment: 'positive',
+    reach: 12800,
+    engagement: 310,
+    published_at: '2026-11-12T03:30:00.000Z',
+  },
+  {
+    id: 'men-3',
+    platform: 'tiktok',
+    author_name: 'Valentin Retail',
+    author_handle: '@valentin_retail',
+    author_avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+    content: "Je teste en direct les vestes Studio Nova. Franchement la coupe est ultra soignée, par contre les délais de livraison étaient un peu longs sur la précommande.",
+    url: 'https://tiktok.com/@val/video/3003',
+    sentiment: 'neutral',
+    reach: 52100,
+    engagement: 1890,
+    published_at: '2026-11-11T20:00:00.000Z',
+  }
+];
+
+export const INITIAL_REVIEWS: ReviewItem[] = [
+  {
+    id: 'rev-1',
+    workspace_id: 'ws-default',
+    platform: 'google',
+    author_name: 'Nathalie Martin',
+    author_avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    rating: 5,
+    review_text: "Une équipe à l'écoute, réactive et d'un professionnalisme sans faille. Notre communauté a doublé en quelques mois !",
+    response_text: "Merci infiniment Nathalie pour votre recommandation ! C'est un réel plaisir de collaborer avec votre marque.",
+    responded_at: '2026-11-11T10:00:00.000Z',
+    sentiment: 'positive',
+    review_date: '2026-11-10T14:00:00.000Z',
+  },
+  {
+    id: 'rev-2',
+    workspace_id: 'ws-default',
+    platform: 'google',
+    author_name: 'Thomas Bernard',
+    author_avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+    rating: 4,
+    review_text: "Très bonne agence, créations visuelles au top niveau. Un léger retard sur la remise du rapport mensuel mais vite rattrapé.",
+    sentiment: 'positive',
+    review_date: '2026-11-09T09:00:00.000Z',
+  },
+  {
+    id: 'rev-3',
+    workspace_id: 'ws-default',
+    platform: 'trustpilot',
+    author_name: 'Société E-Commerce Paris',
+    rating: 5,
+    review_text: "Indispensable pour notre présence omnicanale. Les fonctionnalités de programmation et la boîte de réception unifiée font gagner un temps précieux.",
+    sentiment: 'positive',
+    review_date: '2026-11-07T12:00:00.000Z',
+  }
+];
+
+export const INITIAL_VISTA_PAGE: VistaPage = {
+  id: 'vp-1',
+  workspace_id: 'ws-default',
+  title: 'Studio Nova Agency',
+  slug: 'studionova',
+  bio: '✨ Agence Créative & Stratégie Social Media | Paris · Lyon · Genève\nPropulsez votre marque avec un contenu mémorable.',
+  avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
+  theme_config: {
+    preset: 'violet_aurora',
+    bg_type: 'gradient',
+    bg_gradient: 'from-slate-950 via-purple-950 to-indigo-950',
+    text_color: '#ffffff',
+    button_bg: 'rgba(255, 255, 255, 0.08)',
+    button_text: '#ffffff',
+    button_border: 'rgba(255, 255, 255, 0.18)',
+    button_radius: 'rounded-2xl',
+    font_family: 'sans',
+  },
+  blocks: [
+    {
+      id: 'blk-1',
+      type: 'link',
+      title: '🌟 Découvrir notre nouveau Portfolio 2026',
+      url: 'https://studionova.agency/portfolio',
+      subtitle: 'Nos meilleures réalisations de marque et campagnes virales',
+      is_active: true,
+    },
+    {
+      id: 'blk-2',
+      type: 'link',
+      title: '📅 Réserver un Audit Social Media Gratuit (30 min)',
+      url: 'https://cal.com/studionova/audit',
+      subtitle: 'Analyse personnalisée de vos comptes Instagram, LinkedIn & TikTok',
+      is_active: true,
+    },
+    {
+      id: 'blk-3',
+      type: 'link',
+      title: '📦 Télécharger notre Guide : Stratégie de Contenu 2026',
+      url: 'https://studionova.agency/guide-2026',
+      subtitle: 'PDF gratuit de 45 pages avec modèles de calendrier éditorial',
+      is_active: true,
+    },
+    {
+      id: 'blk-4',
+      type: 'social_row',
+      title: 'Retrouvez-nous partout',
+      is_active: true,
+    }
+  ],
+  is_published: true,
+  views_count: 14890,
+  clicks_count: 3420,
+};
