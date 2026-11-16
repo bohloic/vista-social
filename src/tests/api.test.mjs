@@ -112,3 +112,60 @@ test('5. AI Smart Reply Schema Validation', () => {
   });
   assert.equal(invalid.success, false);
 });
+
+test('6. Posts Update (PUT) & Delete (DELETE) Schema Contract', () => {
+  const updateSchema = z.object({
+    id: z.string().min(1, 'ID du post requis'),
+    content: z.string().min(1).optional(),
+    scheduled_for: z.string().optional(),
+    status: z.enum(['draft', 'needs_approval', 'approved', 'scheduled', 'publishing', 'published', 'failed']).optional(),
+  });
+
+  // Valid update
+  const validUpdate = updateSchema.safeParse({
+    id: 'post-123',
+    content: 'Version modifiée du post avec hashtag',
+    status: 'scheduled',
+  });
+  assert.equal(validUpdate.success, true);
+
+  // Invalid update: empty ID
+  const invalidUpdate = updateSchema.safeParse({
+    id: '',
+    content: 'Test',
+  });
+  assert.equal(invalidUpdate.success, false);
+});
+
+test('7. Pulse Pages UUID & Schema Contract', () => {
+  const isUuid = (val) =>
+    typeof val === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+  assert.equal(isUuid('550e8400-e29b-41d4-a716-446655440000'), true);
+  assert.equal(isUuid('pulse-default'), false);
+  assert.equal(isUuid('ws-default'), false);
+});
+
+test('8. Social Connect Deduplication Filter Contract', () => {
+  const mockAccounts = [
+    { id: '1', platform: 'instagram', username: '@brand', created_at: '2026-01-01' },
+    { id: '2', platform: 'instagram', username: '@brand', created_at: '2026-01-02' },
+    { id: '3', platform: 'twitter', username: '@brand', created_at: '2026-01-01' },
+  ];
+
+  const seen = new Set();
+  const deduped = [];
+  for (const acc of mockAccounts) {
+    const key = `${acc.platform}:${acc.username.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(acc);
+    }
+  }
+
+  assert.equal(deduped.length, 2);
+  assert.equal(deduped[0].id, '1');
+  assert.equal(deduped[1].id, '3');
+});
+

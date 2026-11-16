@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Sparkles,
@@ -13,12 +14,15 @@ import {
   Lock,
   Globe2,
   Zap,
+  AlertCircle,
 } from 'lucide-react';
 
 export default function SetupWizardPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [checking, setChecking] = useState(true);
+  const [alreadyInitialized, setAlreadyInitialized] = useState(false);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null);
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -40,7 +44,10 @@ export default function SetupWizardPage() {
         const res = await fetch('/api/setup');
         const data = await res.json();
         if (data.initialized) {
-          router.replace('/');
+          setAlreadyInitialized(true);
+          if (data.adminEmail) {
+            setAdminEmail(data.adminEmail);
+          }
         }
       } catch (err) {
         console.warn('Status check failed:', err);
@@ -98,6 +105,34 @@ export default function SetupWizardPage() {
           <span className="text-xs text-slate-400 font-medium tracking-wide">
             Vérification de l&apos;environnement PulseSocial...
           </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (alreadyInitialized) {
+    return (
+      <div className="min-h-screen bg-[#07090E] text-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="max-w-md w-full relative z-10 pulse-card p-8 border border-slate-800 bg-slate-900/80 backdrop-blur-2xl text-center space-y-5">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center border border-emerald-500/20 shadow-xl shadow-emerald-500/10">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-black text-white">Environnement déjà configuré</h2>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              L&apos;environnement PulseSocial est déjà configuré avec un compte Super-Admin actif{adminEmail ? ` (${adminEmail})` : ''}.
+            </p>
+            <p className="text-xs text-slate-400">
+              Veuillez vous connecter directement pour accéder à votre espace de travail.
+            </p>
+          </div>
+          <Link
+            href="/login"
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
+          >
+            <span>Se connecter à PulseSocial</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     );

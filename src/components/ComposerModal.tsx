@@ -27,10 +27,20 @@ interface ComposerModalProps {
   onClose: () => void;
   accounts: SocialAccount[];
   onSavePost: (post: Omit<Post, 'id' | 'created_at'>) => void;
+  editingPost?: Post | null;
+  onUpdatePost?: (updated: Post) => void;
 }
 
-export function ComposerModal({ isOpen, onClose, accounts: initialAccounts, onSavePost }: ComposerModalProps) {
+export function ComposerModal({
+  isOpen,
+  onClose,
+  accounts: initialAccounts,
+  onSavePost,
+  editingPost,
+  onUpdatePost,
+}: ComposerModalProps) {
   const [availableAccounts, setAvailableAccounts] = useState<SocialAccount[]>(initialAccounts);
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState<boolean>(true);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [content, setContent] = useState('');
   const [firstComment, setFirstComment] = useState('');
@@ -63,16 +73,48 @@ export function ComposerModal({ isOpen, onClose, accounts: initialAccounts, onSa
   const [aiVisualLoading, setAiVisualLoading] = useState(false);
   const [generatedVisualPreview, setGeneratedVisualPreview] = useState<string | null>(null);
 
+  // Populate state when editingPost changes
+  useEffect(() => {
+    if (editingPost) {
+      setContent(editingPost.content || '');
+      setFirstComment(editingPost.first_comment || '');
+      setPostType(editingPost.post_type || 'post');
+      setMediaUrls(editingPost.media_urls || []);
+      if (editingPost.scheduled_for) {
+        try {
+          const d = new Date(editingPost.scheduled_for);
+          if (!isNaN(d.getTime())) {
+            setScheduledDate(d.toISOString().slice(0, 16));
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (editingPost.target_accounts && editingPost.target_accounts.length > 0) {
+        setSelectedAccounts(editingPost.target_accounts);
+      }
+    } else {
+      setContent('');
+      setFirstComment('');
+      setPostType('post');
+      setMediaUrls([]);
+      const d = new Date();
+      d.setHours(d.getHours() + 2);
+      setScheduledDate(d.toISOString().slice(0, 16));
+    }
+  }, [editingPost, isOpen]);
+
   // Sync real accounts
   useEffect(() => {
     const loadAccounts = async () => {
+      setIsLoadingAccounts(true);
       try {
         const res = await fetch('/api/social/connect');
         if (res.ok) {
           const data = await res.json();
           if (data.accounts && data.accounts.length > 0) {
             setAvailableAccounts(data.accounts);
-            if (selectedAccounts.length === 0) {
+            if (selectedAccounts.length === 0 && !editingPost) {
               setSelectedAccounts([data.accounts[0].id]);
               setActivePreviewPlatform(data.accounts[0].platform);
             }
@@ -81,9 +123,11 @@ export function ComposerModal({ isOpen, onClose, accounts: initialAccounts, onSa
         }
       } catch (err) {
         console.warn('Could not load accounts from /api/social/connect');
+      } finally {
+        setIsLoadingAccounts(false);
       }
 
-      if (initialAccounts.length > 0 && selectedAccounts.length === 0) {
+      if (initialAccounts.length > 0 && selectedAccounts.length === 0 && !editingPost) {
         setAvailableAccounts(initialAccounts);
         setSelectedAccounts([initialAccounts[0].id]);
         setActivePreviewPlatform(initialAccounts[0].platform);
@@ -93,7 +137,7 @@ export function ComposerModal({ isOpen, onClose, accounts: initialAccounts, onSa
     if (isOpen) {
       loadAccounts();
     }
-  }, [isOpen, initialAccounts]);
+  }, [isOpen, initialAccounts, editingPost]);
 
   if (!isOpen) return null;
 
@@ -237,6 +281,22 @@ export function ComposerModal({ isOpen, onClose, accounts: initialAccounts, onSa
   const handlePublishOrSchedule = (isImmediate: boolean) => {
     if (!content.trim() && mediaUrls.length === 0) return;
 
+    if (editingPost && onUpdatePost) {
+      onUpdatePost({
+        ...editingPost,
+        content,
+        post_type: postType,
+        media_urls: mediaUrls,
+        status: isImmediate ? 'published' : editingPost.status || 'scheduled',
+        scheduled_for: isImmediate ? new Date().toISOString() : new Date(scheduledDate).toISOString(),
+        published_at: isImmediate ? new Date().toISOString() : editingPost.published_at,
+        first_comment: firstComment.trim() ? firstComment.trim() : undefined,
+        target_accounts: selectedAccounts,
+      });
+      onClose();
+      return;
+    }
+
     onSavePost({
       workspace_id: 'ws-default',
       author_name: 'Lead Community Manager',
@@ -275,10 +335,12 @@ export function ComposerModal({ isOpen, onClose, accounts: initialAccounts, onSa
             </div>
             <div>
               <h3 className="font-bold text-base text-slate-900 dark:text-white leading-tight">
-                Compositeur Multi-Réseaux PulseSocial
+                {editingPost ? 'Modifier la publication' : 'Compositeur Multi-Réseaux PulseSocial'}
               </h3>
               <p className="text-xs text-slate-500">
-                Créez, importez photos & vidéos, générez des visuels IA et programmez en simultané.
+                {editingPost
+                  ? 'Modifiez le texte, médias, date et réseaux cibles de votre post.'
+                  : 'Créez, importez photos & vidéos, générez des visuels IA et programmez en simultané.'}
               </p>
             </div>
           </div>
@@ -300,7 +362,13 @@ export function ComposerModal({ isOpen, onClose, accounts: initialAccounts, onSa
                 1. Sélectionner les réseaux cibles :
               </label>
               <div className="flex flex-wrap gap-2">
-                {availableAccounts.length === 0 ? (
+                {isLoadingAccounts ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-8 rounded-xl bg-slate-800/80 animate-pulse border border-slate-700/50" />
+                    <div className="w-28 h-8 rounded-xl bg-slate-800/80 animate-pulse border border-slate-700/50" />
+                    <div className="w-24 h-8 rounded-xl bg-slate-800/80 animate-pulse border border-slate-700/50" />
+                  </div>
+                ) : availableAccounts.length === 0 ? (
                   <p className="text-xs text-amber-500 italic">
                     Aucun réseau connecté. Rendez-vous dans Paramètres &gt; Connexion Automatique.
                   </p>
@@ -722,20 +790,22 @@ export function ComposerModal({ isOpen, onClose, accounts: initialAccounts, onSa
           </button>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => handlePublishOrSchedule(true)}
-              className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 rounded-xl transition-all shadow-sm cursor-pointer"
-            >
-              Publier maintenant
-            </button>
+            {!editingPost && (
+              <button
+                type="button"
+                onClick={() => handlePublishOrSchedule(true)}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 rounded-xl transition-all shadow-sm cursor-pointer"
+              >
+                Publier maintenant
+              </button>
+            )}
             <button
               type="button"
               onClick={() => handlePublishOrSchedule(false)}
               className="flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-xl shadow-lg shadow-violet-600/30 active:scale-95 transition-all cursor-pointer"
             >
-              <Clock className="w-3.5 h-3.5" />
-              <span>Programmer le Post</span>
+              {editingPost ? <Check className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+              <span>{editingPost ? 'Enregistrer les modifications' : 'Programmer le Post'}</span>
             </button>
           </div>
         </div>

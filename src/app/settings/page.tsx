@@ -24,6 +24,8 @@ import {
   Mail,
   UserCheck,
   AlertTriangle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface TeamMember {
@@ -118,6 +120,12 @@ export default function SettingsPage() {
     googleBusinessKey: '',
   });
   const [savedTokens, setSavedTokens] = useState(false);
+  const [showTokens, setShowTokens] = useState<Record<string, boolean>>({});
+  const [showSupabaseUrl, setShowSupabaseUrl] = useState(false);
+
+  const toggleTokenVisibility = (key: string) => {
+    setShowTokens((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // Fetch real accounts from database
   const fetchAccounts = async () => {
@@ -306,66 +314,66 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-px overflow-x-auto">
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-800 pb-px overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800">
         <button
           type="button"
           onClick={() => setActiveTab('oauth')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'oauth'
-              ? 'border-violet-500 text-violet-400'
+              ? 'border-violet-500 text-violet-400 font-bold'
               : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
-          <Zap className="w-4 h-4 text-emerald-400" />
-          <span>Connexion Automatique (1-Clic OAuth)</span>
+          <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>OAuth 1-Clic</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('accounts')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'accounts'
-              ? 'border-violet-500 text-violet-400'
+              ? 'border-violet-500 text-violet-400 font-bold'
               : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
-          <Share2 className="w-4 h-4" />
-          <span>Comptes Réseaux ({accounts.length})</span>
+          <Share2 className="w-4 h-4 shrink-0" />
+          <span>Comptes ({accounts.length})</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('team')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'team'
-              ? 'border-violet-500 text-violet-400'
+              ? 'border-violet-500 text-violet-400 font-bold'
               : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
-          <Users className="w-4 h-4" />
-          <span>Équipe & Rôles ({teamMembers.length})</span>
+          <Users className="w-4 h-4 shrink-0" />
+          <span>Équipe ({teamMembers.length})</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('tokens')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'tokens'
-              ? 'border-violet-500 text-violet-400'
+              ? 'border-violet-500 text-violet-400 font-bold'
               : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
-          <Lock className="w-4 h-4" />
-          <span>Saisie Manuelle de Tokens</span>
+          <Lock className="w-4 h-4 shrink-0" />
+          <span>Tokens Manuels</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('api')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'api'
-              ? 'border-violet-500 text-violet-400'
+              ? 'border-violet-500 text-violet-400 font-bold'
               : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
-          <Key className="w-4 h-4" />
-          <span>Supabase & IA Gemini</span>
+          <Key className="w-4 h-4 shrink-0" />
+          <span>Supabase & IA</span>
         </button>
       </div>
 
@@ -671,58 +679,98 @@ export default function SettingsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-              <label className="text-xs font-bold text-white flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-pink-500" />
-                Meta Graph Access Token (Instagram & Facebook)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-pink-500" />
+                  Meta Graph Access Token (Instagram & Facebook)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility('meta')}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  title="Afficher/Masquer"
+                >
+                  {showTokens['meta'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
               <input
-                type="password"
+                type={showTokens['meta'] ? 'text' : 'password'}
                 placeholder="EAA..."
                 value={tokens.metaToken}
                 onChange={(e) => setTokens({ ...tokens, metaToken: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500"
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
               />
             </div>
 
             <div className="space-y-1.5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-              <label className="text-xs font-bold text-white flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-sky-400" />
-                X (Twitter) Bearer Token / API Key
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-sky-400" />
+                  X (Twitter) Bearer Token / API Key
+                </label>
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility('x')}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  title="Afficher/Masquer"
+                >
+                  {showTokens['x'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
               <input
-                type="password"
+                type={showTokens['x'] ? 'text' : 'password'}
                 placeholder="AAAA..."
                 value={tokens.xBearerToken}
                 onChange={(e) => setTokens({ ...tokens, xBearerToken: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500"
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
               />
             </div>
 
             <div className="space-y-1.5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-              <label className="text-xs font-bold text-white flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-600" />
-                LinkedIn Member / Page Access Token
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-600" />
+                  LinkedIn Member / Page Access Token
+                </label>
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility('linkedin')}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  title="Afficher/Masquer"
+                >
+                  {showTokens['linkedin'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
               <input
-                type="password"
+                type={showTokens['linkedin'] ? 'text' : 'password'}
                 placeholder="AQX..."
                 value={tokens.linkedInToken}
                 onChange={(e) => setTokens({ ...tokens, linkedInToken: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500"
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
               />
             </div>
 
             <div className="space-y-1.5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-              <label className="text-xs font-bold text-white flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                TikTok Content Posting API Token
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  TikTok Content Posting API Token
+                </label>
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility('tiktok')}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  title="Afficher/Masquer"
+                >
+                  {showTokens['tiktok'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
               <input
-                type="password"
+                type={showTokens['tiktok'] ? 'text' : 'password'}
                 placeholder="act.example..."
                 value={tokens.tiktokToken}
                 onChange={(e) => setTokens({ ...tokens, tiktokToken: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500"
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
               />
             </div>
           </div>
@@ -744,13 +792,13 @@ export default function SettingsPage() {
 
           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
                 <p className="font-bold text-xs text-emerald-300">
                   Clé d&apos;API Gemini connectée et opérationnelle
                 </p>
                 <p className="text-[10px] text-emerald-400">
-                  Modèle : gemini-2.0-flash • Clé active configurée dans .env.local
+                  Modèle : gemini-2.0-flash • Variables d&apos;environnement serveur sécurisées (Production)
                 </p>
               </div>
             </div>
@@ -759,15 +807,25 @@ export default function SettingsPage() {
             </span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 space-y-1">
-            <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-violet-400" />
-              <p className="font-bold text-xs text-violet-300">
-                Base de données Supabase PostgreSQL
-              </p>
+          <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-violet-400" />
+                <p className="font-bold text-xs text-violet-300">
+                  Base de données Supabase PostgreSQL
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSupabaseUrl(!showSupabaseUrl)}
+                className="flex items-center gap-1.5 text-[11px] text-slate-300 hover:text-white cursor-pointer px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-700 transition-colors"
+              >
+                {showSupabaseUrl ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                <span>{showSupabaseUrl ? 'Masquer URL' : 'Afficher URL Projet'}</span>
+              </button>
             </div>
-            <p className="text-[10px] text-slate-300">
-              Projet : https://ljpslbcouvyyzzvxxfme.supabase.co • Schéma complet : 14 tables actives
+            <p className="text-[11px] font-mono text-slate-300">
+              Projet : {showSupabaseUrl ? 'https://ljpslbcouvyyzzvxxfme.supabase.co' : 'https://ljps••••••••xfme.supabase.co'} • Schéma complet : 14 tables actives
             </p>
           </div>
         </div>

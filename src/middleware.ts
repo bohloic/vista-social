@@ -4,9 +4,33 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Allow public routes without authentication
+  // 1. Check for session cookie
+  const sessionCookie = request.cookies.get('pulsesocial_session');
+  let isValidSession = false;
+
+  if (sessionCookie && sessionCookie.value) {
+    try {
+      const raw = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
+      const { data } = JSON.parse(raw);
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      if (parsed && (!parsed.exp || parsed.exp >= Date.now())) {
+        isValidSession = true;
+      }
+    } catch {
+      isValidSession = false;
+    }
+  }
+
+  // 2. Redirect authenticated users away from /login to dashboard /
+  if (pathname === '/login') {
+    if (isValidSession) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 3. Allow public routes without authentication
   const isPublicRoute =
-    pathname === '/login' ||
     pathname === '/setup' ||
     pathname.startsWith('/p/') ||
     pathname.startsWith('/api/auth/') ||
@@ -19,31 +43,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Check for session cookie
-  const sessionCookie = request.cookies.get('pulsesocial_session');
-
-  if (!sessionCookie || !sessionCookie.value) {
+  // 4. Protect all other routes (/, /publish, /inbox, /analytics, /listening, /reviews, /pulse-pages, /billing, /settings, /api/...)
+  if (!isValidSession) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // 3. Simple format check on session cookie
-  try {
-    const raw = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-    const { data } = JSON.parse(raw);
-    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-
-    if (parsed.exp && parsed.exp < Date.now()) {
-      const loginUrl = new URL('/login', request.url);
-      const response = NextResponse.redirect(loginUrl);
-      response.cookies.delete('pulsesocial_session');
-      return response;
+    if (pathname !== '/') {
+      loginUrl.searchParams.set('redirect', pathname);
     }
-  } catch (err) {
-    const loginUrl = new URL('/login', request.url);
     const response = NextResponse.redirect(loginUrl);
-    response.cookies.delete('pulsesocial_session');
+    if (sessionCookie) {
+      response.cookies.delete('pulsesocial_session');
+    }
     return response;
   }
 

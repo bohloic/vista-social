@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { LegalModal } from '@/components/LegalModals';
 import {
   CreditCard,
   CheckCircle2,
@@ -108,12 +109,26 @@ export default function BillingPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [workspaceId, setWorkspaceId] = useState<string>('');
+  const [legalModalType, setLegalModalType] = useState<'rgpd' | 'cgu' | null>(null);
   const [paymentResult, setPaymentResult] = useState<{
     success: boolean;
     message: string;
     instruction?: string;
     ref?: string;
   } | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pulsesocial_active_workspace');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.id) setWorkspaceId(parsed.id);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const activePlanObj = PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
   const activePrice = activePlanObj.price[currency];
@@ -134,7 +149,7 @@ export default function BillingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workspaceId: 'ws-default',
+          workspaceId: workspaceId || undefined,
           plan: selectedPlan,
           provider: selectedProvider,
           phoneNumber: phoneNumber.trim() || '0700000000',
@@ -412,7 +427,7 @@ export default function BillingPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
+                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] cursor-pointer"
                   >
                     {loading ? (
                       <>
@@ -427,10 +442,57 @@ export default function BillingPage() {
                     )}
                   </button>
                 </div>
+
+                <div className="text-[11px] text-slate-500 text-center flex items-center justify-center gap-2 pt-1 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setLegalModalType('cgu')}
+                    className="hover:underline hover:text-slate-300 cursor-pointer"
+                  >
+                    Conditions & Mobile Money (FCFA)
+                  </button>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={() => setLegalModalType('rgpd')}
+                    className="hover:underline hover:text-slate-300 cursor-pointer"
+                  >
+                    Confidentialité RGPD
+                  </button>
+                </div>
               </form>
             )}
           </div>
         </div>
+      )}
+
+      {/* Page Footer Legal Links */}
+      <div className="text-center pt-8 border-t border-slate-800/80">
+        <p className="text-xs text-slate-500">
+          PulseSocial est une plateforme SaaS souveraine hébergée en Europe et conforme aux réglementations de paiement CEMAC/UEMOA.
+        </p>
+        <div className="flex items-center justify-center gap-4 mt-2 text-xs text-slate-400">
+          <button
+            type="button"
+            onClick={() => setLegalModalType('cgu')}
+            className="hover:underline hover:text-violet-400 cursor-pointer"
+          >
+            CGU & Mentions Légales Mobile Money
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={() => setLegalModalType('rgpd')}
+            className="hover:underline hover:text-violet-400 cursor-pointer"
+          >
+            Politique de Confidentialité & RGPD
+          </button>
+        </div>
+      </div>
+
+      {/* Legal Modals */}
+      {legalModalType && (
+        <LegalModal type={legalModalType} onClose={() => setLegalModalType(null)} />
       )}
     </div>
   );

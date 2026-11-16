@@ -88,8 +88,26 @@ export default function PulsePagesBuilder() {
   const [page, setPage] = useState<PulsePage>(DEFAULT_PAGE);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Load from Supabase with localStorage & sessionStorage draft fallback
   useEffect(() => {
+    // 1. Check for unsaved draft first
+    if (typeof window !== 'undefined') {
+      const draft = sessionStorage.getItem('pulsesocial_page_draft');
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          if (parsed && parsed.title) {
+            setPage(parsed);
+          }
+        } catch {
+          // ignore draft parse error
+        }
+      }
+    }
+
+    // 2. Fetch official data from Supabase
     const fetchPage = async () => {
       try {
         const res = await fetch('/api/pulse-pages');
@@ -97,14 +115,42 @@ export default function PulsePagesBuilder() {
           const data = await res.json();
           if (data.page) {
             setPage(data.page);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('pulsesocial_page_saved', JSON.stringify(data.page));
+            }
+            return;
           }
         }
       } catch (err) {
-        console.warn('Could not fetch existing pulse page, using default');
+        console.warn('Could not fetch existing pulse page, checking local fallback:', err);
+      }
+
+      // 3. Fallback to localStorage saved page
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('pulsesocial_page_saved');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.title) {
+              setPage(parsed);
+            }
+          } catch {
+            // ignore
+          }
+        }
       }
     };
+
     fetchPage();
   }, []);
+
+  // Update page helper that also persists to sessionStorage draft
+  const updatePage = (updated: PulsePage) => {
+    setPage(updated);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('pulsesocial_page_draft', JSON.stringify(updated));
+    }
+  };
 
   const handleAddBlock = () => {
     const newBlock: PulsePageBlock = {
@@ -117,18 +163,18 @@ export default function PulsePagesBuilder() {
       order_index: page.blocks.length,
       click_count: 0,
     };
-    setPage({ ...page, blocks: [...page.blocks, newBlock] });
+    updatePage({ ...page, blocks: [...page.blocks, newBlock] });
   };
 
   const handleUpdateBlock = (id: string, updates: Partial<PulsePageBlock>) => {
-    setPage({
+    updatePage({
       ...page,
       blocks: page.blocks.map((b) => (b.id === id ? { ...b, ...updates } : b)),
     });
   };
 
   const handleDeleteBlock = (id: string) => {
-    setPage({
+    updatePage({
       ...page,
       blocks: page.blocks.filter((b) => b.id !== id),
     });
@@ -136,20 +182,38 @@ export default function PulsePagesBuilder() {
 
   const handleSave = async () => {
     setSaving(true);
+    setErrorMessage(null);
     try {
       const res = await fetch('/api/pulse-pages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(page),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.page) setPage(data.page);
-        setSavedSuccess(true);
-        setTimeout(() => setSavedSuccess(false), 3000);
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Erreur lors de la sauvegarde dans Supabase');
       }
-    } catch (err) {
+
+      if (data.page) {
+        setPage(data.page);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('pulsesocial_page_saved', JSON.stringify(data.page));
+          sessionStorage.setItem('pulsesocial_page_draft', JSON.stringify(data.page));
+        }
+      }
+
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 4000);
+    } catch (err: unknown) {
       console.error('Failed to save Pulse Page:', err);
+      const msg = err instanceof Error ? err.message : 'Échec de la sauvegarde';
+      setErrorMessage(msg);
+      // In case of error, still guarantee local persistence
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pulsesocial_page_saved', JSON.stringify(page));
+      }
     } finally {
       setSaving(false);
     }
@@ -200,6 +264,30 @@ export default function PulsePagesBuilder() {
           </button>
         </div>
       </div>
+
+      {/* Success / Error notification banner */}
+      {savedSuccess && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Vos modifications ont été synchronisées et enregistrées avec succès dans Supabase !</span>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-rose-400">Attention :</span>
+            <span>{errorMessage} (Sauvegarde locale garantie dans votre navigateur)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="text-xs text-rose-400 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Analytics Summary for Pulse Page */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -258,7 +346,7 @@ export default function PulsePagesBuilder() {
                 <input
                   type="text"
                   value={page.title}
-                  onChange={(e) => setPage({ ...page, title: e.target.value })}
+                  onChange={(e) => updatePage({ ...page, title: e.target.value })}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
                 />
               </div>
@@ -274,7 +362,7 @@ export default function PulsePagesBuilder() {
                   <input
                     type="text"
                     value={page.slug}
-                    onChange={(e) => setPage({ ...page, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                    onChange={(e) => updatePage({ ...page, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                     className="flex-1 p-2 bg-transparent text-white focus:outline-none"
                   />
                 </div>
@@ -288,7 +376,7 @@ export default function PulsePagesBuilder() {
               <textarea
                 rows={2}
                 value={page.bio}
-                onChange={(e) => setPage({ ...page, bio: e.target.value })}
+                onChange={(e) => updatePage({ ...page, bio: e.target.value })}
                 className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
               />
             </div>
@@ -300,7 +388,7 @@ export default function PulsePagesBuilder() {
               <input
                 type="text"
                 value={page.avatar_url}
-                onChange={(e) => setPage({ ...page, avatar_url: e.target.value })}
+                onChange={(e) => updatePage({ ...page, avatar_url: e.target.value })}
                 className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
               />
             </div>
@@ -314,7 +402,7 @@ export default function PulsePagesBuilder() {
                 <button
                   key={preset.name}
                   onClick={() =>
-                    setPage({
+                    updatePage({
                       ...page,
                       theme_config: {
                         ...page.theme_config,

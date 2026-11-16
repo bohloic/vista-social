@@ -2,13 +2,17 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { z } from 'zod';
 
 const checkoutSchema = z.object({
-  workspaceId: z.string().min(1, 'Workspace ID requis'),
+  workspaceId: z.string().optional(),
   plan: z.enum(['starter', 'pro', 'agency', 'enterprise']),
   provider: z.enum(['orange_money', 'mtn_momo', 'wave', 'moov', 'card']),
   phoneNumber: z.string().min(8, 'Numéro de téléphone invalide'),
   currency: z.enum(['XOF', 'EUR', 'USD']).default('XOF'),
   amount: z.number().positive(),
 });
+
+const isUuid = (val?: string) =>
+  typeof val === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
 export async function POST(req: Request) {
   try {
@@ -24,13 +28,30 @@ export async function POST(req: Request) {
     const { workspaceId, plan, provider, phoneNumber, currency, amount } = parsed.data;
     const adminClient = getAdminSupabase();
 
+    // Resolve valid workspace UUID to prevent Postgres 22P02 invalid UUID error
+    let resolvedWorkspaceId = workspaceId;
+    if (!isUuid(resolvedWorkspaceId)) {
+      const { data: firstWs } = await adminClient.from('workspaces').select('id').limit(1).maybeSingle();
+      if (firstWs?.id) {
+        resolvedWorkspaceId = firstWs.id;
+      } else {
+        // Fallback create default workspace if none exists
+        const { data: newWs } = await adminClient
+          .from('workspaces')
+          .insert({ name: 'Pulse Workspace', slug: 'pulse-workspace' })
+          .select('id')
+          .single();
+        resolvedWorkspaceId = newWs?.id;
+      }
+    }
+
     const transactionRef = `PLS-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     // 1. Create transaction in database
     const { data: tx, error: txError } = await adminClient
       .from('mobile_money_transactions')
       .insert({
-        workspace_id: workspaceId,
+        workspace_id: resolvedWorkspaceId,
         provider,
         phone_number: phoneNumber,
         country_code: 'CI',
@@ -52,7 +73,7 @@ export async function POST(req: Request) {
     // 2. Activate or update Subscription
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     await adminClient.from('subscriptions').insert({
-      workspace_id: workspaceId,
+      workspace_id: resolvedWorkspaceId,
       plan,
       status: 'active',
       currency,
@@ -62,10 +83,12 @@ export async function POST(req: Request) {
     });
 
     // 3. Update Workspace plan
-    await adminClient
-      .from('workspaces')
-      .update({ plan })
-      .eq('id', workspaceId);
+    if (resolvedWorkspaceId) {
+      await adminClient
+        .from('workspaces')
+        .update({ plan })
+        .eq('id', resolvedWorkspaceId);
+    }
 
     // USSD simulation instructions based on provider
     const ussdInstructions: Record<string, string> = {

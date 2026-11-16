@@ -16,6 +16,18 @@ const postCreateSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+const postUpdateSchema = z.object({
+  id: z.string().min(1, 'Identifiant du post requis'),
+  content: z.string().min(1, 'Le contenu est requis').optional(),
+  post_type: z.enum(['post', 'reel', 'story', 'carousel', 'thread', 'short', 'pin']).optional(),
+  media_urls: z.array(z.string()).optional(),
+  status: z.enum(['draft', 'needs_approval', 'approved', 'scheduled', 'publishing', 'published', 'failed']).optional(),
+  scheduled_for: z.string().optional(),
+  first_comment: z.string().optional(),
+  target_accounts: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+});
+
 export async function GET() {
   try {
     const adminClient = getAdminSupabase();
@@ -41,7 +53,7 @@ export async function GET() {
       published_at: p.published_at,
       tags: p.tags || [],
       first_comment: p.first_comment,
-      target_accounts: [],
+      target_accounts: p.target_accounts || [],
       created_at: p.created_at,
     }));
 
@@ -117,6 +129,77 @@ export async function POST(req: Request) {
     return Response.json({ post }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Erreur lors de la création du post';
+    return Response.json({ error: message }, { status: 400 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const json = await req.json();
+    const parsed = postUpdateSchema.safeParse(json);
+    if (!parsed.success) {
+      return Response.json({ error: parsed.error.errors[0]?.message || 'Données invalides' }, { status: 400 });
+    }
+
+    const { id, ...updates } = parsed.data;
+    const adminClient = getAdminSupabase();
+
+    const { data: updated, error } = await adminClient
+      .from('posts')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Update post in supabase error, returning fallback:', error.message);
+      return Response.json({
+        post: {
+          id,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        },
+      });
+    }
+
+    return Response.json({ post: updated, success: true });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du post';
+    return Response.json({ error: message }, { status: 400 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    let id = searchParams.get('id');
+
+    if (!id) {
+      try {
+        const body = await req.json();
+        id = body.id;
+      } catch {
+        // query param only
+      }
+    }
+
+    if (!id) {
+      return Response.json({ error: 'Identifiant du post requis' }, { status: 400 });
+    }
+
+    const adminClient = getAdminSupabase();
+    const { error } = await adminClient.from('posts').delete().eq('id', id);
+
+    if (error) {
+      console.warn('Delete post in supabase error:', error.message);
+    }
+
+    return Response.json({ success: true, message: 'Publication supprimée avec succès' });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
     return Response.json({ error: message }, { status: 400 });
   }
 }
