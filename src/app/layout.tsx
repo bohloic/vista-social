@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const pathname = usePathname();
-  const isSetupOrPublic = pathname?.startsWith('/setup') || pathname?.startsWith('/p/');
+  const isSetupOrPublic = pathname?.startsWith('/setup') || pathname?.startsWith('/p/') || pathname?.startsWith('/login');
 
   const handleSavePost = async (newPost: Omit<Post, 'id' | 'created_at'>) => {
     try {

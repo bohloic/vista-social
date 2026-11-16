@@ -16,6 +16,7 @@ import {
   Sparkles,
   CreditCard,
   Zap,
+  LogOut,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -110,8 +111,8 @@ export function Sidebar({ onOpenComposer }: SidebarProps) {
         })}
       </nav>
 
-      {/* Footer System Status */}
-      <div className="p-4 border-t border-slate-800/80">
+      {/* Footer System Status & Logout */}
+      <div className="p-4 border-t border-slate-800/80 space-y-2">
         <div className="flex items-center justify-between text-[11px] text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -119,6 +120,24 @@ export function Sidebar({ onOpenComposer }: SidebarProps) {
           </div>
           <span className="text-violet-400 font-mono">100% Réel</span>
         </div>
+
+        <button
+          onClick={async () => {
+            try {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('pulsesocial_user');
+                window.location.href = '/login';
+              }
+            } catch {
+              window.location.href = '/login';
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all cursor-pointer"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Déconnexion</span>
+        </button>
       </div>
     </aside>
   );

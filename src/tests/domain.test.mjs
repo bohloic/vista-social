@@ -127,3 +127,37 @@ test('7. Super-Admin Setup Schema - Nominal & Negative Validation', () => {
   });
   assert.equal(invalid.success, false);
 });
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+const socialConnectSchema = z.object({
+  platform: z.enum(['instagram', 'facebook', 'twitter', 'linkedin', 'tiktok', 'google_business']),
+  accountName: z.string().min(1),
+  username: z.string().min(1),
+});
+
+test('8. Authentication Login Schema - Nominal & Negative Validation', () => {
+  const valid = loginSchema.safeParse({
+    email: 'admin@pulsesocial.app',
+    password: 'securePassword123!',
+  });
+  assert.equal(valid.success, true);
+
+  const invalid = loginSchema.safeParse({
+    email: 'invalid-email',
+    password: '',
+  });
+  assert.equal(invalid.success, false);
+});
+
+test('9. 1-Click Social Connect Schema - Nominal Validation', () => {
+  const valid = socialConnectSchema.safeParse({
+    platform: 'instagram',
+    accountName: 'Studio Nova Instagram',
+    username: 'studio.nova.officiel',
+  });
+  assert.equal(valid.success, true);
+});

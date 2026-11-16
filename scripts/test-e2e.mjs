@@ -78,6 +78,7 @@ async function run() {
     const routes = [
       '/',
       '/setup',
+      '/login',
       '/billing',
       '/publish',
       '/inbox',
