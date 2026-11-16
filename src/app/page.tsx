@@ -21,6 +21,8 @@ import {
   ShieldCheck,
   CreditCard,
   Layers,
+  Flame,
+  Briefcase,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -170,6 +172,106 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
+      </div>
+
+      {/* Cockpit Dirigeant : Routine Social Selling en 15 Minutes */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-extrabold text-white flex items-center gap-2">
+              <span className="text-lg">⏱️</span> Cockpit Dirigeant : Votre Routine Social Selling en 15 Minutes
+            </h2>
+            <p className="text-xs text-slate-400">
+              3 actions ciblées par jour pour générer de la notoriété, capter des leads et encaisser des revenus.
+            </p>
+          </div>
+          <span className="hidden sm:inline-flex text-[10px] uppercase font-black px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+            Méthode 3-en-1 Active
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: Studio CM */}
+          <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-violet-500/30 hover:border-violet-500/60 transition-all flex flex-col justify-between space-y-4 group">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="w-8 h-8 rounded-xl bg-violet-500/20 text-violet-300 flex items-center justify-center font-black text-xs border border-violet-500/30">
+                  01
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                  ⏱️ 5 min
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-white group-hover:text-violet-300 transition-colors">
+                Studio CM : Planifiez votre Semaine
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Générez votre calendrier IA sectoriel (3 ou 7 posts) avec accroches percutantes et appels à l&apos;action commerciaux.
+              </p>
+            </div>
+            <Link
+              href="/publish"
+              className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600 text-violet-300 hover:text-white font-bold text-xs border border-violet-500/30 transition-all"
+            >
+              <span>Ouvrir le Planificateur</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {/* Card 2: Radar à Prospects */}
+          <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/30 hover:border-amber-500/60 transition-all flex flex-col justify-between space-y-4 group">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-black text-xs border border-amber-500/30">
+                  02
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                  ⏱️ 5 min
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">
+                Radar : Traitez vos Prospects Chauds
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Répondez sous 24h aux intentions d&apos;achat détectées, partagez vos scripts LinkedIn et liens Wave / Mobile Money.
+              </p>
+            </div>
+            <Link
+              href="/inbox"
+              className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold text-xs border border-amber-500/30 transition-all"
+            >
+              <span>Ouvrir le Radar à Prospects</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {/* Card 3: Mini-CRM */}
+          <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/30 hover:border-emerald-500/60 transition-all flex flex-col justify-between space-y-4 group">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-black text-xs border border-emerald-500/30">
+                  03
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                  ⏱️ 5 min
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-white group-hover:text-emerald-300 transition-colors">
+                Mini-CRM : Clôturez les Ventes
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Déplacez vos opportunités dans le Kanban, relancez les devis envoyés et comptabilisez vos encaissements FCFA.
+              </p>
+            </div>
+            <Link
+              href="/crm"
+              className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-bold text-xs border border-emerald-500/30 transition-all"
+            >
+              <span>Piloter le Pipeline CRM</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}

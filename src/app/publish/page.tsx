@@ -17,7 +17,330 @@ import {
   Trash2,
   Eye,
   Check,
+  Sparkles,
+  Wand2,
+  Building2,
+  Target,
+  X,
+  Loader2,
 } from 'lucide-react';
+
+interface SectorTemplate {
+  title: string;
+  hook: string;
+  content: string;
+  cta: string;
+  platforms: SocialPlatform[];
+}
+
+const SECTOR_DATA: Record<string, SectorTemplate[]> = {
+  ecommerce: [
+    {
+      title: 'Focus Produit Vedette',
+      hook: '🔥 Ce détail fait toute la différence dans votre quotidien...',
+      content: 'Découvrez notre nouvelle collection conçue avec soin pour sublimer votre style sans compromis sur le confort.\n\n✨ Matières nobles certifiées\n⚡ Finitions haute précision\n🚚 Livraison express 24h & Paiement Mobile Money sécurisé.',
+      cta: '👉 Cliquez sur le lien en bio ou envoyez "PRODUIT" en DM pour recevoir votre code promo -15% !',
+      platforms: ['instagram', 'facebook', 'tiktok'],
+    },
+    {
+      title: 'Preuve Sociale & Avis Client',
+      hook: '⭐ "J\'ai commandé lundi, reçu mardi à Abidjan !" - Marc K.',
+      content: 'Rien ne nous fait plus plaisir que vos retours d\'expérience. Merci à nos plus de 1 200 clients qui nous font confiance chaque mois.\n\nNos stocks partent très vite sur les séries les plus demandées.',
+      cta: '📲 Commandez directement via WhatsApp en cliquant sur notre Pulse Page !',
+      platforms: ['instagram', 'facebook'],
+    },
+    {
+      title: 'Offre Limitée / Urgence',
+      hook: '⏳ Dernières 48 heures pour profiter de notre pack exclusif.',
+      content: 'Ne passez pas à côté : le pack duo comprend votre article favori + un accessoire offert.\n\nOffre valable jusqu\'à épuisement strict des stocks.',
+      cta: '🛒 Réservez votre commande en 1 clic via le lien dans notre bio.',
+      platforms: ['facebook', 'instagram', 'tiktok'],
+    },
+    {
+      title: 'Coulisses & Création',
+      hook: '👀 Comment nous sélectionnons nos arrivages chaque semaine...',
+      content: 'Chaque pièce passe par 3 étapes de contrôle qualité rigoureux avant d\'arriver entre vos mains.\n\nLa satisfaction client est notre priorité absolue.',
+      cta: '💬 Quelle couleur préférez-vous ? Dites-le nous en commentaire !',
+      platforms: ['tiktok', 'instagram'],
+    },
+    {
+      title: 'Astuce d\'Entretien',
+      hook: '💡 3 erreurs courantes qui abîment vos articles (et comment les éviter)',
+      content: '1. Ne jamais laver à température trop élevée\n2. Éviter le séchage direct au soleil intense\n3. Utiliser un savon doux adapté\n\nGardez vos pièces comme neuves pendant des années.',
+      cta: '🔖 Enregistrez ce post pour ne pas l\'oublier !',
+      platforms: ['instagram', 'facebook'],
+    },
+    {
+      title: 'Unboxing & Vidéo Démo',
+      hook: '📦 Déballage en direct de notre bestseller !',
+      content: 'Regardez la texture et la robustesse en conditions réelles. Un design pensé pour durer.',
+      cta: '👉 Lien d\'achat direct disponible sur notre profil.',
+      platforms: ['tiktok', 'instagram'],
+    },
+    {
+      title: 'FAQ Express',
+      hook: '❓ "Est-ce que vous livrez à l\'intérieur du pays ?"',
+      content: 'Oui ! Nous expédions partout sous 24 à 48h via nos partenaires logistiques agréés. Paiement à la livraison ou par Wave / Orange Money disponible.',
+      cta: '📲 Écrivez-nous en message privé pour toute question !',
+      platforms: ['facebook', 'instagram'],
+    },
+  ],
+  restaurant: [
+    {
+      title: 'Plat Signature du Jour',
+      hook: '🍽️ Le goût authentique qui réveille vos papilles à midi !',
+      content: 'Préparé chaque matin avec des ingrédients frais du terroir par notre chef passionné.\n\nUn équilibre parfait de saveurs et d\'épices raffinées.',
+      cta: '📍 Réservez votre table ou commandez à emporter via le lien WhatsApp en bio.',
+      platforms: ['instagram', 'facebook'],
+    },
+    {
+      title: 'Menu Déjeuner Express',
+      hook: '⏱️ Pause déjeuner pressée mais envie de bien manger ?',
+      content: 'Notre formule midi express est servie en moins de 15 minutes chrono :\nEntrée + Plat du jour + Boisson fraîche maison.',
+      cta: '👉 Commandez dès 11h sur WhatsApp pour être livré à votre bureau à midi pile !',
+      platforms: ['facebook', 'instagram'],
+    },
+    {
+      title: 'Ambiance Soirée & Cocktail',
+      hook: '🍹 Vendredi soir : décompressez autour de nos cocktails créations.',
+      content: 'Ambiance feutrée, musique acoustique et planches gourmandes à partager entre collègues ou amis.',
+      cta: '📞 Réservation fortement conseillée au +225 07 00 00 00 00.',
+      platforms: ['instagram', 'facebook'],
+    },
+    {
+      title: 'Les Coulisses du Chef',
+      hook: '👨‍🍳 Le secret de notre marinade qui mijote depuis 6h du matin...',
+      content: 'Aucun compromis sur la qualité : nous travaillons exclusivement avec des producteurs locaux sélectionnés.',
+      cta: '❤️ Laissez un cœur si vous avez déjà l\'eau à la bouche !',
+      platforms: ['tiktok', 'instagram'],
+    },
+    {
+      title: 'Offre Spéciale Weekend',
+      hook: '🎉 Ce dimanche : Brunch gourmand à volonté !',
+      content: 'Buffet salé, viennoiseries chaudes, grillades et desserts artisanaux de 11h à 16h.',
+      cta: '🎟️ Places limitées, réservez votre table en DM.',
+      platforms: ['instagram', 'facebook'],
+    },
+    {
+      title: 'Le Choix des Gourmets',
+      hook: '🔥 Team Grillades ou Team Sauce Traditionnelle ?',
+      content: 'Chaque semaine nos habitués débattent ! Les deux sont préparés avec nos sauces secrètes.',
+      cta: '💬 Votez en commentaire et tentez de gagner votre plat offert ce vendredi !',
+      platforms: ['facebook', 'tiktok'],
+    },
+    {
+      title: 'Service Traiteur & Événements',
+      hook: '🎂 Un anniversaire ou un séminaire d\'entreprise à organiser ?',
+      content: 'Notre équipe traiteur s\'occupe de tout : cocktail dînatoire, buffet chaud et service impeccable.',
+      cta: '📧 Demandez un devis personnalisé en 2h via notre lien en bio.',
+      platforms: ['facebook', 'linkedin'],
+    },
+  ],
+  b2b: [
+    {
+      title: 'Étude de Cas & ROI',
+      hook: '📈 Comment notre client a généré +42% de leads qualifiés en 30 jours.',
+      content: 'Voici la méthode exacte que nous avons déployée :\n1. Simplification de l\'entonnoir de conversion\n2. Optimisation des temps de réponse (< 15 min)\n3. Relance multi-canal automatisée.',
+      cta: '📩 Commentez "AUDIT" pour recevoir notre grille d\'évaluation gratuite.',
+      platforms: ['linkedin', 'twitter'],
+    },
+    {
+      title: 'Erreur B2B Fréquente',
+      hook: '⚠️ 90% des entreprises perdent des prospects faute de suivi dans les 24h.',
+      content: 'Dans le B2B moderne, la réactivité est le premier facteur de conversion. Plus vous attendez, plus votre prospect se tourne vers un concurrent.',
+      cta: '👉 Réservez un appel stratégique de 15 min via le lien sur mon profil.',
+      platforms: ['linkedin', 'twitter'],
+    },
+    {
+      title: 'Framework & Méthode',
+      hook: '🧠 Le framework en 3 étapes pour structurer votre prospection commerciale :',
+      content: '1. Identifier l\'intention d\'achat réelle\n2. Qualifier le budget et l\'urgence\n3. Clôturer avec un lien de paiement ou un devis clair sans friction.',
+      cta: '💾 Enregistrez ce post et partagez-le à votre équipe commerciale !',
+      platforms: ['linkedin'],
+    },
+    {
+      title: 'Tendance Marché',
+      hook: '🚀 L\'automatisation intelligente ne remplace pas l\'humain : elle décuple sa force.',
+      content: 'Les meilleurs directeurs commerciaux utilisent les outils IA pour éliminer la saisie manuelle et se concentrer sur la négociation à haute valeur.',
+      cta: '💬 Quel est votre plus grand défi commercial ce trimestre ?',
+      platforms: ['linkedin', 'twitter'],
+    },
+    {
+      title: 'Coulisses & Expertise',
+      hook: '🔍 Ce que nous avons appris après avoir analysé plus de 50 000 conversations de vente...',
+      content: 'La personnalisation du premier message triple le taux de réponse par rapport à un template générique.',
+      cta: '👉 Suivez notre page pour recevoir nos analyses hebdomadaires.',
+      platforms: ['linkedin'],
+    },
+    {
+      title: 'Témoignage Dirigeant',
+      hook: '💼 "Nous avons gagné 10h de travail par semaine dès le premier mois."',
+      content: 'Retrouvez le témoignage complet de la directrice générale de Nexus Solutions sur l\'adoption de nos outils.',
+      cta: '🔗 Lien de l\'interview complète disponible dans le premier commentaire.',
+      platforms: ['linkedin'],
+    },
+    {
+      title: 'Offre Accompagnement',
+      hook: '🎯 Prêt à accélérer vos ventes ce mois-ci ?',
+      content: 'Nous ouvrons 3 nouveaux créneaux d\'accompagnement sur-mesure pour les entreprises en croissance.',
+      cta: '📩 Envoyez-moi un message privé pour échanger sur vos objectifs.',
+      platforms: ['linkedin', 'twitter'],
+    },
+  ],
+  realestate: [
+    {
+      title: 'Bien d\'Exception à la Vente',
+      hook: '🏡 Villa contemporaine 5 pièces avec piscine à Cocody Danga.',
+      content: 'Espaces lumineux, finitions haut de gamme, suite parentale avec dressing, cuisine équipée et groupe électrogène.\n\nQuartier calme, sécurisé 24/7.',
+      cta: '📲 Contactez notre agent au +225 07 00 00 00 00 ou cliquez sur le lien en bio pour la visite virtuelle.',
+      platforms: ['facebook', 'instagram'],
+    },
+    {
+      title: 'Conseil Investisseur',
+      hook: '💰 Où investir en 2026 pour obtenir un rendement locatif supérieur à 9% ?',
+      content: 'Analyse des zones à fort potentiel de valorisation : infrastructures en développement, proximité des axes majeurs et demande locative soutenue.',
+      cta: '📩 Envoyez "INVESTIR" en DM pour recevoir notre guide d\'investissement gratuit.',
+      platforms: ['linkedin', 'facebook'],
+    },
+    {
+      title: 'Appartement Clé en Main',
+      hook: '🔑 Superbe 3 pièces meublé disponible immédiatement.',
+      content: 'Idéal pour cadre d\'entreprise ou investissement Airbnb. Rentabilité démontrée.',
+      cta: '👉 Visites sur rendez-vous uniquement : écrivez-nous en privé.',
+      platforms: ['instagram', 'facebook'],
+    },
+    {
+      title: 'Visite Vidéo / Drone',
+      hook: '🎥 Vue aérienne : découvrez ce domaine d\'exception sous tous les angles.',
+      content: 'Un cadre de vie verdoyant à 10 minutes du centre d\'affaires.',
+      cta: '💬 Donnez votre avis sur cette vue en commentaire !',
+      platforms: ['tiktok', 'instagram'],
+    },
+    {
+      title: 'Guide Juridique & Foncier',
+      hook: '📜 ACD, Titre foncier : comment sécuriser votre achat sans mauvaise surprise ?',
+      content: 'Les 4 vérifications incontournables avant de verser le moindre acompte.',
+      cta: '🔖 Enregistrez ce post pour vos futurs projets immobiliers.',
+      platforms: ['facebook', 'linkedin'],
+    },
+    {
+      title: 'Opportunité Terrain',
+      hook: '📍 Terrain viabilisé de 600 m² avec arrêté d\'approbation.',
+      content: 'Emplacement stratégique en pleine zone résidentielle en plein essor.',
+      cta: '📞 Contact rapide via WhatsApp au lien en description.',
+      platforms: ['facebook'],
+    },
+    {
+      title: 'Nouveau Partenariat',
+      hook: '🤝 Obtenez votre prêt immobilier plus rapidement grâce à nos banques partenaires.',
+      content: 'Nous vous accompagnons dans le montage complet de votre dossier financier.',
+      cta: '📩 Prenez rendez-vous avec notre courtier partenaire en DM.',
+      platforms: ['linkedin', 'facebook'],
+    },
+  ],
+  beauty: [
+    {
+      title: 'Résultat Avant / Après',
+      hook: '✨ Transformation éclat : regardez ce résultat après seulement 3 semaines !',
+      content: 'Notre sérum naturel enrichi au beurre de karité bio et acide hyaluronique redonne lumière et fermeté à votre peau sans agresser.',
+      cta: '👉 Commandez le vôtre avec livraison à domicile via le lien en bio !',
+      platforms: ['instagram', 'tiktok', 'facebook'],
+    },
+    {
+      title: 'Routine Matin 3 Étapes',
+      hook: '🌸 5 minutes chrono pour une peau lumineuse toute la journée :',
+      content: '1. Nettoyage doux à l\'eau tiède\n2. Brume hydratante florale\n3. Protection solaire invisible indispensable.',
+      cta: '💬 Quelle est votre étape préférée ? Partagez en commentaire !',
+      platforms: ['tiktok', 'instagram'],
+    },
+    {
+      title: 'Avis Clientes & Story',
+      hook: '💖 "Mes tâches ont visiblement diminué !" - Témoignage d\'Aïcha',
+      content: 'La formule a été testée et approuvée sous contrôle dermatologique.',
+      cta: '📲 Envoyez "BEAUTE" en DM pour bénéficier d\'un diagnostic personnalisé gratuit.',
+      platforms: ['instagram', 'facebook'],
+    },
+    {
+      title: 'Pack Promo Weekend',
+      hook: '🎁 Le coffret soin complet à prix tout doux ce weekend seulement.',
+      content: 'Comprend : gommage exfoliant + masque réparateur + serviette microfibre offerte.',
+      cta: '🛒 Lien direct de commande sécurisée par Mobile Money sur notre profil !',
+      platforms: ['facebook', 'instagram'],
+    },
+    {
+      title: 'Mythe vs Réalité Soin',
+      hook: '❌ "Les peaux grasses n\'ont pas besoin d\'hydratation." VRAI ou FAUX ?',
+      content: 'FAUX ! Une peau mal hydratée surproduit du sébum pour se protéger. Choisissez toujours une texture gel légère non comédogène.',
+      cta: '🔖 Partagez cette astuce à une amie qui en a besoin !',
+      platforms: ['instagram', 'tiktok'],
+    },
+    {
+      title: 'Ingrédients Clés',
+      hook: '🌿 Pourquoi nous avons banni les sulfates et les parabènes de tous nos soins.',
+      content: 'Respect de la peau, respect de l\'environnement, formulations éco-certifiées.',
+      cta: '👉 Retrouvez la composition détaillée sur notre boutique en ligne.',
+      platforms: ['instagram', 'facebook'],
+    },
+    {
+      title: 'Tutoriel Coiffure / Maquillage',
+      hook: '💄 Réussir un teint parfait sans effet plâtre : le tuto rapide.',
+      content: 'Moins de matière, plus d\'estompage : découvrez la gestuelle des professionnels.',
+      cta: '❤️ Double-cliquez si le rendu vous plaît !',
+      platforms: ['tiktok', 'instagram'],
+    },
+  ],
+  coaching: [
+    {
+      title: 'Leçon d\'Impact & Mindset',
+      hook: '💡 La compétence n°1 qui sépare ceux qui stagnent de ceux qui réussissent.',
+      content: 'Ce n\'est pas le talent brut, c\'est la constance dans l\'exécution quotidienne.\n\nCeux qui gagnent ne sont pas plus intelligents : ils ont un système structuré.',
+      cta: '👉 Partagez cette citation en story si elle vous inspire aujourd\'hui !',
+      platforms: ['linkedin', 'instagram'],
+    },
+    {
+      title: 'Étude de Cas Apprenant',
+      hook: '🚀 D\'employé hésitant à entrepreneur rentable en 90 jours : le parcours de Sonia.',
+      content: 'Sans réseau au départ, elle a appliqué le module prospection pas à pas pour signer ses 3 premiers clients corporate.',
+      cta: '📩 Commentez "FORMATION" pour recevoir le programme complet en avant-première.',
+      platforms: ['linkedin', 'facebook'],
+    },
+    {
+      title: 'Webinar Gratuit / Masterclass',
+      hook: '🎙️ Masterclass en direct ce jeudi à 19h00 GMT :',
+      content: '"Comment doubler ses revenus de prestation de services sans sacrifier son temps personnel."\n\nSession de questions/réponses en direct.',
+      cta: '🎟️ Inscription gratuite obligatoire via le lien dans la bio (places limitées).',
+      platforms: ['linkedin', 'facebook', 'twitter'],
+    },
+    {
+      title: 'Faux Débat / Prise de Position',
+      hook: '🛑 Arrêtez de passer 4 heures par jour sur les réseaux sans stratégie claire.',
+      content: '30 minutes ciblées avec un plan d\'action rapportent 10 fois plus qu\'une présence passive et désorganisée.',
+      cta: '💬 Combien de temps consacrez-vous à votre prospection par semaine ?',
+      platforms: ['linkedin', 'twitter'],
+    },
+    {
+      title: 'Ressource Téléchargeable',
+      hook: '🎁 Cadeau de la semaine : téléchargez notre Template de Planification Mensuelle.',
+      content: 'Le même document que nous utilisons en interne pour piloter nos lancements.',
+      cta: '📲 Lien de téléchargement instantané en bio.',
+      platforms: ['linkedin', 'instagram'],
+    },
+    {
+      title: 'Conseil Carrière',
+      hook: '💼 3 questions à se poser avant de négocier son prochain contrat.',
+      content: '1. Quelle valeur quantifiable ai-je apportée ?\n2. Quel est le coût pour me remplacer ?\n3. Quelle nouvelle responsabilité suis-je prêt à assumer ?',
+      cta: '🔖 Enregistrez ce post pour votre prochain entretien !',
+      platforms: ['linkedin'],
+    },
+    {
+      title: 'Session Diagnostic Offerte',
+      hook: '🎯 Bloqué dans votre développement professionnel ?',
+      content: 'J\'offre cette semaine 5 créneaux d\'audit stratégique de 20 minutes pour faire le point sur vos blocages.',
+      cta: '📩 Envoyez-moi "DIAGNOSTIC" par message privé pour réserver votre créneau.',
+      platforms: ['linkedin', 'instagram'],
+    },
+  ],
+};
 
 export default function PublishPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -28,6 +351,13 @@ export default function PublishPage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  // Calendar AI Generator Modal State
+  const [calendarGeneratorOpen, setCalendarGeneratorOpen] = useState(false);
+  const [selectedSector, setSelectedSector] = useState<string>('ecommerce');
+  const [selectedObjective, setSelectedObjective] = useState<string>('sales');
+  const [selectedFrequency, setSelectedFrequency] = useState<number>(3);
+  const [isGeneratingCalendar, setIsGeneratingCalendar] = useState(false);
 
   const fetchPostsAndAccounts = async () => {
     try {
@@ -98,6 +428,59 @@ export default function PublishPage() {
       }
     } catch (err) {
       console.error('Failed to update post:', err);
+    }
+  };
+
+  const handleGenerateSectorCalendar = async () => {
+    setIsGeneratingCalendar(true);
+    try {
+      const templates = (SECTOR_DATA[selectedSector] || SECTOR_DATA['ecommerce']).slice(0, selectedFrequency);
+      const newPostsCreated: Post[] = [];
+
+      for (let i = 0; i < templates.length; i++) {
+        const t = templates[i];
+        const sched = new Date();
+        sched.setDate(sched.getDate() + (i + 1));
+        sched.setHours(10, 0, 0, 0);
+
+        const newPost = {
+          content: `${t.hook}\n\n${t.content}\n\n${t.cta}`,
+          media_urls: [],
+          platforms: t.platforms,
+          target_accounts: [],
+          status: 'scheduled' as const,
+          scheduled_at: sched.toISOString(),
+        };
+
+        try {
+          const res = await fetch('/api/posts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newPost),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.post) newPostsCreated.push(data.post);
+          }
+        } catch (e) {
+          console.warn('Could not post to api', e);
+        }
+      }
+
+      if (newPostsCreated.length > 0) {
+        setPosts((prev) => [...newPostsCreated, ...prev]);
+        setActionMessage(`✓ Calendrier IA généré : ${newPostsCreated.length} publications Social Selling ajoutées !`);
+      } else {
+        setActionMessage(`✓ Calendrier généré avec succès !`);
+      }
+      setTimeout(() => setActionMessage(null), 4500);
+      window.dispatchEvent(new Event('posts-updated'));
+      setCalendarGeneratorOpen(false);
+    } catch (err) {
+      console.error('Error generating calendar:', err);
+      alert('Erreur lors de la génération du calendrier.');
+    } finally {
+      setIsGeneratingCalendar(false);
     }
   };
 
@@ -207,6 +590,15 @@ export default function PublishPage() {
               <span>File d&apos;attente</span>
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setCalendarGeneratorOpen(true)}
+            className="flex items-center gap-2 py-2 px-3.5 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 hover:opacity-90 text-white text-xs font-bold shadow-lg shadow-violet-600/30 active:scale-95 transition-all cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>✨ Générateur de Calendrier IA</span>
+          </button>
 
           <button
             onClick={() => {
@@ -451,6 +843,178 @@ export default function PublishPage() {
                   Fermer
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar AI Generator Modal */}
+      {calendarGeneratorOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in overflow-y-auto">
+          <div className="w-full max-w-xl bg-slate-900 border border-violet-500/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-8">
+            {/* Header */}
+            <div className="p-6 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-lg shadow-inner">
+                  <Sparkles className="w-6 h-6 text-amber-300" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full">
+                    Social Selling Automatisé
+                  </span>
+                  <h3 className="text-base font-bold leading-tight mt-0.5">
+                    Générateur de Calendrier Éditorial IA
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCalendarGeneratorOpen(false)}
+                className="p-1 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 text-xs text-slate-300">
+              {/* Sector Selector */}
+              <div className="space-y-2">
+                <label className="font-bold text-white flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-violet-400" />
+                  1. Choisissez votre Secteur d&apos;Activité :
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { id: 'ecommerce', label: 'E-Commerce & Vente', icon: '🛍️' },
+                    { id: 'restaurant', label: 'Restauration & Food', icon: '🍽️' },
+                    { id: 'b2b', label: 'B2B & Agence Web', icon: '💼' },
+                    { id: 'realestate', label: 'Immobilier & Bâtiment', icon: '🏡' },
+                    { id: 'beauty', label: 'Beauté & Cosmétiques', icon: '✨' },
+                    { id: 'coaching', label: 'Formation & Coaching', icon: '🎓' },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSelectedSector(s.id)}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                        selectedSector === s.id
+                          ? 'bg-violet-600/20 border-violet-500 text-white ring-1 ring-violet-500'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                      }`}
+                    >
+                      <span className="text-lg">{s.icon}</span>
+                      <span className="font-bold text-[11px] leading-tight">{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Commercial Objective */}
+              <div className="space-y-2">
+                <label className="font-bold text-white flex items-center gap-2">
+                  <Target className="w-4 h-4 text-fuchsia-400" />
+                  2. Objectif Commercial Prioritaire :
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[
+                    { id: 'sales', label: 'Vente Directe & DMs', desc: 'Appels à l\'action vers WhatsApp / Pulse Pages' },
+                    { id: 'authority', label: 'Notoriété & Confiance', desc: 'Cas clients, coulisses, preuves sociales' },
+                    { id: 'engagement', label: 'Engagement & Débat', desc: 'Questions ouvertes, sondages, interactions' },
+                  ].map((obj) => (
+                    <button
+                      key={obj.id}
+                      type="button"
+                      onClick={() => setSelectedObjective(obj.id)}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        selectedObjective === obj.id
+                          ? 'bg-fuchsia-600/20 border-fuchsia-500 text-white ring-1 ring-fuchsia-500'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                      }`}
+                    >
+                      <span className="font-bold text-[11px] block text-white">{obj.label}</span>
+                      <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">{obj.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Frequency */}
+              <div className="space-y-2">
+                <label className="font-bold text-white flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-pink-400" />
+                  3. Fréquence de Publication :
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFrequency(3)}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                      selectedFrequency === 3
+                        ? 'bg-pink-600/20 border-pink-500 text-white ring-1 ring-pink-500'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                  >
+                    <span className="font-bold text-[11px] block text-white">3 Posts (Hebdo Express)</span>
+                    <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
+                      Lundi, Mercredi, Vendredi (Idéal pour débuter)
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFrequency(7)}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                      selectedFrequency === 7
+                        ? 'bg-pink-600/20 border-pink-500 text-white ring-1 ring-pink-500'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                  >
+                    <span className="font-bold text-[11px] block text-white">7 Posts (Semaine Complète)</span>
+                    <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
+                      1 post par jour avec rotation multi-réseaux
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Summary note */}
+              <div className="p-3.5 rounded-2xl bg-violet-950/40 border border-violet-800/40 text-[11px] text-slate-300">
+                <span className="font-bold text-violet-300 block mb-0.5">
+                  ⚡ Intégration Social Selling PulseSocial :
+                </span>
+                Chaque post généré inclut une accroche forte, un corps de texte adapté à votre marché et un appel à l&apos;action commercial vers WhatsApp, votre Pulse Page ou votre messagerie.
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setCalendarGeneratorOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGenerateSectorCalendar}
+                disabled={isGeneratingCalendar}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 hover:opacity-90 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isGeneratingCalendar ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Génération et programmation...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-4 h-4 text-amber-300" />
+                    <span>Générer {selectedFrequency} Publications en 1 Clic</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

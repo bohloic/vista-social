@@ -23,6 +23,7 @@ import {
   BarChart3,
   Radio,
   Star,
+  Briefcase,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -49,8 +50,12 @@ const PAGE_METADATA: Record<string, { title: string; subtitle: string }> = {
     subtitle: 'Programmation et automatisation multi-réseaux',
   },
   '/inbox': {
-    title: 'Boîte de réception',
-    subtitle: 'Conversations et messages clients unifiés',
+    title: 'Boîte de réception & Radar',
+    subtitle: 'Détection d’intentions d’achat et conversations clients unifiées',
+  },
+  '/crm': {
+    title: 'Pipeline de Vente & Mini-CRM',
+    subtitle: 'Suivi des prospects chauds, devis et clôtures de paiements Mobile Money',
   },
   '/analytics': {
     title: 'Analyses & Performances',
@@ -80,7 +85,8 @@ const PAGE_METADATA: Record<string, { title: string; subtitle: string }> = {
 
 const SEARCH_ITEMS = [
   { label: 'Planificateur de publications', href: '/publish', icon: Calendar, category: 'Module' },
-  { label: 'Boîte de réception unifiée', href: '/inbox', icon: MessageSquare, category: 'Module' },
+  { label: 'Boîte de réception unifiée & Radar', href: '/inbox', icon: MessageSquare, category: 'Module' },
+  { label: 'Pipeline de Vente & Mini-CRM', href: '/crm', icon: Briefcase, category: 'Module' },
   { label: 'Rapports d’audience & Analytics', href: '/analytics', icon: BarChart3, category: 'Module' },
   { label: 'Surveillance de marque & Listening', href: '/listening', icon: Radio, category: 'Module' },
   { label: 'Avis clients & E-réputation', href: '/reviews', icon: Star, category: 'Module' },

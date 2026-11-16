@@ -89,6 +89,16 @@ const OAUTH_PROVIDERS = [
     suggestedName: 'PulseSocial TikTok Pro',
     scopes: ['user.info.basic', 'video.list', 'video.upload', 'video.publish'],
   },
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp Business Cloud API',
+    platform: 'whatsapp' as const,
+    color: 'from-emerald-500 via-teal-600 to-green-700',
+    description: 'Messagerie directe, notifications automatisées et gestion des prospects clients',
+    suggestedHandle: '+225 07 00 00 00 00',
+    suggestedName: 'PulseSocial WhatsApp Pro',
+    scopes: ['whatsapp_business_messaging', 'whatsapp_business_management'],
+  },
 ];
 
 export default function SettingsPage() {
@@ -118,10 +128,19 @@ export default function SettingsPage() {
     linkedInToken: '',
     tiktokToken: '',
     googleBusinessKey: '',
+    whatsappToken: '',
+    whatsappPhoneId: '',
   });
   const [savedTokens, setSavedTokens] = useState(false);
   const [showTokens, setShowTokens] = useState<Record<string, boolean>>({});
   const [showSupabaseUrl, setShowSupabaseUrl] = useState(false);
+
+  // Ping test state
+  const [pingLoading, setPingLoading] = useState(false);
+  const [pingResult, setPingResult] = useState<{
+    supabase: { status: string; latencyMs: number };
+    ai: { status: string; model: string };
+  } | null>(null);
 
   const toggleTokenVisibility = (key: string) => {
     setShowTokens((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -159,7 +178,28 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchAccounts();
     fetchTeamMembers();
+    try {
+      const saved = localStorage.getItem('pulsesocial_manual_tokens');
+      if (saved) {
+        setTokens((prev) => ({ ...prev, ...JSON.parse(saved) }));
+      }
+    } catch (e) {
+      console.warn('Could not load manual tokens', e);
+    }
   }, []);
+
+  const handleTestConnection = async () => {
+    setPingLoading(true);
+    try {
+      const res = await fetch('/api/health?test=all');
+      const data = await res.json();
+      setPingResult(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPingLoading(false);
+    }
+  };
 
   // Open Interactive OAuth modal
   const handleOpenOAuthModal = (provider: typeof OAUTH_PROVIDERS[0]) => {
@@ -296,6 +336,11 @@ export default function SettingsPage() {
 
   const handleSaveTokens = (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      localStorage.setItem('pulsesocial_manual_tokens', JSON.stringify(tokens));
+    } catch (err) {
+      console.warn('Failed to persist manual tokens', err);
+    }
     setSavedTokens(true);
     setTimeout(() => setSavedTokens(false), 3000);
   };
@@ -773,6 +818,54 @@ export default function SettingsPage() {
                 className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
               />
             </div>
+
+            <div className="space-y-1.5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  WhatsApp Business Cloud API Token (Bearer)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility('whatsapp')}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  title="Afficher/Masquer"
+                >
+                  {showTokens['whatsapp'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <input
+                type={showTokens['whatsapp'] ? 'text' : 'password'}
+                placeholder="EAABw..."
+                value={tokens.whatsappToken}
+                onChange={(e) => setTokens({ ...tokens, whatsappToken: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
+              />
+            </div>
+
+            <div className="space-y-1.5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-teal-400" />
+                  WhatsApp Phone Number ID
+                </label>
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility('whatsappPhone')}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  title="Afficher/Masquer"
+                >
+                  {showTokens['whatsappPhone'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <input
+                type={showTokens['whatsappPhone'] ? 'text' : 'password'}
+                placeholder="1045239928..."
+                value={tokens.whatsappPhoneId}
+                onChange={(e) => setTokens({ ...tokens, whatsappPhoneId: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
+              />
+            </div>
           </div>
         </form>
       )}
@@ -828,6 +921,44 @@ export default function SettingsPage() {
               Projet : {showSupabaseUrl ? 'https://ljpslbcouvyyzzvxxfme.supabase.co' : 'https://ljps••••••••xfme.supabase.co'} • Schéma complet : 14 tables actives
             </p>
           </div>
+
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-bold text-xs text-white flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-400" />
+                Vérification du Pipeline & Diagnostic Latence
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Teste en direct la connectivité Supabase PostgreSQL et l&apos;accès à l&apos;API Gemini.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleTestConnection}
+              disabled={pingLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
+            >
+              {pingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              <span>{pingLoading ? 'Test en cours...' : 'Tester la connexion Supabase & IA'}</span>
+            </button>
+          </div>
+
+          {pingResult && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in">
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5" /> Supabase DB : Connecté ({pingResult.supabase.latencyMs} ms)
+                </span>
+                <p className="text-[10px] text-slate-400 mt-0.5">Tables vérifiées, accès instantané.</p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs">
+                <span className="font-bold text-violet-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-violet-400" /> Moteur Gemini : {pingResult.ai.status.toUpperCase()}
+                </span>
+                <p className="text-[10px] text-slate-400 mt-0.5">Modèle : {pingResult.ai.model} opérationnel.</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

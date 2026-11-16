@@ -90,11 +90,11 @@ export function LegalModal({ type, onClose }: LegalModalProps) {
               </section>
 
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-white">4. Vos Droits d&apos;Accès, Rectification &amp; Suppression</h4>
+                <h4 className="font-bold text-sm text-white">4. Vos Droits d&apos;Accès, Rectification &amp; Conformité ARTCI / RGPD</h4>
                 <p>
-                  Conformément aux normes RGPD et réglementations applicables sur la protection des données personnelles,
-                  vous pouvez à tout moment exporter l&apos;intégralité de vos publications et déconnecter vos comptes sociaux
-                  depuis l&apos;onglet Paramètres, ce qui révoque et supprime immédiatement vos jetons de session.
+                  Conformément aux normes RGPD et à la <strong>Loi n° 2013-450 relative à la protection des données à caractère personnel régie par l&apos;ARTCI en République de Côte d&apos;Ivoire</strong>,
+                  vous disposez d&apos;un droit strict d&apos;accès, d&apos;opposition, de rectification et de suppression de vos données.
+                  Vous pouvez à tout moment exporter vos données et révoquer vos jetons d&apos;accès depuis les Paramètres.
                 </p>
               </section>
             </>
@@ -122,11 +122,14 @@ export function LegalModal({ type, onClose }: LegalModalProps) {
               </section>
 
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-white">3. Règles d&apos;Utilisation Acceptable des Réseaux Sociaux</h4>
+                <h4 className="font-bold text-sm text-white">3. Règles d&apos;Utilisation Acceptable, Fenêtre 24h Meta/WhatsApp &amp; Anti-Scraping</h4>
                 <p>
-                  L&apos;utilisateur s&apos;engage à respecter les conditions d&apos;utilisation respectives de Meta (Instagram,
-                  Facebook), X (Twitter), LinkedIn et TikTok. Tout usage frauduleux, spam automatisé, diffusion de contenu
-                  haineux ou violation des droits d&apos;auteur entraînera la résiliation immédiate de l&apos;accès sans préavis.
+                  L&apos;utilisateur s&apos;engage à respecter les politiques d&apos;utilisation des plateformes partenaires.
+                  Conformément aux directives de Meta et WhatsApp Business Cloud API, les réponses directes aux prospects respectent
+                  la <strong>fenêtre de messagerie client de 24 heures</strong> consécutive au dernier message entrant de l&apos;utilisateur.
+                  PulseSocial applique une <strong>politique stricte anti-scraping</strong> : aucune extraction automatisée, scraping web
+                  ou siphonage non autorisé de données publiques n&apos;est toléré. Toutes les interactions s&apos;opèrent exclusivement
+                  via les endpoints officiels et autorisés des éditeurs tiers.
                 </p>
               </section>
 

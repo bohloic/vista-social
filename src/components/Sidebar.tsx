@@ -18,6 +18,7 @@ import {
   Zap,
   LogOut,
   X,
+  Briefcase,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/publish', label: 'Planificateur', icon: Calendar, badge: 'Smart' },
   { href: '/inbox', label: 'Boîte de réception', icon: Inbox },
+  { href: '/crm', label: 'Pipeline CRM', icon: Briefcase, badge: 'Kanban' },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/listening', label: 'Listening & Veille', icon: Radio },
   { href: '/reviews', label: 'Avis Clients', icon: Star },

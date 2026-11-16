@@ -7,7 +7,8 @@ export type SocialPlatform =
   | 'youtube'
   | 'pinterest'
   | 'threads'
-  | 'google_business';
+  | 'google_business'
+  | 'whatsapp';
 
 export type PostStatus =
   | 'draft'
@@ -84,6 +85,7 @@ export interface InboxConversation {
   id: string;
   workspace_id: string;
   social_account_id: string;
+  platform?: SocialPlatform;
   customer_name: string;
   customer_username: string;
   customer_avatar_url: string;
@@ -93,6 +95,11 @@ export interface InboxConversation {
   last_message_preview: string;
   last_message_at: string;
   unread_count?: number;
+  lead_score?: number; // 0 - 100
+  intent?: 'hot_lead' | 'b2b_decision_maker' | 'b2c_order' | 'support';
+  window_expires_at?: string;
+  deal_value?: number;
+  phone?: string;
 }
 
 export interface InboxMessage {
@@ -198,4 +205,23 @@ export interface MobileMoneyTransaction {
   provider_ref?: string;
   verified_at?: string;
   created_at: string;
+}
+
+export type CRMStage = 'lead' | 'contacted' | 'proposal' | 'won';
+
+export interface CRMProspect {
+  id: string;
+  name: string;
+  platform: SocialPlatform;
+  handle: string;
+  avatar_url?: string;
+  deal_value: number; // In FCFA
+  currency: string;
+  status: CRMStage;
+  lead_score: number; // 0 - 100
+  notes?: string;
+  last_interaction: string;
+  payment_link?: string;
+  phone?: string;
+  inbox_conversation_id?: string;
 }

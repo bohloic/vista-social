@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Smartphone,
   RefreshCw,
+  Upload,
 } from 'lucide-react';
 
 const THEME_PRESETS = [
@@ -383,14 +384,38 @@ export default function PulsePagesBuilder() {
 
             <div>
               <label className="text-xs font-semibold text-slate-300 block mb-1">
-                URL Photo de Profil / Avatar
+                Photo de Profil / Avatar
               </label>
-              <input
-                type="text"
-                value={page.avatar_url}
-                onChange={(e) => updatePage({ ...page, avatar_url: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={page.avatar_url}
+                  onChange={(e) => updatePage({ ...page, avatar_url: e.target.value })}
+                  placeholder="https://... ou importer une photo"
+                  className="flex-1 text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500 font-mono"
+                />
+                <label className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 text-xs font-semibold cursor-pointer transition-colors shrink-0">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Importer photo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            updatePage({ ...page, avatar_url: ev.target.result as string });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
             </div>
           </div>
 

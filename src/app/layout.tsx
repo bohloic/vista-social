@@ -6,6 +6,7 @@ import './globals.css';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ComposerModal } from '@/components/ComposerModal';
+import { LegalModal } from '@/components/LegalModals';
 import { Post } from '@/lib/types';
 
 export default function RootLayout({
@@ -15,6 +16,7 @@ export default function RootLayout({
 }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [legalModalType, setLegalModalType] = useState<'privacy' | 'terms' | null>(null);
   const pathname = usePathname();
   const isSetupOrPublic = pathname?.startsWith('/setup') || pathname?.startsWith('/p/') || pathname?.startsWith('/login');
 
@@ -60,7 +62,33 @@ export default function RootLayout({
                 onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
               />
               <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">{children}</main>
+
+              {/* Discrete Legal & Compliance Footer */}
+              <footer className="px-6 py-4 border-t border-slate-900 bg-slate-950/40 text-[11px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div>
+                  <span>© 2026 PulseSocial. Conforme ARTCI (Loi n° 2013-450) &amp; RGPD.</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setLegalModalType('privacy')}
+                    className="hover:text-slate-300 transition-colors cursor-pointer"
+                  >
+                    Politique de Confidentialité (ARTCI / RGPD)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLegalModalType('terms')}
+                    className="hover:text-slate-300 transition-colors cursor-pointer"
+                  >
+                    CGU &amp; Fenêtre 24h WhatsApp
+                  </button>
+                </div>
+              </footer>
             </div>
+
+            {/* Global Legal Modal */}
+            <LegalModal type={legalModalType} onClose={() => setLegalModalType(null)} />
 
             {/* Global Multi-Platform Post Composer */}
             <ComposerModal
