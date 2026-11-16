@@ -27,6 +27,27 @@ export type PostType =
   | 'short'
   | 'pin';
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url?: string;
+  role: 'super_admin' | 'admin' | 'manager' | 'editor' | 'client';
+  is_lifetime_free: boolean;
+  workspace_id?: string;
+  created_at?: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  timezone: string;
+  logo_url?: string;
+  plan: 'starter' | 'pro' | 'agency' | 'enterprise';
+  created_at?: string;
+}
+
 export interface SocialAccount {
   id: string;
   workspace_id: string;
@@ -34,6 +55,8 @@ export interface SocialAccount {
   account_name: string;
   username: string;
   avatar_url: string;
+  access_token?: string;
+  refresh_token?: string;
   is_connected: boolean;
   status: 'active' | 'expired' | 'error' | 'paused';
   followers_count: number;
@@ -111,7 +134,7 @@ export interface ReviewItem {
   review_date: string;
 }
 
-export interface VistaPageBlock {
+export interface PulsePageBlock {
   id: string;
   type: 'link' | 'header' | 'social_row' | 'video' | 'product';
   title?: string;
@@ -121,29 +144,58 @@ export interface VistaPageBlock {
   image_url?: string;
   price?: string;
   is_active: boolean;
+  order_index?: number;
+  click_count?: number;
 }
 
-export interface VistaPage {
+export interface PulsePageThemeConfig {
+  preset?: string;
+  bg_type?: 'gradient' | 'solid' | 'mesh';
+  bg_gradient: string;
+  text_color?: string;
+  button_bg: string;
+  button_text?: string;
+  button_border: string;
+  button_radius?: string;
+  font_family?: string;
+}
+
+export interface PulsePage {
   id: string;
   workspace_id: string;
   title: string;
   slug: string;
   bio: string;
   avatar_url: string;
-  theme_config: {
-    preset: string;
-    bg_type: 'gradient' | 'solid' | 'mesh';
-    bg_gradient: string;
-    text_color: string;
-    button_bg: string;
-    button_text: string;
-    button_border: string;
-    button_radius: string;
-    font_family: string;
-  };
-  blocks: VistaPageBlock[];
-  is_published: boolean;
+  theme_config: PulsePageThemeConfig;
+  blocks: PulsePageBlock[];
+  is_published?: boolean;
   views_count: number;
-  clicks_count: number;
+  clicks_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
+// Aliases for seamless backward compatibility
+export type VistaPageBlock = PulsePageBlock;
+export type VistaPage = PulsePage;
+
+export type MobileMoneyProvider = 'orange_money' | 'mtn_momo' | 'wave' | 'moov' | 'card';
+export type CurrencyCode = 'XOF' | 'EUR' | 'USD';
+
+export interface MobileMoneyTransaction {
+  id: string;
+  workspace_id: string;
+  user_id?: string;
+  provider: MobileMoneyProvider;
+  phone_number: string;
+  country_code: string;
+  currency: CurrencyCode;
+  amount: number;
+  plan: 'starter' | 'pro' | 'agency' | 'enterprise';
+  status: 'pending' | 'successful' | 'failed' | 'refunded';
+  transaction_ref: string;
+  provider_ref?: string;
+  verified_at?: string;
+  created_at: string;
+}

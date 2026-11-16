@@ -136,8 +136,19 @@ export default function ReviewsPage() {
 
       {/* Reviews List */}
       <div className="space-y-4">
-        {filteredReviews.map((review) => (
-          <div key={review.id} className="vista-card p-6 space-y-4">
+        {filteredReviews.length === 0 ? (
+          <div className="py-16 text-center pulse-card p-8 border-dashed border-slate-800 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-400 mx-auto flex items-center justify-center">
+              <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+            </div>
+            <h4 className="text-base font-bold text-white">Aucun avis client pour le moment</h4>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Dès que vos clients déposeront un avis sur vos fiches Google Business, Trustpilot ou Facebook connectées, vous recevrez une alerte avec proposition de réponse générée par l&apos;IA Gemini.
+            </p>
+          </div>
+        ) : (
+          filteredReviews.map((review) => (
+            <div key={review.id} className="pulse-card p-6 space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3.5">
                 <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-sm shrink-0">
@@ -238,7 +249,7 @@ export default function ReviewsPage() {
               </div>
             )}
           </div>
-        ))}
+        )))}
       </div>
     </div>
   );

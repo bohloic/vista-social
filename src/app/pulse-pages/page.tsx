@@ -1,0 +1,497 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { PulsePage, PulsePageBlock } from '@/lib/types';
+import {
+  Globe2,
+  Plus,
+  Trash2,
+  ExternalLink,
+  Eye,
+  MousePointerClick,
+  Sparkles,
+  Save,
+  CheckCircle2,
+  Smartphone,
+  RefreshCw,
+} from 'lucide-react';
+
+const THEME_PRESETS = [
+  {
+    name: 'Violet Nebula',
+    gradient: 'from-violet-950 via-slate-950 to-indigo-950',
+    btnBg: 'rgba(255, 255, 255, 0.08)',
+    border: 'rgba(139, 92, 246, 0.3)',
+  },
+  {
+    name: 'Obsidian Pure',
+    gradient: 'from-slate-950 to-black',
+    btnBg: 'rgba(255, 255, 255, 0.06)',
+    border: 'rgba(255, 255, 255, 0.12)',
+  },
+  {
+    name: 'Emerald Aurora',
+    gradient: 'from-emerald-950 via-slate-950 to-teal-950',
+    btnBg: 'rgba(255, 255, 255, 0.08)',
+    border: 'rgba(16, 185, 129, 0.3)',
+  },
+  {
+    name: 'Sunset Magenta',
+    gradient: 'from-fuchsia-950 via-slate-950 to-rose-950',
+    btnBg: 'rgba(255, 255, 255, 0.08)',
+    border: 'rgba(244, 63, 94, 0.3)',
+  },
+];
+
+const DEFAULT_PAGE: PulsePage = {
+  id: 'pulse-default',
+  workspace_id: 'ws-default',
+  title: 'PulseSocial Creator Studio',
+  slug: 'pulse-studio',
+  bio: 'Accédez à toutes mes ressources exclusives, services et liens officiels en un seul clic.',
+  avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
+  theme_config: {
+    bg_gradient: 'from-violet-950 via-slate-950 to-indigo-950',
+    button_bg: 'rgba(255, 255, 255, 0.08)',
+    button_border: 'rgba(139, 92, 246, 0.3)',
+    font_family: 'sans-serif',
+  },
+  blocks: [
+    {
+      id: 'blk-1',
+      type: 'link',
+      title: '✨ Découvrir la plateforme PulseSocial',
+      url: '/',
+      subtitle: 'Gestion des réseaux sociaux avec IA Gemini',
+      is_active: true,
+      order_index: 0,
+      click_count: 0,
+    },
+    {
+      id: 'blk-2',
+      type: 'link',
+      title: '📱 Forfaits & Abonnements Mobile Money',
+      url: '/billing',
+      subtitle: 'Orange Money, MTN MoMo, Wave, Moov',
+      is_active: true,
+      order_index: 1,
+      click_count: 0,
+    },
+  ],
+  views_count: 0,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
+export default function PulsePagesBuilder() {
+  const [page, setPage] = useState<PulsePage>(DEFAULT_PAGE);
+  const [saving, setSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchPage = async () => {
+      try {
+        const res = await fetch('/api/pulse-pages');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.page) {
+            setPage(data.page);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch existing pulse page, using default');
+      }
+    };
+    fetchPage();
+  }, []);
+
+  const handleAddBlock = () => {
+    const newBlock: PulsePageBlock = {
+      id: `blk-${Date.now()}`,
+      type: 'link',
+      title: 'Nouveau lien personnalisé',
+      url: 'https://',
+      subtitle: 'Description courte du lien',
+      is_active: true,
+      order_index: page.blocks.length,
+      click_count: 0,
+    };
+    setPage({ ...page, blocks: [...page.blocks, newBlock] });
+  };
+
+  const handleUpdateBlock = (id: string, updates: Partial<PulsePageBlock>) => {
+    setPage({
+      ...page,
+      blocks: page.blocks.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+    });
+  };
+
+  const handleDeleteBlock = (id: string) => {
+    setPage({
+      ...page,
+      blocks: page.blocks.filter((b) => b.id !== id),
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/pulse-pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(page),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.page) setPage(data.page);
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to save Pulse Page:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+            <Globe2 className="w-6 h-6 text-violet-400" />
+            Pulse Pages (Constructeur Link-in-Bio)
+          </h1>
+          <p className="text-xs text-slate-400">
+            Créez une micro-page d&apos;atterrissage personnalisée pour vos bios Instagram, TikTok & X avec suivi d&apos;audience en direct.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/p/${page.slug}`}
+            target="_blank"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-800 bg-slate-900/60 text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+          >
+            <Eye className="w-4 h-4 text-violet-400" />
+            Aperçu Public
+            <ExternalLink className="w-3 h-3 text-slate-400" />
+          </Link>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-lg transition-all ${
+              savedSuccess
+                ? 'bg-emerald-600 shadow-emerald-600/30'
+                : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
+            }`}
+          >
+            {saving ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : savedSuccess ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {savedSuccess ? 'Enregistré dans Supabase !' : saving ? 'Sauvegarde...' : 'Sauvegarder'}
+          </button>
+        </div>
+      </div>
+
+      {/* Analytics Summary for Pulse Page */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="pulse-card p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center">
+            <Eye className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold text-slate-400">Vues Totales</span>
+            <p className="text-xl font-bold text-white">{page.views_count || 0}</p>
+          </div>
+        </div>
+
+        <div className="pulse-card p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <MousePointerClick className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold text-slate-400">Clics sur les Liens</span>
+            <p className="text-xl font-bold text-white">
+              {page.blocks.reduce((acc, curr) => acc + (curr.click_count || 0), 0)}
+            </p>
+          </div>
+        </div>
+
+        <div className="pulse-card p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold text-slate-400">Taux de Clic (CTR)</span>
+            <p className="text-xl font-bold text-white">
+              {page.views_count && page.views_count > 0
+                ? `${Math.round((page.blocks.reduce((a, b) => a + (b.click_count || 0), 0) / page.views_count) * 100)}%`
+                : '0%'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Builder Layout: Left Controls + Right Live Mobile Simulation */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left: Configuration & Blocks (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Identity & Bio */}
+          <div className="pulse-card p-6 space-y-4">
+            <h2 className="font-bold text-sm text-white">
+              Identité de votre Pulse Page
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Titre de la Page
+                </label>
+                <input
+                  type="text"
+                  value={page.title}
+                  onChange={(e) => setPage({ ...page, title: e.target.value })}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Identifiant URL (Slug)
+                </label>
+                <div className="flex items-center text-xs rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+                  <span className="px-2.5 py-2 text-slate-500 bg-slate-800/40 border-r border-slate-800">
+                    /p/
+                  </span>
+                  <input
+                    type="text"
+                    value={page.slug}
+                    onChange={(e) => setPage({ ...page, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                    className="flex-1 p-2 bg-transparent text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">
+                Biographie / Description courte
+              </label>
+              <textarea
+                rows={2}
+                value={page.bio}
+                onChange={(e) => setPage({ ...page, bio: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">
+                URL Photo de Profil / Avatar
+              </label>
+              <input
+                type="text"
+                value={page.avatar_url}
+                onChange={(e) => setPage({ ...page, avatar_url: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
+              />
+            </div>
+          </div>
+
+          {/* Theme Presets */}
+          <div className="pulse-card p-6 space-y-4">
+            <h2 className="font-bold text-sm text-white">Thèmes & Ambiances Visuelles</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {THEME_PRESETS.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() =>
+                    setPage({
+                      ...page,
+                      theme_config: {
+                        ...page.theme_config,
+                        bg_gradient: preset.gradient,
+                        button_bg: preset.btnBg,
+                        button_border: preset.border,
+                      },
+                    })
+                  }
+                  className={`p-3 rounded-2xl border text-left transition-all ${
+                    page.theme_config.bg_gradient === preset.gradient
+                      ? 'border-violet-500 ring-2 ring-violet-500/30'
+                      : 'border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div
+                    className={`h-10 rounded-xl bg-gradient-to-br ${preset.gradient} mb-2 border border-white/10`}
+                  />
+                  <span className="text-[11px] font-bold text-slate-200 block truncate">
+                    {preset.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Links & Blocks List */}
+          <div className="pulse-card p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-sm text-white">
+                Liens & Boutons d&apos;Action ({page.blocks.length})
+              </h2>
+              <button
+                onClick={handleAddBlock}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Ajouter un lien
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {page.blocks.map((block) => (
+                <div
+                  key={block.id}
+                  className="p-4 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-violet-400">
+                      Bouton de Redirection
+                    </span>
+                    <button
+                      onClick={() => handleDeleteBlock(block.id)}
+                      className="text-slate-500 hover:text-rose-400 p-1 rounded-lg transition-colors"
+                      title="Supprimer ce lien"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Texte du bouton..."
+                      value={block.title}
+                      onChange={(e) =>
+                        handleUpdateBlock(block.id, { title: e.target.value })
+                      }
+                      className="text-xs p-2 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="https://..."
+                      value={block.url || ''}
+                      onChange={(e) =>
+                        handleUpdateBlock(block.id, { url: e.target.value })
+                      }
+                      className="text-xs p-2 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
+                    />
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Sous-titre ou description courte (optionnel)..."
+                    value={block.subtitle || ''}
+                    onChange={(e) =>
+                      handleUpdateBlock(block.id, { subtitle: e.target.value })
+                    }
+                    className="w-full text-xs p-2 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Live Interactive Smartphone Mockup (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col items-center">
+          <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-slate-400">
+            <Smartphone className="w-4 h-4 text-violet-400" />
+            <span>Simulateur Mobile en Direct</span>
+          </div>
+
+          {/* Smartphone Frame */}
+          <div className="w-[320px] h-[640px] rounded-[42px] border-[6px] border-slate-800 bg-slate-950 p-3 shadow-2xl relative flex flex-col overflow-hidden">
+            {/* Notch */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-800 rounded-full z-20" />
+
+            {/* Simulated Public Pulse Page Screen */}
+            <div
+              className={`w-full h-full rounded-[32px] bg-gradient-to-b ${page.theme_config.bg_gradient} text-white flex flex-col items-center justify-between p-5 pt-8 overflow-y-auto select-none`}
+            >
+              <div className="w-full flex flex-col items-center text-center space-y-4">
+                {/* Avatar */}
+                <div className="w-20 h-20 rounded-full p-1 border-2 border-white/40 overflow-hidden shadow-xl shrink-0">
+                  <img
+                    src={page.avatar_url}
+                    alt={page.title}
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                </div>
+
+                {/* Title & Bio */}
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-sm">{page.title}</h3>
+                  <p className="text-[11px] text-white/80 line-clamp-3 leading-snug">
+                    {page.bio}
+                  </p>
+                </div>
+
+                {/* Social Quick Bar */}
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                    IG
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                    in
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                    𝕏
+                  </div>
+                </div>
+
+                {/* Rendered Action Blocks */}
+                <div className="w-full space-y-2 pt-2">
+                  {page.blocks.map((block) => (
+                    <div
+                      key={block.id}
+                      className="w-full p-3 rounded-xl border backdrop-blur-md shadow-xs text-center transition-transform hover:scale-[1.02]"
+                      style={{
+                        backgroundColor: page.theme_config.button_bg,
+                        borderColor: page.theme_config.button_border,
+                      }}
+                    >
+                      <span className="font-bold text-xs block leading-tight">
+                        {block.title}
+                      </span>
+                      {block.subtitle && (
+                        <span className="text-[9px] text-white/70 block mt-0.5 leading-snug">
+                          {block.subtitle}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Simulated Footer */}
+              <div className="pt-4 text-center">
+                <span className="text-[9px] text-white/60 font-medium">
+                  Propulsé par PulseSocial Engine
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

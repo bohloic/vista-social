@@ -14,6 +14,8 @@ import {
   Settings,
   PlusCircle,
   Sparkles,
+  CreditCard,
+  Zap,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,11 +25,12 @@ interface SidebarProps {
 const navItems = [
   { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/publish', label: 'Planificateur', icon: Calendar, badge: 'Smart' },
-  { href: '/inbox', label: 'Boîte de réception', icon: Inbox, badge: '3' },
+  { href: '/inbox', label: 'Boîte de réception', icon: Inbox },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/listening', label: 'Listening & Veille', icon: Radio },
   { href: '/reviews', label: 'Avis Clients', icon: Star },
-  { href: '/vista-pages', label: 'Vista Pages (Bio)', icon: Globe2, badge: 'New' },
+  { href: '/pulse-pages', label: 'Pulse Pages (Bio)', icon: Globe2, badge: 'IA' },
+  { href: '/billing', label: 'Abonnement & MoMo', icon: CreditCard, badge: 'FCFA' },
   { href: '/settings', label: 'Paramètres & Comptes', icon: Settings },
 ];
 
@@ -35,18 +38,22 @@ export function Sidebar({ onOpenComposer }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-200 min-h-screen flex flex-col border-r border-slate-800 shrink-0 select-none">
+    <aside className="w-64 bg-[#090C14] text-slate-200 min-h-screen flex flex-col border-r border-slate-800/80 shrink-0 select-none relative z-20">
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+      <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-            V
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-500 to-emerald-400 flex items-center justify-center font-black text-white shadow-lg shadow-violet-600/30">
+            <Zap className="w-5 h-5 fill-white" />
           </div>
           <div>
-            <h1 className="font-bold text-base text-white tracking-tight flex items-center gap-1.5">
-              Vista Social <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">CM Pro</span>
+            <h1 className="font-black text-base text-white tracking-tight flex items-center gap-1.5">
+              <span>Pulse</span>
+              <span className="text-violet-400">Social</span>
+              <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                PRO
+              </span>
             </h1>
-            <p className="text-xs text-slate-400">Studio Nova Agency</p>
+            <p className="text-[11px] text-slate-400">Plateforme CM & IA</p>
           </div>
         </div>
       </div>
@@ -55,7 +62,7 @@ export function Sidebar({ onOpenComposer }: SidebarProps) {
       <div className="p-4">
         <button
           onClick={onOpenComposer}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium text-sm shadow-lg shadow-indigo-600/30 transition-all duration-200 active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition-all duration-300 active:scale-[0.98]"
         >
           <PlusCircle className="w-4 h-4" />
           <span>Nouveau Post</span>
@@ -64,7 +71,7 @@ export function Sidebar({ onOpenComposer }: SidebarProps) {
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 py-2 space-y-1">
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -73,24 +80,26 @@ export function Sidebar({ onOpenComposer }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 ${
                 isActive
-                  ? 'bg-indigo-600/15 text-indigo-400 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-inner'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
               }`}
             >
               <div className="flex items-center gap-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-violet-400' : 'text-slate-400'}`} />
                 <span>{item.label}</span>
               </div>
               {item.badge && (
                 <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                     item.badge === 'Smart'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : item.badge === 'New'
-                      ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                      : 'bg-indigo-500 text-white'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : item.badge === 'IA'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                      : item.badge === 'FCFA'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      : 'bg-violet-600 text-white'
                   }`}
                 >
                   {item.badge}
@@ -101,24 +110,16 @@ export function Sidebar({ onOpenComposer }: SidebarProps) {
         })}
       </nav>
 
-      {/* Connected Accounts Quick Bar */}
-      <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-        <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-          <span>Réseaux connectés</span>
-          <span className="text-emerald-400 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-            5 actifs
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-6 h-6 rounded-full badge-instagram flex items-center justify-center text-[10px] font-bold">IG</span>
-          <span className="w-6 h-6 rounded-full badge-linkedin flex items-center justify-center text-[10px] font-bold">in</span>
-          <span className="w-6 h-6 rounded-full badge-twitter flex items-center justify-center text-[10px] font-bold">X</span>
-          <span className="w-6 h-6 rounded-full badge-tiktok flex items-center justify-center text-[10px] font-bold">TT</span>
-          <span className="w-6 h-6 rounded-full badge-facebook flex items-center justify-center text-[10px] font-bold">fb</span>
+      {/* Footer System Status */}
+      <div className="p-4 border-t border-slate-800/80">
+        <div className="flex items-center justify-between text-[11px] text-slate-400">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="text-slate-300 font-semibold">Pulse Engine v2.0</span>
+          </div>
+          <span className="text-violet-400 font-mono">100% Réel</span>
         </div>
       </div>
     </aside>
   );
 }
-

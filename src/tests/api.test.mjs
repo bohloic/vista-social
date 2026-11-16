@@ -35,13 +35,13 @@ const smartReplyRequestSchema = z.object({
 test('1. Health Check Response Schema Contract', () => {
   const healthData = {
     status: 'healthy',
-    service: 'vista-social-cm',
-    version: '1.0.0',
+    service: 'pulsesocial-platform',
+    version: '2.0.0',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   };
   assert.equal(healthData.status, 'healthy');
-  assert.equal(healthData.service, 'vista-social-cm');
+  assert.equal(healthData.service, 'pulsesocial-platform');
   assert.ok(typeof healthData.uptime === 'number');
 });
 
@@ -55,7 +55,7 @@ test('2. Posts API Nominal Payload Validation', () => {
     status: 'scheduled',
     scheduled_for: new Date(Date.now() + 3600000).toISOString(),
     target_accounts: ['acc-ig-1'],
-    first_comment: '#test #vistasocial',
+    first_comment: '#test #pulsesocial',
   };
 
   const parsed = postCreateSchema.safeParse(validPayload);

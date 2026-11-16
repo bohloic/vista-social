@@ -1,4 +1,4 @@
-// Gemini AI Engine for Vista Social CM
+// Gemini AI Engine for PulseSocial CM Platform
 // Supports Post Caption Generation, Hashtag Suggestions, Inbox Smart Replies, and Review Responses
 
 const GEMINI_API_KEY =

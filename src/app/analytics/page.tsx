@@ -89,7 +89,7 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="vista-card p-5">
+        <div className="pulse-card p-5">
           <span className="text-xs font-semibold text-slate-500">Impressions Totales</span>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">1,489,200</p>
           <span className="text-xs text-emerald-500 font-semibold flex items-center gap-1 mt-1">
@@ -97,7 +97,7 @@ export default function AnalyticsPage() {
           </span>
         </div>
 
-        <div className="vista-card p-5">
+        <div className="pulse-card p-5">
           <span className="text-xs font-semibold text-slate-500">Taux d&apos;engagement Moyen</span>
           <p className="text-2xl font-black text-indigo-600 mt-1">4.65%</p>
           <span className="text-xs text-emerald-500 font-semibold flex items-center gap-1 mt-1">
@@ -105,15 +105,15 @@ export default function AnalyticsPage() {
           </span>
         </div>
 
-        <div className="vista-card p-5">
-          <span className="text-xs font-semibold text-slate-500">Total Clics sur Liens</span>
-          <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">32,450</p>
-          <span className="text-xs text-emerald-500 font-semibold flex items-center gap-1 mt-1">
-            <ArrowUpRight className="w-3 h-3" /> +24% via Vista Pages
+        <div className="pulse-card p-5">
+          <span className="text-xs font-semibold text-slate-400">Total Clics sur Liens</span>
+          <p className="text-2xl font-black text-white mt-1">32,450</p>
+          <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1 mt-1">
+            <ArrowUpRight className="w-3 h-3" /> +24% via Pulse Pages
           </span>
         </div>
 
-        <div className="vista-card p-5">
+        <div className="pulse-card p-5">
           <span className="text-xs font-semibold text-slate-500">Nouveaux Abonnés Net</span>
           <p className="text-2xl font-black text-purple-600 mt-1">+6,780</p>
           <span className="text-xs text-slate-400 font-semibold flex items-center gap-1 mt-1">
@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Audience Growth Evolution (7 cols) */}
-        <div className="lg:col-span-7 vista-card p-6">
+        <div className="lg:col-span-7 pulse-card p-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-4">
             <div>
               <h3 className="font-bold text-base text-slate-900 dark:text-white">
@@ -163,7 +163,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Engagements by Platform (5 cols) */}
-        <div className="lg:col-span-5 vista-card p-6">
+        <div className="lg:col-span-5 pulse-card p-6">
           <div className="pb-4 border-b border-slate-100 dark:border-slate-800 mb-4">
             <h3 className="font-bold text-base text-slate-900 dark:text-white">
               Engagements par Plateforme
@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Top Performing Publications Table */}
-      <div className="vista-card p-6">
+      <div className="pulse-card p-6">
         <div className="pb-4 border-b border-slate-100 dark:border-slate-800 mb-4">
           <h3 className="font-bold text-base text-slate-900 dark:text-white">
             Classement des Meilleurs Posts (Top Engagements)

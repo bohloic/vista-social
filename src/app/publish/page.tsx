@@ -71,24 +71,24 @@ export default function PublishPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-indigo-600" />
+          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-violet-400" />
             Planificateur & Calendrier Editorial
           </h1>
-          <p className="text-xs text-slate-500">
-            Organisez et automatisez votre calendrier de publication sur tous vos réseaux.
+          <p className="text-xs text-slate-400">
+            Organisez et automatisez votre calendrier de publication sur tous vos réseaux avec synchronisation Supabase.
           </p>
         </div>
 
         {/* View mode toggle & Create Button */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+          <div className="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xs">
             <button
               onClick={() => setViewMode('calendar')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'calendar'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-violet-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
@@ -98,8 +98,8 @@ export default function PublishPage() {
               onClick={() => setViewMode('list')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'list'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-violet-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <List className="w-3.5 h-3.5" />
@@ -109,7 +109,7 @@ export default function PublishPage() {
 
           <button
             onClick={() => setComposerOpen(true)}
-            className="flex items-center gap-2 py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 active:scale-95 transition-all"
+            className="flex items-center gap-2 py-2 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/30 active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" />
             <span>Nouveau Post</span>
@@ -147,16 +147,34 @@ export default function PublishPage() {
         />
       ) : (
         <div className="space-y-4">
-          {filteredPosts.map((post) => {
-            const targetAccs = INITIAL_ACCOUNTS.filter((a) =>
-              post.target_accounts.includes(a.id)
-            );
-
-            return (
-              <div
-                key={post.id}
-                className="vista-card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+          {filteredPosts.length === 0 ? (
+            <div className="py-16 text-center pulse-card p-8 border-dashed border-slate-800 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-400 mx-auto flex items-center justify-center">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <h4 className="text-base font-bold text-white">File de publication vide</h4>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Vous n&apos;avez aucune publication planifiée avec ces critères. Commencez à planifier votre contenu multi-réseaux !
+              </p>
+              <button
+                onClick={() => setComposerOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition-all hover:scale-105"
               >
+                <Plus className="w-4 h-4" />
+                Créer une publication maintenant
+              </button>
+            </div>
+          ) : (
+            filteredPosts.map((post) => {
+              const targetAccs = INITIAL_ACCOUNTS.filter((a) =>
+                post.target_accounts.includes(a.id)
+              );
+
+              return (
+                <div
+                  key={post.id}
+                  className="pulse-card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                >
                 <div className="flex items-start gap-4 flex-1">
                   {post.media_urls.length > 0 ? (
                     <img
@@ -221,7 +239,7 @@ export default function PublishPage() {
                 </div>
               </div>
             );
-          })}
+          }))}
         </div>
       )}
 

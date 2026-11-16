@@ -50,7 +50,7 @@ export function CalendarView({ posts, accounts, onNewPostWithDate, onSelectPost 
   };
 
   return (
-    <div className="vista-card p-6 shadow-sm">
+    <div className="pulse-card p-6 shadow-sm">
       {/* Calendar Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800 gap-4">
         <div className="flex items-center gap-3">

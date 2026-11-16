@@ -1,37 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-border: #e2e8f0;
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
+  --background: #07090e;
+  --foreground: #f8fafc;
+  --card: rgba(15, 23, 42, 0.65);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
   --primary-foreground: #ffffff;
-  --muted: #64748b;
-  --muted-bg: #f1f5f9;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #090d16;
-    --foreground: #f8fafc;
-    --card: #0f172a;
-    --card-border: #1e293b;
-    --muted: #94a3b8;
-    --muted-bg: #1e293b;
-  }
+  --muted: #94a3b8;
+  --muted-bg: rgba(30, 41, 59, 0.5);
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #07090e;
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
+/* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -40,24 +29,37 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.5);
+  background: rgba(139, 92, 246, 0.4);
 }
 
-/* Micro-interaction & hover elevation */
+/* High-Tech Card & Glassmorphism */
+.pulse-card,
 .vista-card {
-  background-color: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 0.875rem;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.pulse-card:hover,
 .vista-card:hover {
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05);
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.5), 0 0 24px -4px rgba(139, 92, 246, 0.12);
+}
+
+/* Neon Glows & Accents */
+.glow-violet {
+  box-shadow: 0 0 25px -4px rgba(139, 92, 246, 0.4);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 25px -4px rgba(16, 185, 129, 0.3);
 }
 
 /* Network brand badge gradients */
@@ -76,6 +78,7 @@ body {
 .badge-twitter {
   background-color: #000000;
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 .badge-tiktok {
   background-color: #000000;
@@ -86,4 +89,3 @@ body {
   background-color: #ff0000;
   color: white;
 }
-

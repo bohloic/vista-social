@@ -1,71 +1,48 @@
-# Vista Social CM - Plateforme Unifiée de Community Management
+# PulseSocial - Plateforme Professionnelle de Community Management & Monétisation
 
-Reconstruction complète et autonome de l'ensemble des fonctionnalités de **[Vista Social](https://vistasocial.com)** dans [`d:\tutoReact\mon-CM`](file:///d:/tutoReact/mon-CM), intégrant l'IA **Google Gemini**, **Next.js 16 (App Router)**, **TypeScript**, **Tailwind CSS**, **Recharts** et **Supabase (PostgreSQL)**.
+Reconstruction complète et autonome de l'ensemble des fonctionnalités de gestion de réseaux sociaux dans [`d:\tutoReact\mon-CM`](file:///d:/tutoReact/mon-CM), intégrant l'IA **Google Gemini 2.0 Flash**, **Next.js 16 (App Router)**, **TypeScript**, **Tailwind CSS**, **Recharts**, **Supabase (PostgreSQL)** et un système de monétisation multi-devises avec **Mobile Money (Orange Money, MTN MoMo, Wave, Moov)** en Francs CFA (XOF), EUR (€) et USD ($).
 
 ---
 
-## 🌟 Modules Métier Implémentés
+## 🌟 Modules Métier PulseSocial
 
-### 1. 📅 Planificateur & Calendrier Éditorial (`/publish`)
-* **Calendrier interactif** : Vue mensuelle et vue file d'attente avec indicateurs de statut (*Programmé*, *Publié*, *Brouillon*).
-* **Compositeur Multi-Réseaux** :
-  * Sélection simultanée des réseaux cibles (Instagram, LinkedIn, X, TikTok, Facebook).
-  * Compteur de caractères dynamique adapté par réseau (X: 280, LinkedIn: 3000, IG: 2200).
-  * Premier commentaire automatique pour hashtags (Instagram / LinkedIn).
-  * Sélection de formats : Post standard, Reel, Story, Carrousel.
-* **Simulateur d'Aperçu Pixel-Perfect** : Rendu fidèle de l'interface mobile pour chaque réseau social.
+### 1. 🧙‍♂️ Assistant d'Installation Super-Admin (`/setup`)
+* Détection automatique au premier lancement (`checkAppInitialized()`).
+* Création d'un compte Super-Admin unique avec **Passe Illimité Gratuit à Vie** (`is_lifetime_free: true`).
+* Initialisation de l'espace de travail et configuration de base en 3 étapes avec Dark Glassmorphism.
 
-### 2. 📥 Boîte de Réception Sociale Unifiée (`/inbox`)
+### 2. 📱 Monétisation & Abonnements Mobile Money (`/billing`)
+* Passerelle multi-devises automatique : **FCFA (XOF)** pour la Côte d'Ivoire et l'UEMOA, **Euros (€)** et **Dollars ($)**.
+* Paiements intégrés : **Orange Money**, **MTN MoMo**, **Wave**, **Moov Money** et Cartes Bancaires.
+* Forfaits Créateur (15 000 FCFA/mois), Agence Pro (45 000 FCFA/mois) et Illimité.
+
+### 3. 📅 Planificateur & Calendrier Éditorial (`/publish`)
+* Calendrier interactif mensuel et vue file d'attente synchronisés en direct avec la table PostgreSQL `posts` de Supabase.
+* Compositeur Multi-Réseaux avec calcul automatique des limites de caractères (X: 280, LinkedIn: 3000, IG: 2200).
+* Premier commentaire automatique pour hashtags (Instagram / LinkedIn).
+* Simulateur d'aperçu fidèle pour Instagram, X, LinkedIn, TikTok et Facebook.
+
+### 4. 📥 Boîte de Réception Sociale Unifiée (`/inbox`)
 * Centralisation des messages directs (DMs), commentaires et mentions de tous les comptes connectés.
 * Étiquetage automatique des sentiments (*Positif*, *Neutre*, *Négatif*).
-* **Réponses Intelligentes IA Gemini** : Génération instantanée de 3 propositions de réponses adaptées à insérer en un clic.
+* **Réponses Intelligentes IA Gemini** : Génération instantanée de propositions de réponses adaptées à insérer en un clic.
 
-### 3. 📊 Analyses & Rapports Consolidés (`/analytics`)
-* Suivi de la portée, des impressions globales et du taux d'engagement moyen.
-* Courbes d'évolution de l'audience et répartition des interactions par plateforme (graphiques Recharts).
-* Classement des meilleures publications par résonance d'audience.
-* Export de rapports PDF / synthèses de performance.
+### 5. 🔗 Pulse Pages - Constructeur de Link-in-Bio (`/pulse-pages` & `/p/[slug]`)
+* Éditeur visuel de micro-pages d'atterrissage avec simulateur smartphone interactif en direct.
+* Thèmes exclusifs (*Violet Nebula*, *Obsidian Pure*, *Emerald Aurora*, *Sunset Magenta*).
+* Route publique haute conversion disponible sur [`/p/[slug]`](file:///d:/tutoReact/mon-CM/src/app/p/[slug]/page.tsx).
 
-### 4. 👂 Social Listening & Veille Concurrentielle (`/listening`)
-* Surveillance en temps réel des mentions de marque (`@StudioNovaHQ`, `#StudioNova`).
-* Jauge de sentiment globale (82% Positif) et détection proactive des signaux faibles.
-* Flux direct des mentions avec liens d'accès aux publications sources.
+### 6. 👂 Social Listening & Veille Concurrentielle (`/listening`)
+* Surveillance en temps réel des mentions de marque et hashtags.
+* Détection proactive des signaux faibles et analyse de sentiments.
 
-### 5. ⭐ Gestion des Avis Clients (`/reviews`)
-* Centralisation des avis (Google Business, Yelp, Trustpilot, Facebook).
-* Filtres par note (1 à 5 étoiles) et indicateur de taux de réponse.
-* Rédacteur IA Gemini pour formuler des réponses professionnelles, courtoises et optimisées SEO.
+### 7. ⭐ Gestion des Avis Clients (`/reviews`)
+* Centralisation des avis (Google Business, Trustpilot, Facebook).
+* Assistant IA Gemini pour formuler des réponses professionnelles et valorisantes.
 
-### 6. 🔗 Vista Page - Constructeur de Link-in-Bio (`/vista-pages` & `/p/[slug]`)
-* Éditeur visuel de micro-pages d'atterrissage avec simulateur smartphone en direct.
-* Gestion des blocs de liens, bannières et icônes sociales.
-* Thèmes personnalisables (*Violet Aurora*, *Midnight Slate*, *Emerald Lush*, *Sunset Rose*).
-* Route publique haute conversion disponible sur [`/p/studionova`](file:///d:/tutoReact/mon-CM/src/app/p/[slug]/page.tsx).
-
-### 7. ⚙️ Gestion des Comptes & Équipe (`/settings`)
-* Gestion des 5 réseaux connectés avec statut de synchronisation API.
-* Gestion des membres d'équipe (Admin, Créatif, Approbateur Client).
-* Supervision de la connexion API Gemini 2.0 Flash et de la base Supabase.
-
----
-
-## 🚀 Démarrage Rapide
-
-### 1. Lancer le serveur de développement
-```bash
-pnpm dev
-```
-Ouvrez ensuite [http://localhost:3000](http://localhost:3000) dans votre navigateur.
-
-### 2. Déployer le schéma dans Supabase
-Le fichier [`supabase_schema.sql`](file:///d:/tutoReact/mon-CM/supabase_schema.sql) contient toutes les tables, index et contraintes PostgreSQL (Workspaces, Posts, Inbox, Analytics, Reviews, Vista Pages).
-Copiez-collez son contenu dans l'éditeur SQL de votre projet Supabase :
-👉 [azhboxpmkrosvykmxzct.supabase.co](https://azhboxpmkrosvykmxzct.supabase.co)
-
-### 3. Exécuter les tests de conformité
-```bash
-node --test src/tests/domain.test.mjs
-```
+### 8. ⚙️ Paramètres & Tokens Développeurs (`/settings`)
+* Saisie et stockage des tokens officiels d'API (Meta Graph Access Token, X Bearer Token, LinkedIn OAuth, TikTok API).
+* Gestion des membres d'équipe et contrôle de la santé du cluster Supabase.
 
 ---
 
@@ -73,9 +50,21 @@ node --test src/tests/domain.test.mjs
 
 * **Framework** : Next.js 16.4.5 (App Router, Turbopack) & React 19
 * **Langage** : TypeScript 5 strict
-* **Styles** : Tailwind CSS v4 & Lucide Icons
+* **Styles** : Tailwind CSS v4 & Lucide Icons (Dark Glassmorphism)
 * **Graphiques** : Recharts 3
 * **Validation des Schémas** : Zod 3
-* **IA Générative** : Google Gemini API (clé utilisateur configurée)
-* **Base de données** : PostgreSQL via Supabase
+* **IA Générative** : Google Gemini API (`gemini-2.0-flash`)
+* **Base de données** : PostgreSQL via Supabase (`ljpslbcouvyyzzvxxfme.supabase.co`)
+* **Monétisation** : Passerelle Mobile Money (Orange, MTN, Wave, Moov)
 
+---
+
+## 🚀 Démarrage & Tests
+
+```bash
+# Lancer le serveur de développement
+pnpm dev
+
+# Lancer la suite de tests automatisés
+pnpm test
+```

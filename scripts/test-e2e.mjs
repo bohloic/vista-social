@@ -77,17 +77,20 @@ async function run() {
 
     const routes = [
       '/',
+      '/setup',
+      '/billing',
       '/publish',
       '/inbox',
       '/analytics',
       '/listening',
       '/reviews',
+      '/pulse-pages',
       '/vista-pages',
-      '/p/tech-innovations',
+      '/p/pulse-studio',
       '/settings'
     ];
 
-    console.log(`Testing ${routes.length} core Vista Social routes...`);
+    console.log(`Testing ${routes.length} core PulseSocial routes...`);
     for (const route of routes) {
       process.stdout.write(`  Route: ${route} ... `);
       const res = await page.goto(`${BASE_URL}${route}`, { waitUntil: 'domcontentloaded', timeout: 20000 });
@@ -100,8 +103,8 @@ async function run() {
     }
 
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
-    await page.screenshot({ path: 'vista-dashboard.png' });
-    console.log('Saved dashboard screenshot: vista-dashboard.png');
+    await page.screenshot({ path: 'pulsesocial-dashboard.png' });
+    console.log('Saved dashboard screenshot: pulsesocial-dashboard.png');
 
     await browser.close();
 

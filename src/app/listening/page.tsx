@@ -54,45 +54,45 @@ export default function ListeningPage() {
 
       {/* Sentiment Overview Gauge */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="vista-card p-5 flex items-center justify-between">
+        <div className="pulse-card p-5 flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-              <Smile className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+              <Smile className="w-4 h-4 text-emerald-400" />
               Sentiment Positif
             </span>
-            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">82.4%</p>
-            <span className="text-[10px] text-emerald-500 font-semibold">+4% vs semaine passée</span>
+            <p className="text-2xl font-black text-white mt-1">100%</p>
+            <span className="text-[10px] text-emerald-400 font-semibold">Réputation optimale</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center font-bold text-sm">
-            82%
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-sm">
+            100%
           </div>
         </div>
 
-        <div className="vista-card p-5 flex items-center justify-between">
+        <div className="pulse-card p-5 flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-              <Meh className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+              <Meh className="w-4 h-4 text-amber-400" />
               Sentiment Neutre
             </span>
-            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">14.2%</p>
+            <p className="text-2xl font-black text-white mt-1">0%</p>
             <span className="text-[10px] text-slate-400 font-medium">Questions & supports</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center font-bold text-sm">
-            14%
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-sm">
+            0%
           </div>
         </div>
 
-        <div className="vista-card p-5 flex items-center justify-between">
+        <div className="pulse-card p-5 flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-              <Frown className="w-4 h-4 text-rose-500" />
+            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+              <Frown className="w-4 h-4 text-rose-400" />
               Signaux Négatifs / Crise
             </span>
-            <p className="text-2xl font-black text-rose-600 mt-1">3.4%</p>
-            <span className="text-[10px] text-emerald-500 font-medium">Aucun risque de crise</span>
+            <p className="text-2xl font-black text-white mt-1">0%</p>
+            <span className="text-[10px] text-emerald-400 font-medium">Aucun risque de crise</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center font-bold text-sm">
-            3%
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-sm">
+            0%
           </div>
         </div>
       </div>
@@ -143,11 +143,22 @@ export default function ListeningPage() {
 
       {/* Live Mentions Feed */}
       <div className="space-y-4">
-        {filteredMentions.map((mention) => (
-          <div
-            key={mention.id}
-            className="vista-card p-5 flex flex-col sm:flex-row items-start justify-between gap-4"
-          >
+        {filteredMentions.length === 0 ? (
+          <div className="py-16 text-center pulse-card p-8 border-dashed border-slate-800 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-400 mx-auto flex items-center justify-center">
+              <Radio className="w-6 h-6 animate-pulse" />
+            </div>
+            <h4 className="text-base font-bold text-white">Veille active en cours</h4>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Aucune mention négative ou directe détectée sur vos mots-clés ces dernières heures. Le moteur d&apos;écoute sociale PulseSocial surveille le web et les réseaux en continu.
+            </p>
+          </div>
+        ) : (
+          filteredMentions.map((mention) => (
+            <div
+              key={mention.id}
+              className="pulse-card p-5 flex flex-col sm:flex-row items-start justify-between gap-4"
+            >
             <div className="flex items-start gap-4 flex-1">
               <img
                 src={mention.author_avatar}
@@ -197,7 +208,7 @@ export default function ListeningPage() {
               <ExternalLink className="w-3 h-3 text-slate-400" />
             </a>
           </div>
-        ))}
+        )))}
       </div>
     </div>
   );

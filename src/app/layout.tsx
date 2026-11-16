@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import './globals.css';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -14,6 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const [composerOpen, setComposerOpen] = useState(false);
+  const pathname = usePathname();
+  const isSetupOrPublic = pathname?.startsWith('/setup') || pathname?.startsWith('/p/');
 
   const handleSavePost = async (newPost: Omit<Post, 'id' | 'created_at'>) => {
     try {
@@ -22,7 +25,6 @@ export default function RootLayout({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPost),
       });
-      // Trigger a page refresh or custom event
       window.dispatchEvent(new Event('posts-updated'));
     } catch (err) {
       console.error('Error saving post', err);
@@ -32,31 +34,37 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
-        <title>Vista Social - Plateforme Unifiée de Community Management</title>
+        <title>PulseSocial - Plateforme Intelligente de Community Management & Monétisation</title>
         <meta
           name="description"
-          content="Reconstruction complète des fonctionnalités Vista Social : Planification, Boîte de réception unifiée, Listening, Analytics, Assistant IA Gemini et Vista Pages."
+          content="PulseSocial : Planificateur multi-réseaux, Boîte de réception unifiée, Assistant IA Gemini 2.0, Pulse Pages et Abonnements Mobile Money."
         />
+        <meta name="theme-color" content="#07090E" />
       </head>
-      <body className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased font-sans">
-        {/* Main Navigation Sidebar */}
-        <Sidebar onOpenComposer={() => setComposerOpen(true)} />
+      <body className="min-h-screen bg-[#07090E] text-slate-100 antialiased font-sans selection:bg-violet-500 selection:text-white">
+        {isSetupOrPublic ? (
+          <main className="min-h-screen">{children}</main>
+        ) : (
+          <div className="flex min-h-screen">
+            {/* Main Navigation Sidebar */}
+            <Sidebar onOpenComposer={() => setComposerOpen(true)} />
 
-        {/* Primary Content Container */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header onOpenComposer={() => setComposerOpen(true)} />
-          <main className="flex-1 p-6 overflow-y-auto">{children}</main>
-        </div>
+            {/* Primary Content Container */}
+            <div className="flex-1 flex flex-col min-w-0">
+              <Header onOpenComposer={() => setComposerOpen(true)} />
+              <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">{children}</main>
+            </div>
 
-        {/* Global Multi-Platform Post Composer */}
-        <ComposerModal
-          isOpen={composerOpen}
-          onClose={() => setComposerOpen(false)}
-          accounts={INITIAL_ACCOUNTS}
-          onSavePost={handleSavePost}
-        />
+            {/* Global Multi-Platform Post Composer */}
+            <ComposerModal
+              isOpen={composerOpen}
+              onClose={() => setComposerOpen(false)}
+              accounts={INITIAL_ACCOUNTS}
+              onSavePost={handleSavePost}
+            />
+          </div>
+        )}
       </body>
     </html>
   );
 }
-

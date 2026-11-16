@@ -1,16 +1,73 @@
 import React from 'react';
-import { INITIAL_VISTA_PAGE } from '@/lib/mockData';
+import { getAdminSupabase } from '@/lib/supabase';
+import { PulsePage } from '@/lib/types';
 import { ExternalLink, Sparkles } from 'lucide-react';
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export default async function PublicVistaPage({ params }: Props) {
+const DEFAULT_PULSE_PAGE: PulsePage = {
+  id: 'pulse-default',
+  workspace_id: 'ws-default',
+  title: 'PulseSocial Creator Studio',
+  slug: 'pulse-studio',
+  bio: 'Transformez votre présence sur les réseaux sociaux grâce à la puissance de PulseSocial et de l\'IA Gemini.',
+  avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
+  theme_config: {
+    bg_gradient: 'from-violet-950 via-slate-950 to-indigo-950',
+    button_bg: 'rgba(255, 255, 255, 0.08)',
+    button_border: 'rgba(255, 255, 255, 0.2)',
+    font_family: 'sans-serif',
+  },
+  blocks: [
+    {
+      id: 'b-1',
+      type: 'link',
+      title: '✨ Découvrir PulseSocial App',
+      url: '/',
+      subtitle: 'La plateforme de CM n°1 pour créateurs et agences',
+      is_active: true,
+      order_index: 0,
+      click_count: 0,
+    },
+    {
+      id: 'b-2',
+      type: 'link',
+      title: '📱 Forfaits & Abonnements Mobile Money',
+      url: '/billing',
+      subtitle: 'Orange Money, MTN MoMo, Wave, Moov disponibles',
+      is_active: true,
+      order_index: 1,
+      click_count: 0,
+    },
+  ],
+  views_count: 0,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
+export default async function PublicPulsePage({ params }: Props) {
   const { slug } = await params;
 
-  // In production, queries Supabase by slug; fallback to mock data
-  const page = slug === INITIAL_VISTA_PAGE.slug ? INITIAL_VISTA_PAGE : INITIAL_VISTA_PAGE;
+  let page: PulsePage = DEFAULT_PULSE_PAGE;
+
+  try {
+    const supabase = getAdminSupabase();
+    if (supabase) {
+      const { data } = await supabase
+        .from('pulse_pages')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (data) {
+        page = data as PulsePage;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to query pulse_pages from Supabase:', err);
+  }
 
   return (
     <div
@@ -102,8 +159,8 @@ export default async function PublicVistaPage({ params }: Props) {
           href="/"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] text-white/75 font-semibold border border-white/15 hover:bg-white/20 transition-colors"
         >
-          <Sparkles className="w-3 h-3 text-yellow-300" />
-          <span>Propulsé par Vista Social CM</span>
+          <Sparkles className="w-3 h-3 text-emerald-400" />
+          <span>Propulsé par PulseSocial Engine</span>
         </a>
       </footer>
     </div>

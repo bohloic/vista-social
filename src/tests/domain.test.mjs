@@ -15,13 +15,29 @@ const postCreateSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+const mobileMoneyCheckoutSchema = z.object({
+  plan_id: z.enum(['starter', 'pro', 'agency']),
+  provider: z.enum(['orange_money', 'mtn_momo', 'wave', 'moov_money', 'card']),
+  currency: z.enum(['XOF', 'EUR', 'USD']).default('XOF'),
+  phone_number: z.string().min(8, 'Numéro de téléphone requis pour le paiement'),
+  customer_name: z.string().min(2, 'Nom du souscripteur requis'),
+  customer_email: z.string().email('Email valide requis'),
+});
+
+const setupSchema = z.object({
+  email: z.string().email(),
+  full_name: z.string().min(2),
+  password: z.string().min(6),
+  workspace_name: z.string().min(2),
+});
+
 test('1. Post Schema Validation - Nominal Valid Post', () => {
   const sample = {
-    content: 'Grand jeu concours pour nos 50k abonnés ! 🎉',
+    content: 'Grand jeu concours pour nos 50k abonnés PulseSocial ! 🎉',
     post_type: 'post',
     scheduled_for: new Date().toISOString(),
     target_accounts: ['acc-ig-1', 'acc-tk-1'],
-    first_comment: '#concours #giveaway',
+    first_comment: '#concours #pulsesocial',
   };
 
   const parsed = postCreateSchema.safeParse(sample);
@@ -66,3 +82,48 @@ test('4. Character Limits by Social Platform', () => {
   assert.ok(oversizedTweet.length > TWITTER_MAX);
 });
 
+test('5. Mobile Money Checkout Schema - Nominal Validation (Wave Côte d\'Ivoire)', () => {
+  const validPayment = {
+    plan_id: 'pro',
+    provider: 'wave',
+    currency: 'XOF',
+    phone_number: '+2250708091011',
+    customer_name: 'Koffi Jean',
+    customer_email: 'koffi@agence.ci',
+  };
+
+  const parsed = mobileMoneyCheckoutSchema.safeParse(validPayment);
+  assert.equal(parsed.success, true);
+});
+
+test('6. Mobile Money Checkout Schema - Negative Validation (Invalid Email & Phone)', () => {
+  const invalidPayment = {
+    plan_id: 'pro',
+    provider: 'orange_money',
+    currency: 'XOF',
+    phone_number: '123',
+    customer_name: 'A',
+    customer_email: 'not-an-email',
+  };
+
+  const parsed = mobileMoneyCheckoutSchema.safeParse(invalidPayment);
+  assert.equal(parsed.success, false);
+});
+
+test('7. Super-Admin Setup Schema - Nominal & Negative Validation', () => {
+  const valid = setupSchema.safeParse({
+    email: 'admin@pulsesocial.app',
+    full_name: 'Lead Creator',
+    password: 'securePassword123!',
+    workspace_name: 'Pulse Studio Abidjan',
+  });
+  assert.equal(valid.success, true);
+
+  const invalid = setupSchema.safeParse({
+    email: 'bad',
+    full_name: '',
+    password: '123',
+    workspace_name: '',
+  });
+  assert.equal(invalid.success, false);
+});

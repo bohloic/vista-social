@@ -115,7 +115,7 @@ export function ComposerModal({ isOpen, onClose, accounts, onSavePost }: Compose
       published_at: isImmediate ? new Date().toISOString() : undefined,
       first_comment: firstComment.trim() ? firstComment.trim() : undefined,
       target_accounts: selectedAccounts,
-      tags: ['Vista Social Sync'],
+      tags: ['PulseSocial Sync'],
     });
 
     onClose();
