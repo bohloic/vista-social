@@ -94,11 +94,16 @@ export default function AnalyticsPage() {
           </div>
 
           <button
-            onClick={() => alert('Génération du rapport PDF consolidé en cours...')}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-xs transition-colors"
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.print();
+              }
+            }}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Exporter PDF</span>
+            <Download className="w-3.5 h-3.5 text-violet-400" />
+            <span>Imprimer / PDF</span>
           </button>
         </div>
       </div>

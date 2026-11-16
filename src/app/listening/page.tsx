@@ -16,12 +16,43 @@ import {
   Smile,
   Meh,
   Frown,
+  X,
+  CheckCircle2,
 } from 'lucide-react';
 
 export default function ListeningPage() {
   const [mentions, setMentions] = useState<ListeningMention[]>([]);
   const [activeQuery, setActiveQuery] = useState<string>('all');
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [queryInput, setQueryInput] = useState('');
+  const [platformInput, setPlatformInput] = useState<'twitter' | 'instagram' | 'linkedin' | 'tiktok'>('twitter');
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+
+  const handleCreateQuery = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!queryInput.trim()) return;
+
+    const newMention: ListeningMention = {
+      id: `men-${Date.now()}`,
+      platform: platformInput,
+      author_name: `${queryInput.trim()} Communauté`,
+      author_handle: `@${queryInput.trim().replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`,
+      author_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      content: `Discussion en direct sur #${queryInput.trim()} : les fonctionnalités de PulseSocial permettent une gestion optimale du contenu et du ROI.`,
+      sentiment: 'positive',
+      reach: Math.floor(Math.random() * 8000) + 1200,
+      engagement: Math.floor(Math.random() * 400) + 45,
+      url: 'https://pulsesocial.app',
+      published_at: new Date().toISOString(),
+    };
+
+    setMentions([newMention, ...mentions]);
+    setFeedbackMsg(`✓ Alerte de veille pour "${queryInput}" activée avec succès !`);
+    setQueryInput('');
+    setModalOpen(false);
+    setTimeout(() => setFeedbackMsg(null), 4000);
+  };
 
   const filteredMentions = mentions.filter((m) => {
     if (sentimentFilter !== 'all' && m.sentiment !== sentimentFilter) return false;
@@ -43,13 +74,22 @@ export default function ListeningPage() {
         </div>
 
         <button
-          onClick={() => alert('Ajout d&apos;une nouvelle alerte de veille')}
-          className="flex items-center gap-2 py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 active:scale-95 transition-all self-start sm:self-center"
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 py-2 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/30 active:scale-95 transition-all self-start sm:self-center cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Nouvelle Requête de Veille</span>
         </button>
       </div>
+
+      {/* Feedback alert */}
+      {feedbackMsg && (
+        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{feedbackMsg}</span>
+        </div>
+      )}
 
       {/* Sentiment Overview Gauge */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -209,6 +249,79 @@ export default function ListeningPage() {
           </div>
         )))}
       </div>
+
+      {/* New Query Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <form
+            onSubmit={handleCreateQuery}
+            className="w-full max-w-md bg-slate-900 border border-violet-500/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+          >
+            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+              <div className="flex items-center gap-2">
+                <Radio className="w-4 h-4 text-violet-400" />
+                <h3 className="font-bold text-sm text-white">Créer une Requête de Veille</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Mot-clé, marque ou hashtag à surveiller :
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: #PulseSocial, AgenceDigitale, MonProduit"
+                  value={queryInput}
+                  onChange={(e) => setQueryInput(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white text-xs focus:outline-none focus:border-violet-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Plateforme cible :
+                </label>
+                <select
+                  value={platformInput}
+                  onChange={(e) => setPlatformInput(e.target.value as any)}
+                  className="w-full p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white text-xs focus:outline-none focus:border-violet-500"
+                >
+                  <option value="twitter">X (Twitter)</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="tiktok">TikTok</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="text-xs text-slate-400 hover:text-white cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Activer la Veille</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
