@@ -161,3 +161,31 @@ test('9. 1-Click Social Connect Schema - Nominal Validation', () => {
   });
   assert.equal(valid.success, true);
 });
+
+test('10. Cryptographic Password Hashing & Verification Security', async () => {
+  const { hashPassword, verifyPassword, createSignedSession, verifySignedSession } = await import('../lib/auth-crypto.ts');
+
+  const password = 'mySuperSecureSecretPassword2026!';
+  const { hash, salt } = hashPassword(password);
+
+  assert.ok(hash.length > 20);
+  assert.ok(salt.length > 10);
+
+  // Nominal match
+  assert.equal(verifyPassword(password, hash, salt), true);
+
+  // Negative mismatch: wrong password MUST return false
+  assert.equal(verifyPassword('wrongPassword123!', hash, salt), false);
+  assert.equal(verifyPassword('', hash, salt), false);
+
+  // Signed session integrity
+  const sessionToken = createSignedSession({ id: 'user-123', exp: Date.now() + 10000 });
+  const verified = verifySignedSession(sessionToken);
+  assert.ok(verified !== null);
+  assert.equal(verified.id, 'user-123');
+
+  // Tampered session MUST return null
+  const tampered = Buffer.from(sessionToken, 'base64').toString('utf-8').replace('user-123', 'hacker-999');
+  const tamperedToken = Buffer.from(tampered).toString('base64');
+  assert.equal(verifySignedSession(tamperedToken), null);
+});

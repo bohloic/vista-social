@@ -1,4 +1,5 @@
 import { getAdminSupabase, checkAppInitialized } from '@/lib/supabase';
+import { hashPassword, createSignedSession } from '@/lib/auth-crypto';
 import { z } from 'zod';
 
 const setupSchema = z.object({
@@ -66,8 +67,10 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Erreur lors de la création de l\'espace de travail' }, { status: 500 });
     }
 
-    // 2. Create Super-Admin Profile (Lifetime Free access)
-    // Hash password or store securely
+    // 2. Cryptographic Password Hashing (scrypt + random salt)
+    const { hash, salt } = hashPassword(password);
+
+    // 3. Create Super-Admin Profile (Lifetime Free access + password hash)
     const { data: userProfile, error: userError } = await adminClient
       .from('user_profiles')
       .insert({
@@ -75,6 +78,8 @@ export async function POST(req: Request) {
         email: email.toLowerCase().trim(),
         role: 'super_admin',
         is_lifetime_free: true,
+        password_hash: hash,
+        salt: salt,
         workspace_id: wsData.id,
       })
       .select()
@@ -85,14 +90,20 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Erreur lors de la création du profil administrateur' }, { status: 500 });
     }
 
-    // 3. Link Workspace Member
+    // 4. Link Workspace Member
     await adminClient.from('workspace_members').insert({
       workspace_id: wsData.id,
       user_id: userProfile.id,
       role: 'super_admin',
     });
 
-    // 4. Optionally connect Meta account if token provided
+    // 5. Update initialization flag in app_config
+    await adminClient.from('app_config').upsert({
+      key: 'is_initialized',
+      value: { initialized: true, configured_at: new Date().toISOString() },
+    });
+
+    // 6. Optionally connect Meta account if token provided
     if (metaAccessToken && metaAccessToken.trim().length > 10) {
       await adminClient.from('social_accounts').insert({
         workspace_id: wsData.id,
@@ -108,7 +119,17 @@ export async function POST(req: Request) {
       });
     }
 
-    return Response.json(
+    // 7. Generate Signed Session Token
+    const sessionToken = createSignedSession({
+      id: userProfile.id,
+      email: userProfile.email,
+      role: userProfile.role,
+      workspaceId: wsData.id,
+      isLifetimeFree: userProfile.is_lifetime_free,
+      exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
+    });
+
+    const response = Response.json(
       {
         success: true,
         message: 'PulseSocial initialisé avec succès ! Compte Super-Admin activé avec accès gratuit à vie.',
@@ -121,8 +142,17 @@ export async function POST(req: Request) {
           isLifetimeFree: userProfile.is_lifetime_free,
         },
       },
-      { status: 201 }
+      {
+        status: 201,
+        headers: {
+          'Set-Cookie': `pulsesocial_session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${
+            process.env.NODE_ENV === 'production' ? '; Secure' : ''
+          }`,
+        },
+      }
     );
+
+    return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Erreur interne du serveur';
     console.error('Setup error:', err);

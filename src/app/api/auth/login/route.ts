@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
+import { verifyPassword, createSignedSession } from '@/lib/auth-crypto';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email } = parsed.data;
+    const { email, password } = parsed.data;
     const supabase = getAdminSupabase();
 
     if (!supabase) {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify user in user_profiles
+    // 1. Verify user in user_profiles
     const { data: user, error } = await supabase
       .from('user_profiles')
       .select('*, workspaces(*)')
@@ -38,22 +39,37 @@ export async function POST(req: NextRequest) {
 
     if (error || !user) {
       return NextResponse.json(
-        { success: false, error: 'Identifiants invalides ou compte introuvable.' },
+        { success: false, error: 'Identifiant ou compte introuvable.' },
         { status: 401 }
       );
     }
 
-    // Create session cookie
-    const sessionToken = Buffer.from(
-      JSON.stringify({
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        workspaceId: user.workspace_id,
-        isLifetimeFree: user.is_lifetime_free,
-        exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      })
-    ).toString('base64');
+    // 2. Cryptographic Password Verification
+    if (user.password_hash && user.salt) {
+      const isValid = verifyPassword(password, user.password_hash, user.salt);
+      if (!isValid) {
+        return NextResponse.json(
+          { success: false, error: 'Mot de passe incorrect.' },
+          { status: 401 }
+        );
+      }
+    } else {
+      // If legacy account without hash, require initial setup
+      return NextResponse.json(
+        { success: false, error: 'Compte non configuré. Veuillez effectuer le Setup initial.' },
+        { status: 401 }
+      );
+    }
+
+    // 3. Create cryptographically signed session token
+    const sessionToken = createSignedSession({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      workspaceId: user.workspace_id,
+      isLifetimeFree: user.is_lifetime_free,
+      exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
+    });
 
     const response = NextResponse.json({
       success: true,

@@ -48,8 +48,8 @@ export default function DashboardPage() {
   const [workspaceName, setWorkspaceName] = useState<string>('Studio Nova');
 
   useEffect(() => {
-    // 1. Verify initialization status
-    const checkSetup = async () => {
+    // 1. Verify initialization status and authentication
+    const checkSetupAndAuth = async () => {
       try {
         const res = await fetch('/api/setup');
         if (res.ok) {
@@ -58,12 +58,22 @@ export default function DashboardPage() {
             router.push('/setup');
             return;
           }
-          if (data.workspace?.name) {
-            setWorkspaceName(data.workspace.name);
+
+          // If initialized, check authentication
+          const authRes = await fetch('/api/auth/me');
+          if (authRes.ok) {
+            const authData = await authRes.json();
+            if (!authData.authenticated) {
+              router.push('/login');
+              return;
+            }
+            if (authData.user?.workspace?.name) {
+              setWorkspaceName(authData.user.workspace.name);
+            }
           }
         }
       } catch (err) {
-        console.warn('Setup status check failed:', err);
+        console.warn('Setup & auth check failed:', err);
       }
     };
 
@@ -82,7 +92,7 @@ export default function DashboardPage() {
       }
     };
 
-    checkSetup();
+    checkSetupAndAuth();
     fetchPosts();
 
     const handleUpdate = () => fetchPosts();

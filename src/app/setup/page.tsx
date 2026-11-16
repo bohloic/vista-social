@@ -76,10 +76,13 @@ export default function SetupWizardPage() {
         throw new Error(data.error || 'Erreur lors de l\'initialisation');
       }
 
+      if (typeof window !== 'undefined' && data.profile) {
+        localStorage.setItem('pulsesocial_user', JSON.stringify(data.profile));
+      }
       setSuccess(true);
       setTimeout(() => {
-        router.push('/');
-      }, 2000);
+        window.location.href = '/';
+      }, 1500);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
