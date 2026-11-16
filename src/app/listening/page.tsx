@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { INITIAL_MENTIONS } from '@/lib/mockData';
 import { ListeningMention } from '@/lib/types';
 import { FormattedDate } from '@/components/FormattedDate';
 import {
@@ -20,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export default function ListeningPage() {
-  const [mentions, setMentions] = useState<ListeningMention[]>(INITIAL_MENTIONS);
+  const [mentions, setMentions] = useState<ListeningMention[]>([]);
   const [activeQuery, setActiveQuery] = useState<string>('all');
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
 

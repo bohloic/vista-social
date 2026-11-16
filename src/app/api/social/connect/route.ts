@@ -102,3 +102,29 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Identifiant du compte requis' }, { status: 400 });
+    }
+
+    const supabase = getAdminSupabase();
+    if (!supabase) {
+      return NextResponse.json({ success: false, error: 'Database unreachable' }, { status: 503 });
+    }
+
+    const { error } = await supabase.from('social_accounts').delete().eq('id', id);
+
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Compte déconnecté avec succès' });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+  }
+}

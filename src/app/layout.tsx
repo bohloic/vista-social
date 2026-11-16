@@ -6,7 +6,6 @@ import './globals.css';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ComposerModal } from '@/components/ComposerModal';
-import { INITIAL_ACCOUNTS } from '@/lib/mockData';
 import { Post } from '@/lib/types';
 
 export default function RootLayout({
@@ -59,7 +58,7 @@ export default function RootLayout({
             <ComposerModal
               isOpen={composerOpen}
               onClose={() => setComposerOpen(false)}
-              accounts={INITIAL_ACCOUNTS}
+              accounts={[]}
               onSavePost={handleSavePost}
             />
           </div>

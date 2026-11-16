@@ -26,6 +26,24 @@ export function PlatformPreview({
   const displayContent = content || "Votre contenu apparaîtra ici en temps réel...";
   const displayMedia = mediaUrls.length > 0 ? mediaUrls[0] : null;
 
+  const isVideoUrl = (url?: string | null) => {
+    if (!url) return false;
+    return (
+      url.endsWith('.mp4') ||
+      url.endsWith('.webm') ||
+      url.endsWith('.mov') ||
+      url.includes('/uploads/video-') ||
+      url.includes('video')
+    );
+  };
+
+  const renderMediaElement = (url: string, className: string) => {
+    if (isVideoUrl(url)) {
+      return <video src={url} controls className={className} playsInline muted autoPlay loop />;
+    }
+    return <img src={url} alt="Preview" className={className} />;
+  };
+
   return (
     <div className="w-full flex flex-col items-center">
       {/* Device frame container */}
@@ -57,7 +75,7 @@ export function PlatformPreview({
             {/* Media */}
             <div className="w-full aspect-square bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700/60">
               {displayMedia ? (
-                <img src={displayMedia} alt="Preview" className="w-full h-full object-cover" />
+                renderMediaElement(displayMedia, 'w-full h-full object-cover')
               ) : (
                 <div className="text-center p-4 text-slate-400">
                   <span className="text-2xl block mb-1">📸</span>
@@ -114,7 +132,7 @@ export function PlatformPreview({
 
             {displayMedia && (
               <div className="w-full aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                <img src={displayMedia} alt="Media preview" className="w-full h-full object-cover" />
+                {renderMediaElement(displayMedia, 'w-full h-full object-cover')}
               </div>
             )}
 
@@ -144,7 +162,7 @@ export function PlatformPreview({
 
                 {displayMedia && (
                   <div className="w-full aspect-video rounded-xl overflow-hidden mt-2 border border-slate-200 dark:border-slate-700">
-                    <img src={displayMedia} alt="Tweet media" className="w-full h-full object-cover" />
+                    {renderMediaElement(displayMedia, 'w-full h-full object-cover')}
                   </div>
                 )}
 
@@ -163,7 +181,11 @@ export function PlatformPreview({
         {platform === 'tiktok' && (
           <div className="relative aspect-[9/16] bg-slate-950 text-white rounded-2xl overflow-hidden flex flex-col justify-between p-3">
             {displayMedia ? (
-              <img src={displayMedia} alt="TikTok Media" className="absolute inset-0 w-full h-full object-cover opacity-85" />
+              isVideoUrl(displayMedia) ? (
+                <video src={displayMedia} controls playsInline autoPlay loop muted className="absolute inset-0 w-full h-full object-cover opacity-90" />
+              ) : (
+                <img src={displayMedia} alt="TikTok Media" className="absolute inset-0 w-full h-full object-cover opacity-85" />
+              )
             ) : (
               <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950" />
             )}
@@ -226,7 +248,7 @@ export function PlatformPreview({
 
             {displayMedia && (
               <div className="w-full aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                <img src={displayMedia} alt="Facebook media" className="w-full h-full object-cover" />
+                {renderMediaElement(displayMedia, 'w-full h-full object-cover')}
               </div>
             )}
 

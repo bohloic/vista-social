@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { INITIAL_REVIEWS } from '@/lib/mockData';
 import { ReviewItem } from '@/lib/types';
 import { FormattedDate } from '@/components/FormattedDate';
 import {
@@ -16,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState<ReviewItem[]>(INITIAL_REVIEWS);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [ratingFilter, setRatingFilter] = useState<number | 'all'>('all');
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [loadingAi, setLoadingAi] = useState<Record<string, boolean>>({});

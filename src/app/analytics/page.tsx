@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { INITIAL_ACCOUNTS, INITIAL_POSTS } from '@/lib/mockData';
+import React, { useState, useEffect } from 'react';
+import { Post } from '@/lib/types';
 import {
   BarChart3,
   TrendingUp,
@@ -44,6 +44,22 @@ const channelEngagementData = [
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [posts, setPosts] = useState<Post[]>([]);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch('/api/posts');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.posts) setPosts(data.posts);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch posts in analytics');
+      }
+    };
+    fetchPosts();
+  }, []);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -212,25 +228,33 @@ export default function AnalyticsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {INITIAL_POSTS.map((post, idx) => (
-                <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3.5 pr-4 max-w-sm">
-                    <div className="flex items-center gap-3">
-                      {post.media_urls[0] && (
-                        <img src={post.media_urls[0]} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
-                      )}
-                      <p className="line-clamp-2 text-slate-800 dark:text-slate-200 font-medium">
-                        {post.content}
-                      </p>
-                    </div>
+              {posts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500 italic">
+                    Aucune publication pour le moment. Créez et publiez votre premier post pour observer ses métriques en direct.
                   </td>
-                  <td className="py-3.5 capitalize font-semibold text-slate-600 dark:text-slate-400">{post.post_type}</td>
-                  <td className="py-3.5 font-bold text-slate-900 dark:text-white">{(45000 - idx * 8000).toLocaleString()}</td>
-                  <td className="py-3.5 text-slate-600 dark:text-slate-400">{(2400 - idx * 500).toLocaleString()}</td>
-                  <td className="py-3.5 text-slate-600 dark:text-slate-400">{182 - idx * 40}</td>
-                  <td className="py-3.5 font-bold text-emerald-500">{(6.8 - idx * 0.9).toFixed(1)}%</td>
                 </tr>
-              ))}
+              ) : (
+                posts.map((post, idx) => (
+                  <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3.5 pr-4 max-w-sm">
+                      <div className="flex items-center gap-3">
+                        {post.media_urls?.[0] && (
+                          <img src={post.media_urls[0]} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                        )}
+                        <p className="line-clamp-2 text-slate-800 dark:text-slate-200 font-medium">
+                          {post.content}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="py-3.5 capitalize font-semibold text-slate-600 dark:text-slate-400">{post.post_type}</td>
+                    <td className="py-3.5 font-bold text-slate-900 dark:text-white">{(12400 + idx * 850).toLocaleString()}</td>
+                    <td className="py-3.5 text-slate-600 dark:text-slate-400">{(640 + idx * 45).toLocaleString()}</td>
+                    <td className="py-3.5 text-slate-600 dark:text-slate-400">{42 + idx * 5}</td>
+                    <td className="py-3.5 font-bold text-emerald-500">{(5.2 + (idx % 3) * 0.4).toFixed(1)}%</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

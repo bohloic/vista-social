@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [workspaceName, setWorkspaceName] = useState<string>('Studio Nova');
+  const [workspaceName, setWorkspaceName] = useState<string>('PulseSocial Studio');
 
   useEffect(() => {
     // 1. Verify initialization status and authentication
@@ -77,25 +77,34 @@ export default function DashboardPage() {
       }
     };
 
-    // 2. Fetch real posts
-    const fetchPosts = async () => {
+    // 2. Fetch real posts & accounts
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/posts');
-        if (res.ok) {
-          const data = await res.json();
+        const [postsRes, accsRes] = await Promise.all([
+          fetch('/api/posts'),
+          fetch('/api/social/connect'),
+        ]);
+
+        if (postsRes.ok) {
+          const data = await postsRes.json();
           if (data.posts) setPosts(data.posts);
         }
+
+        if (accsRes.ok) {
+          const accsData = await accsRes.json();
+          if (accsData.accounts) setAccounts(accsData.accounts);
+        }
       } catch (err) {
-        console.warn('Failed to fetch posts from API:', err);
+        console.warn('Failed to fetch data from API:', err);
       } finally {
         setLoading(false);
       }
     };
 
     checkSetupAndAuth();
-    fetchPosts();
+    fetchData();
 
-    const handleUpdate = () => fetchPosts();
+    const handleUpdate = () => fetchData();
     window.addEventListener('posts-updated', handleUpdate);
     return () => window.removeEventListener('posts-updated', handleUpdate);
   }, [router]);

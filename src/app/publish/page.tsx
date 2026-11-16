@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarView } from '@/components/CalendarView';
 import { ComposerModal } from '@/components/ComposerModal';
-import { INITIAL_POSTS, INITIAL_ACCOUNTS } from '@/lib/mockData';
-import { Post, SocialPlatform } from '@/lib/types';
+import { Post, SocialAccount, SocialPlatform } from '@/lib/types';
 import { FormattedDate } from '@/components/FormattedDate';
 import {
   Calendar,
@@ -19,27 +18,37 @@ import {
 } from 'lucide-react';
 
 export default function PublishPage() {
-  const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchPostsAndAccounts = async () => {
       try {
-        const res = await fetch('/api/posts');
-        if (res.ok) {
-          const data = await res.json();
+        const [postsRes, accsRes] = await Promise.all([
+          fetch('/api/posts'),
+          fetch('/api/social/connect'),
+        ]);
+
+        if (postsRes.ok) {
+          const data = await postsRes.json();
           if (data.posts) setPosts(data.posts);
         }
+
+        if (accsRes.ok) {
+          const accsData = await accsRes.json();
+          if (accsData.accounts) setAccounts(accsData.accounts);
+        }
       } catch (err) {
-        console.warn('Fallback to local posts');
+        console.warn('Error loading posts/accounts');
       }
     };
-    fetchPosts();
+    fetchPostsAndAccounts();
 
-    const handleUpdate = () => fetchPosts();
+    const handleUpdate = () => fetchPostsAndAccounts();
     window.addEventListener('posts-updated', handleUpdate);
     return () => window.removeEventListener('posts-updated', handleUpdate);
   }, []);
@@ -62,8 +71,8 @@ export default function PublishPage() {
 
   const filteredPosts = posts.filter((post) => {
     if (platformFilter === 'all') return true;
-    const accounts = INITIAL_ACCOUNTS.filter((a) => post.target_accounts.includes(a.id));
-    return accounts.some((a) => a.platform === platformFilter);
+    const matchingAccounts = accounts.filter((a) => post.target_accounts?.includes(a.id));
+    return matchingAccounts.some((a) => a.platform === platformFilter);
   });
 
   return (
@@ -141,7 +150,7 @@ export default function PublishPage() {
       {viewMode === 'calendar' ? (
         <CalendarView
           posts={filteredPosts}
-          accounts={INITIAL_ACCOUNTS}
+          accounts={accounts}
           onNewPostWithDate={(date) => setComposerOpen(true)}
           onSelectPost={(post) => setSelectedPost(post)}
         />
@@ -166,8 +175,8 @@ export default function PublishPage() {
             </div>
           ) : (
             filteredPosts.map((post) => {
-              const targetAccs = INITIAL_ACCOUNTS.filter((a) =>
-                post.target_accounts.includes(a.id)
+              const targetAccs = accounts.filter((a) =>
+                post.target_accounts?.includes(a.id)
               );
 
               return (
@@ -292,7 +301,7 @@ export default function PublishPage() {
       <ComposerModal
         isOpen={composerOpen}
         onClose={() => setComposerOpen(false)}
-        accounts={INITIAL_ACCOUNTS}
+        accounts={accounts}
         onSavePost={handleSavePost}
       />
     </div>
