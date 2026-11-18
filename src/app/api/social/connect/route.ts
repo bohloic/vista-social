@@ -19,6 +19,7 @@ const connectSchema = z.object({
     'youtube',
     'pinterest',
     'threads',
+    'whatsapp',
   ]),
   accountName: z.string().min(1, 'Nom du compte requis'),
   username: z.string().min(1, 'Identifiant requis'),
