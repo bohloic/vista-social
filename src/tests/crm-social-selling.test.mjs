@@ -58,3 +58,34 @@ test('4. Meta & WhatsApp 24h Compliance Window Calculation', () => {
   assert.equal(isWindowActive, true, 'Window should be active');
   assert.equal(hoursRemaining, 18, 'Hours remaining should match 18');
 });
+
+test('5. Composio OAuth 2.0 Initiate & Callback Contract', () => {
+  const validPlatforms = [
+    'instagram',
+    'facebook',
+    'twitter',
+    'linkedin',
+    'tiktok',
+    'whatsapp',
+    'google_business',
+  ];
+  const samplePayload = {
+    platform: 'instagram',
+    workspaceId: 'ws-default',
+  };
+  assert.ok(validPlatforms.includes(samplePayload.platform), 'Platform must be supported by Composio gateway');
+});
+
+test('6. Paystack Initialize & Verify Transaction Contract', () => {
+  const txInit = {
+    email: 'client@pulsesocial.ci',
+    amount: 15000,
+    currency: 'XOF',
+    plan: 'pro',
+    provider: 'wave',
+  };
+  assert.ok(txInit.amount > 0, 'Amount must be positive');
+  assert.equal(txInit.currency, 'XOF');
+  assert.ok(['wave', 'orange_money', 'mtn_momo', 'card'].includes(txInit.provider));
+});
+

@@ -33,7 +33,10 @@ export function middleware(request: NextRequest) {
   const isPublicRoute =
     pathname === '/setup' ||
     pathname.startsWith('/p/') ||
+    pathname.startsWith('/oauth-popup') ||
     pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/api/social/oauth/') ||
+    pathname.startsWith('/api/billing/paystack/') ||
     pathname === '/api/setup' ||
     pathname === '/api/health' ||
     pathname.startsWith('/_next') ||

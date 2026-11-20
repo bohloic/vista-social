@@ -348,15 +348,17 @@ export default function InboxPage() {
     }
   };
 
-  // Insert Payment Link
+  // Insert Payment Link (Paystack Official Checkout URL)
   const handleInsertPaymentLink = () => {
     const formattedAmount = paymentAmount.toLocaleString();
-    const link = `https://pay.pulsesocial.app/checkout?ref=${activeConv?.id || 'lead'}&amount=${paymentAmount}&provider=${paymentOperator}&currency=${paymentCurrency}`;
-    const insertText = `🛒 Voici votre lien sécurisé de paiement ${paymentOperator.toUpperCase()} (${formattedAmount} ${paymentCurrency}) :\n${link}\n\nValidation automatique instantanée dès réception !`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vista-social-app.vercel.app';
+    const ref = `PSTK-${activeConv?.id || Date.now()}`;
+    const link = `${origin}/oauth-popup?provider=paystack&reference=${encodeURIComponent(ref)}&amount=${paymentAmount}&currency=${encodeURIComponent(paymentCurrency)}&plan=commande_social_selling&channel=${encodeURIComponent(paymentOperator)}&customer=${encodeURIComponent(activeConv?.customer_name || 'Client')}`;
+    const insertText = `🛒 Voici votre lien sécurisé de paiement Paystack • ${paymentOperator.toUpperCase()} (${formattedAmount} ${paymentCurrency}) :\n${link}\n\nValidation automatique instantanée dès réception !`;
 
     setReplyText((prev) => (prev ? `${prev}\n\n${insertText}` : insertText));
     setPaymentModalOpen(false);
-    showToast(`✓ Lien de paiement ${paymentOperator.toUpperCase()} inséré !`);
+    showToast(`✓ Lien de paiement Paystack (${paymentOperator.toUpperCase()}) inséré !`);
   };
 
   // Insert Cal.com appointment link

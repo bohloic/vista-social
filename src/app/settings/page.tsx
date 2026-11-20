@@ -123,6 +123,8 @@ export default function SettingsPage() {
 
   // Real API Tokens form
   const [tokens, setTokens] = useState({
+    composioApiKey: '',
+    paystackSecretKey: '',
     metaToken: '',
     xBearerToken: '',
     linkedInToken: '',
@@ -186,6 +188,20 @@ export default function SettingsPage() {
     } catch (e) {
       console.warn('Could not load manual tokens', e);
     }
+
+    const handleOAuthPopupMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'COMPOSIO_OAUTH_SUCCESS') {
+        const accName = event.data.account?.account_name || event.data.platform?.toUpperCase();
+        setConnectMessage(
+          `✓ ${accName} authentifié et synchronisé avec succès via la fenêtre officielle OAuth 2.0 (Composio) !`
+        );
+        setConnectingPlatform(null);
+        fetchAccounts();
+      }
+    };
+
+    window.addEventListener('message', handleOAuthPopupMessage);
+    return () => window.removeEventListener('message', handleOAuthPopupMessage);
   }, []);
 
   const handleTestConnection = async () => {
@@ -201,41 +217,63 @@ export default function SettingsPage() {
     }
   };
 
-  // Open Interactive OAuth modal
-  const handleOpenOAuthModal = (provider: typeof OAUTH_PROVIDERS[0]) => {
-    setOauthModalProvider(provider);
-    setOauthAccountName(provider.suggestedName);
-    setOauthUsername(provider.suggestedHandle);
-  };
-
-  // Confirm OAuth authorization & connect
-  const handleConfirmOAuth = async () => {
-    if (!oauthModalProvider) return;
-    setConnectingPlatform(oauthModalProvider.id);
+  // Launch Real External OAuth 2.0 Popup Window via Composio Gateway
+  const handleOpenOAuthModal = async (provider: typeof OAUTH_PROVIDERS[0]) => {
+    setConnectingPlatform(provider.id);
     setConnectMessage(null);
 
     try {
-      const res = await fetch('/api/social/connect', {
+      let workspaceId = '';
+      try {
+        const savedWs = localStorage.getItem('pulsesocial_active_workspace');
+        if (savedWs) workspaceId = JSON.parse(savedWs).id || '';
+      } catch {
+        // ignore
+      }
+
+      const res = await fetch('/api/social/oauth/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          platform: oauthModalProvider.platform,
-          accountName: oauthAccountName.trim() || oauthModalProvider.suggestedName,
-          username: oauthUsername.trim() || oauthModalProvider.suggestedHandle,
+          platform: provider.platform,
+          workspaceId: workspaceId || undefined,
+          composioApiKey: tokens.composioApiKey || undefined,
         }),
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
-        setConnectMessage(`✓ ${oauthModalProvider.name} connecté avec succès à PulseSocial !`);
-        setOauthModalProvider(null);
-        fetchAccounts();
-      } else {
-        setConnectMessage(`Erreur : ${data.error || 'Échec de connexion'}`);
+      if (!res.ok || !data.redirectUrl) {
+        setConnectMessage(`Erreur OAuth : ${data.error || 'Impossible d’ouvrir la fenêtre OAuth 2.0'}`);
+        setConnectingPlatform(null);
+        return;
       }
-    } catch (err) {
-      setConnectMessage('Erreur de connexion au serveur.');
-    } finally {
+
+      const width = 560;
+      const height = 740;
+      const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2));
+      const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2));
+
+      const popup = window.open(
+        data.redirectUrl,
+        `ComposioOAuth_${provider.platform}`,
+        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=yes,scrollbars=yes`
+      );
+
+      if (!popup) {
+        setConnectMessage('Veuillez autoriser les fenêtres pop-up dans votre navigateur pour ouvrir le portail OAuth.');
+        setConnectingPlatform(null);
+        return;
+      }
+
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer);
+          setConnectingPlatform(null);
+          fetchAccounts();
+        }
+      }, 600);
+    } catch {
+      setConnectMessage('Erreur réseau lors de l’ouverture de la passerelle OAuth 2.0 Composio.');
       setConnectingPlatform(null);
     }
   };
@@ -443,18 +481,18 @@ export default function SettingsPage() {
       {activeTab === 'oauth' && (
         <div className="space-y-5">
           <div className="pulse-card p-6 bg-gradient-to-r from-violet-950/40 via-slate-900 to-indigo-950/40 border border-violet-500/30 space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-xs font-bold">
                 <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                Connexion Interactive OAuth 2.0
+                Passerelle OAuth 2.0 Unifiée (Composio • Nouvelle Fenêtre Officielle)
               </span>
-              <span className="text-[11px] text-slate-400">Tokens Chiffrés dans Supabase</span>
+              <span className="text-[11px] text-slate-400">Fenêtre Pop-up Externe OAuth 2.0 • Tokens Chiffrés Supabase</span>
             </div>
             <h3 className="text-lg font-bold text-white">
-              Connectez vos réseaux sociaux en 1 clic
+              Connectez vos réseaux sociaux en 1 clic (Fenêtre OAuth Officielle)
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-              Cliquez sur un réseau pour ouvrir la fenêtre d&apos;autorisation interactive. Sélectionnez votre page ou profil, validez les autorisations et commencez à publier immédiatement sans manipuler de clés API.
+              Cliquez sur un réseau ci-dessous : une <strong>nouvelle fenêtre d&apos;authentification officielle (OAuth 2.0 via Composio)</strong> s&apos;ouvre pour vous permettre de saisir vos identifiants directement sur la plateforme et d&apos;autoriser PulseSocial en toute sécurité.
             </p>
           </div>
 
@@ -723,6 +761,54 @@ export default function SettingsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5 p-4 rounded-2xl bg-violet-950/30 border border-violet-500/40">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-violet-300 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-violet-400" />
+                  Clé API Composio (Passerelle OAuth 2.0 Unifiée 1-Clic)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility('composio')}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  title="Afficher/Masquer"
+                >
+                  {showTokens['composio'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <input
+                type={showTokens['composio'] ? 'text' : 'password'}
+                placeholder="cmp_live_..."
+                value={tokens.composioApiKey}
+                onChange={(e) => setTokens({ ...tokens, composioApiKey: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
+              />
+            </div>
+
+            <div className="space-y-1.5 p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/40">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-cyan-300 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                  Clé Secrète Paystack (Mobile Money &amp; Cartes XOF)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility('paystack')}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  title="Afficher/Masquer"
+                >
+                  {showTokens['paystack'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <input
+                type={showTokens['paystack'] ? 'text' : 'password'}
+                placeholder="sk_live_... ou sk_test_..."
+                value={tokens.paystackSecretKey}
+                onChange={(e) => setTokens({ ...tokens, paystackSecretKey: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-cyan-500 font-mono"
+              />
+            </div>
+
             <div className="space-y-1.5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-white flex items-center gap-2">
@@ -959,112 +1045,6 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* INTERACTIVE OAUTH 2.0 AUTHORIZATION MODAL */}
-      {oauthModalProvider && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="w-full max-w-lg bg-slate-900 border border-violet-500/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-            {/* Modal Top Banner */}
-            <div className={`p-6 bg-gradient-to-r ${oauthModalProvider.color} text-white flex items-center justify-between`}>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-black text-base shadow-lg">
-                  {oauthModalProvider.name.slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full">
-                    OAuth 2.0 Authorization Flow
-                  </span>
-                  <h3 className="text-base font-bold leading-tight mt-0.5">
-                    {oauthModalProvider.name}
-                  </h3>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOauthModalProvider(null)}
-                className="p-1 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-4 text-slate-300 text-xs">
-              <p className="leading-relaxed">
-                PulseSocial demande l&apos;accès sécurisé à votre compte <strong>{oauthModalProvider.name}</strong> pour activer la planification, la publication et l&apos;analyse.
-              </p>
-
-              {/* Scopes requested */}
-              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
-                <p className="font-bold text-white text-[11px]">Autorisations requises :</p>
-                <ul className="space-y-1.5">
-                  {oauthModalProvider.scopes.map((scope, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-slate-300 text-[11px]">
-                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span className="font-mono text-slate-400">{scope}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Account Details Form */}
-              <div className="space-y-3 pt-1">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Nom du compte / Page :
-                  </label>
-                  <input
-                    type="text"
-                    value={oauthAccountName}
-                    onChange={(e) => setOauthAccountName(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white text-xs focus:outline-none focus:border-violet-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Identifiant / Handle :
-                  </label>
-                  <input
-                    type="text"
-                    value={oauthUsername}
-                    onChange={(e) => setOauthUsername(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white text-xs focus:outline-none focus:border-violet-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setOauthModalProvider(null)}
-                className="text-xs text-slate-400 hover:text-white cursor-pointer"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmOAuth}
-                disabled={connectingPlatform !== null}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 transition-all cursor-pointer"
-              >
-                {connectingPlatform ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Synchronisation...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Autoriser &amp; Connecter en 1 Clic</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

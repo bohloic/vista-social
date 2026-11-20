@@ -158,7 +158,39 @@ export default function CRMPage() {
     loadProspects();
     const handleUpdate = () => loadProspects();
     window.addEventListener('crm-updated', handleUpdate);
-    return () => window.removeEventListener('crm-updated', handleUpdate);
+
+    const handlePaystackMsg = (event: MessageEvent) => {
+      if (event.data?.type === 'PAYSTACK_PAYMENT_SUCCESS' && event.data?.prospectId) {
+        setProspects((prev) => {
+          const updated = prev.map((p) =>
+            p.id === event.data.prospectId
+              ? {
+                  ...p,
+                  status: 'won' as CRMStage,
+                  deal_value: Number(event.data.amount) || p.deal_value,
+                  last_interaction: `Payé via Paystack (${event.data.reference})`,
+                }
+              : p
+          );
+          try {
+            localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify(updated));
+          } catch {
+            // ignore
+          }
+          return updated;
+        });
+        setPaymentModalOpen(false);
+        showToast(
+          `✓ Paiement Paystack reçu (${Number(event.data.amount).toLocaleString('fr-FR')} FCFA) ! Prospect passé en Payé ✅`
+        );
+      }
+    };
+
+    window.addEventListener('message', handlePaystackMsg);
+    return () => {
+      window.removeEventListener('crm-updated', handleUpdate);
+      window.removeEventListener('message', handlePaystackMsg);
+    };
   }, []);
 
   const saveProspects = (updated: CRMProspect[]) => {
@@ -240,11 +272,45 @@ export default function CRMPage() {
 
   // Copy payment link
   const copyPaymentLink = () => {
-    const link = `https://pay.pulsesocial.app/checkout?ref=${selectedProspectForPayment?.id || 'crm'}&amount=${paymentAmount}&provider=${paymentOperator}&currency=XOF`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vista-social-app.vercel.app';
+    const ref = `PSTK-${selectedProspectForPayment?.id || Date.now()}`;
+    const link = `${origin}/oauth-popup?provider=paystack&reference=${encodeURIComponent(ref)}&amount=${paymentAmount}&currency=XOF&plan=commande_client&channel=${encodeURIComponent(paymentOperator)}&customer=${encodeURIComponent(selectedProspectForPayment?.name || 'Client')}&prospectId=${encodeURIComponent(selectedProspectForPayment?.id || '')}`;
     navigator.clipboard.writeText(link);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 3000);
-    showToast('✓ Lien de paiement sécurisé copié dans le presse-papier !');
+    showToast('✓ Lien de paiement Paystack sécurisé copié dans le presse-papier !');
+  };
+
+  const openLivePaystackWindow = async () => {
+    if (!selectedProspectForPayment) return;
+    try {
+      const res = await fetch('/api/billing/paystack/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: paymentAmount,
+          currency: 'XOF',
+          plan: 'starter',
+          provider: paymentOperator,
+          customerName: selectedProspectForPayment.name,
+          prospectId: selectedProspectForPayment.id,
+        }),
+      });
+      const data = await res.json();
+      if (data.authorization_url) {
+        const width = 540;
+        const height = 720;
+        const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2));
+        const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2));
+        window.open(
+          data.authorization_url,
+          'PaystackCRMWindow',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+      }
+    } catch {
+      showToast('Erreur lors de l’ouverture de la fenêtre Paystack');
+    }
   };
 
   // Copy Cal.com link
@@ -676,18 +742,26 @@ export default function CRMPage() {
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-slate-300 break-all select-all">
-                https://pay.pulsesocial.app/checkout?ref={selectedProspectForPayment.id}&amp;amount={paymentAmount}&amp;provider={paymentOperator}&amp;currency=XOF
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-cyan-300 break-all select-all">
+                https://checkout.paystack.com/PSTK-{selectedProspectForPayment.id}?amount={paymentAmount}&amp;channel={paymentOperator}&amp;currency=XOF
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800 flex-wrap">
               <button
                 type="button"
                 onClick={() => setPaymentModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
               >
                 Fermer
+              </button>
+              <button
+                type="button"
+                onClick={openLivePaystackWindow}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Ouvrir Fenêtre Paystack</span>
               </button>
               <button
                 type="button"

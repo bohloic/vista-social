@@ -118,6 +118,9 @@ export default function BillingPage() {
     ref?: string;
   } | null>(null);
 
+  const activePlanObj = PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
+  const activePrice = activePlanObj.price[currency];
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem('pulsesocial_active_workspace');
@@ -128,10 +131,22 @@ export default function BillingPage() {
     } catch {
       // ignore
     }
-  }, []);
 
-  const activePlanObj = PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
-  const activePrice = activePlanObj.price[currency];
+    const handlePaystackMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PAYSTACK_PAYMENT_SUCCESS') {
+        setPaymentResult({
+          success: true,
+          message: `Paiement Paystack (${Number(event.data.amount || activePrice.amount).toLocaleString('fr-FR')} ${event.data.currency || currency}) validé ! Votre abonnement PulseSocial est actif.`,
+          instruction: 'Transaction certifiée via le guichet officiel Paystack Côte d’Ivoire.',
+          ref: event.data.reference,
+        });
+        setLoading(false);
+      }
+    };
+
+    window.addEventListener('message', handlePaystackMessage);
+    return () => window.removeEventListener('message', handlePaystackMessage);
+  }, [activePrice.amount, currency]);
 
   const handleOpenCheckout = (planId: string) => {
     setSelectedPlan(planId);
@@ -145,36 +160,62 @@ export default function BillingPage() {
     setPaymentResult(null);
 
     try {
-      const res = await fetch('/api/billing/mobile-money/checkout', {
+      let paystackSecretKey: string | undefined;
+      try {
+        const savedTokens = localStorage.getItem('pulsesocial_manual_tokens');
+        if (savedTokens) {
+          paystackSecretKey = JSON.parse(savedTokens).paystackSecretKey;
+        }
+      } catch {
+        // ignore
+      }
+
+      const res = await fetch('/api/billing/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workspaceId: workspaceId || undefined,
           plan: selectedPlan,
           provider: selectedProvider,
-          phoneNumber: phoneNumber.trim() || '0700000000',
+          phoneNumber: phoneNumber.trim() || '+2250700000000',
           currency,
           amount: activePrice.amount,
+          paystackSecretKey,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Erreur lors de la transaction');
+      if (!res.ok || !data.authorization_url) {
+        throw new Error(data.error || 'Erreur lors de l’initialisation Paystack');
       }
 
-      setPaymentResult({
-        success: true,
-        message: data.message,
-        instruction: data.instruction,
-        ref: data.transactionRef,
-      });
+      const width = 540;
+      const height = 720;
+      const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2));
+      const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2));
+
+      const popup = window.open(
+        data.authorization_url,
+        'PaystackCheckoutPopup',
+        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=yes`
+      );
+
+      if (!popup) {
+        window.location.href = data.authorization_url;
+        return;
+      }
+
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer);
+          setLoading(false);
+        }
+      }, 600);
     } catch (err: unknown) {
       setPaymentResult({
         success: false,
-        message: err instanceof Error ? err.message : 'Échec du paiement',
+        message: err instanceof Error ? err.message : 'Échec de l’ouverture Paystack',
       });
-    } finally {
       setLoading(false);
     }
   };

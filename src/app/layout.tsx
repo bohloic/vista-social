@@ -18,7 +18,11 @@ export default function RootLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [legalModalType, setLegalModalType] = useState<'privacy' | 'terms' | null>(null);
   const pathname = usePathname();
-  const isSetupOrPublic = pathname?.startsWith('/setup') || pathname?.startsWith('/p/') || pathname?.startsWith('/login');
+  const isSetupOrPublic =
+    pathname?.startsWith('/setup') ||
+    pathname?.startsWith('/p/') ||
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/oauth-popup');
 
   const handleSavePost = async (newPost: Omit<Post, 'id' | 'created_at'>) => {
     try {
