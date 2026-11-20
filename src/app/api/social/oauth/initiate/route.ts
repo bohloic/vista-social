@@ -20,7 +20,7 @@ const initiateSchema = z.object({
   composioApiKey: z.string().optional(),
 });
 
-const COMPOSIO_APP_MAP: Record<string, string> = {
+const COMPOSIO_TOOLKIT_MAP: Record<string, string> = {
   instagram: 'instagram',
   facebook: 'facebook',
   linkedin: 'linkedin',
@@ -48,36 +48,81 @@ export async function POST(req: NextRequest) {
     const apiKey = composioApiKey?.trim() || process.env.COMPOSIO_API_KEY?.trim();
     const callbackUrl = `${origin}/api/social/oauth/callback?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId || '')}`;
 
-    // 1. If COMPOSIO_API_KEY is configured, call Composio Hosted OAuth 2.0 API
+    // 1. If COMPOSIO_API_KEY is configured, call Composio v3 Hosted OAuth 2.0 API
     if (apiKey && apiKey.length > 8) {
       try {
-        const appName = COMPOSIO_APP_MAP[platform] || platform;
-        const composioRes = await fetch('https://backend.composio.dev/api/v1/connectedAccounts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            appName,
-            redirectUri: callbackUrl,
-            entityId: workspaceId || 'pulsesocial-default',
-          }),
-        });
+        const toolkitSlug = COMPOSIO_TOOLKIT_MAP[platform] || platform;
+        const headers = {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        };
 
-        if (composioRes.ok) {
-          const composioData = await composioRes.json();
-          if (composioData?.redirectUrl) {
-            return NextResponse.json({
-              success: true,
-              redirectUrl: composioData.redirectUrl,
-              connectionId: composioData.connectedAccountId,
-              mode: 'composio_live',
-            });
+        // Step A: Find or create Composio v3 auth_config for the toolkit
+        let authConfigId: string | undefined;
+        const listConfigsRes = await fetch(
+          `https://backend.composio.dev/api/v3/auth_configs?toolkit_slug=${encodeURIComponent(toolkitSlug)}`,
+          { headers }
+        );
+
+        if (listConfigsRes.ok) {
+          const listData = await listConfigsRes.json();
+          const items = listData?.items || listData?.data || [];
+          if (Array.isArray(items) && items.length > 0) {
+            authConfigId = items[0].id;
+          }
+        }
+
+        if (!authConfigId && listConfigsRes.status !== 401) {
+          const createConfigRes = await fetch('https://backend.composio.dev/api/v3/auth_configs', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              toolkit: { slug: toolkitSlug },
+              auth_config: {
+                type: 'use_composio_managed_auth',
+                name: `PulseSocial_${toolkitSlug}`,
+              },
+            }),
+          });
+          if (createConfigRes.ok) {
+            const createdConfig = await createConfigRes.json();
+            authConfigId = createdConfig?.auth_config?.id || createdConfig?.id;
+          }
+        }
+
+        // Step B: Create Connected Account OAuth link in Composio v3
+        if (authConfigId) {
+          const connectRes = await fetch('https://backend.composio.dev/api/v3/connected_accounts', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              auth_config: { id: authConfigId },
+              connection: {
+                user_id: workspaceId || 'pulsesocial-default',
+                callback_url: callbackUrl,
+              },
+            }),
+          });
+
+          if (connectRes.ok) {
+            const connectData = await connectRes.json();
+            const redirectUrl =
+              connectData?.redirect_url ||
+              connectData?.redirectUrl ||
+              connectData?.connectionData?.val?.redirectUrl;
+
+            if (redirectUrl) {
+              return NextResponse.json({
+                success: true,
+                redirectUrl,
+                connectionId: connectData?.id || connectData?.connectedAccountId,
+                mode: 'composio_v3_live',
+              });
+            }
           }
         }
       } catch {
-        // Fallback to hosted OAuth window below if Composio API is unreachable
+        // Fallback to hosted OAuth window below
       }
     }
 
