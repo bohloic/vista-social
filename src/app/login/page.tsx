@@ -131,9 +131,33 @@ export default function LoginPage() {
         return;
       }
 
-      const timer = setInterval(() => {
+      const timer = setInterval(async () => {
         if (popup.closed) {
           clearInterval(timer);
+          try {
+            const verifyRes = await fetch('/api/auth/google/verify', { method: 'POST' });
+            if (verifyRes.ok) {
+              const verifyData = await verifyRes.json();
+              if (verifyData.success && verifyData.user) {
+                localStorage.setItem('pulsesocial_user', JSON.stringify(verifyData.user));
+                if (verifyData.user.workspaceName) {
+                  localStorage.setItem(
+                    'pulsesocial_active_workspace',
+                    JSON.stringify({
+                      id: verifyData.user.workspaceId || 'ws-default',
+                      name: verifyData.user.workspaceName,
+                    })
+                  );
+                }
+                setGoogleLoading(false);
+                router.push('/');
+                router.refresh();
+                return;
+              }
+            }
+          } catch {
+            // ignore
+          }
           setGoogleLoading(false);
         }
       }, 600);

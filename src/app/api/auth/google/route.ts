@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // 1. Check if Google OAuth Provider is actually enabled on the Supabase project
+    // 1. Check if native Google OAuth Provider is enabled on the Supabase project
     let isSupabaseGoogleProviderActive = false;
     if (supabaseUrl && supabaseAnonKey && process.env.GOOGLE_OAUTH_ENABLED === 'true') {
       try {
@@ -49,7 +49,67 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Hosted Google OAuth 2.0 Popup Window (works immediately even before Google Client ID is pasted into Supabase)
+    // 2. Automated Google Sign-In via Composio Connect MCP Gateway
+    // Uses official Google/Gmail Managed Auth link
+    const composioApiKey = process.env.COMPOSIO_API_KEY?.trim();
+    if (composioApiKey && composioApiKey.length > 8) {
+      try {
+        const mcpRes = await fetch('https://connect.composio.dev/mcp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, text/event-stream',
+            'Authorization': `Bearer ${composioApiKey}`,
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'tools/call',
+            params: {
+              name: 'COMPOSIO_MANAGE_CONNECTIONS',
+              arguments: {
+                toolkits: ['gmail'],
+              },
+            },
+            id: Date.now(),
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+
+        if (mcpRes.ok) {
+          const mcpText = await mcpRes.text();
+          let redirectUrl: string | null = null;
+          for (const line of mcpText.split('\n')) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                const resText = data?.result?.content?.[0]?.text;
+                if (resText) {
+                  const parsedResult = JSON.parse(resText);
+                  const gmailData = parsedResult?.data?.results?.['gmail'];
+                  if (gmailData?.redirect_url) {
+                    redirectUrl = gmailData.redirect_url;
+                  }
+                }
+              } catch {
+                // Ignore parse errors on SSE chunks
+              }
+            }
+          }
+
+          if (redirectUrl) {
+            return NextResponse.json({
+              success: true,
+              url: redirectUrl,
+              mode: 'composio_google_oauth',
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Composio Google OAuth warning:', err);
+      }
+    }
+
+    // 3. Fallback to developer integration modal
     const popupUrl = `${origin}/oauth-popup?provider=google&popup=${usePopup ? '1' : '0'}`;
     return NextResponse.json({
       success: true,

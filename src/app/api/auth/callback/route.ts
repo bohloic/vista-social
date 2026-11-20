@@ -22,7 +22,7 @@ async function resolveOrCreateGoogleUser(email: string, fullName: string, avatar
   const isAdmin = isAdminEmail(cleanEmail);
   const defaultRole = isAdmin ? 'super_admin' : 'client';
   const isLifetimeFree = isAdmin;
-  const initialPlan = isAdmin ? 'agency' : 'free';
+  const initialPlan = isAdmin ? 'agency' : 'starter';
 
   let userRecord = {
     id: `google-${Date.now()}`,
