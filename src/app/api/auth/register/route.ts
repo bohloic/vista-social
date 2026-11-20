@@ -58,34 +58,52 @@ export async function POST(req: NextRequest) {
       .insert({
         name: `Espace ${userDisplayName}`,
         slug: `ws-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        plan: 'free', // Standard user default: free restricted plan requiring subscription
+        plan: 'starter', // Standard user default: starter plan requiring upgrade for unlimited features
       })
       .select('id, name')
-      .single();
+      .maybeSingle();
 
-    const workspaceId = workspace?.id || 'ws-default';
+    const workspaceId = workspace?.id || null;
     const workspaceName = workspace?.name || `Espace ${userDisplayName}`;
 
     // 4. Create user profile with strictly NON-ADMIN client role
+    const profilePayload: Record<string, any> = {
+      email: cleanEmail,
+      full_name: userDisplayName,
+      role: 'client', // Strictly standard client / user (requires subscription for unlimited access)
+      is_lifetime_free: false, // Standard client does NOT have lifetime free access
+      password_hash: hash,
+      salt,
+    };
+    if (workspaceId) {
+      profilePayload.workspace_id = workspaceId;
+    }
+
     const { data: createdUser, error: insertError } = await supabase
       .from('user_profiles')
-      .insert({
-        email: cleanEmail,
-        full_name: userDisplayName,
-        role: 'client', // Strictly standard client / user (requires subscription for unlimited access)
-        is_lifetime_free: false, // Standard client does NOT have lifetime free access
-        workspace_id: workspaceId,
-        password_hash: hash,
-        salt,
-      })
+      .insert(profilePayload)
       .select('*')
       .single();
 
     if (insertError || !createdUser) {
+      console.error('Registration profile creation error:', insertError);
       return NextResponse.json(
-        { success: false, error: 'Impossible de créer le compte utilisateur dans la base de données.' },
+        { success: false, error: insertError?.message || 'Impossible de créer le compte utilisateur dans la base de données.' },
         { status: 500 }
       );
+    }
+
+    // Link workspace member if workspace exists
+    if (workspaceId) {
+      try {
+        await supabase.from('workspace_members').insert({
+          workspace_id: workspaceId,
+          user_id: createdUser.id,
+          role: 'client',
+        });
+      } catch {
+        // ignore member link if table not present
+      }
     }
 
     // 5. Create signed session
