@@ -1,22 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { verifyPassword, createSignedSession } from '@/lib/auth-crypto';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { z } from 'zod';
 
 const loginSchema = z.object({
-  email: z.string().email('Format email invalide'),
-  password: z.string().min(1, 'Mot de passe requis'),
+  email: z.string().email('Format email invalide').max(255),
+  password: z.string().min(1, 'Mot de passe requis').max(128),
 });
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    // Rate limit brute-force protection: 10 attempts / min per IP
+    const rateLimit = checkRateLimit(`auth_login:${ip}`, { maxTokens: 10, refillRate: 1 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives. Veuillez patienter.', retryAfter: rateLimit.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+      );
+    }
+
     const body = await req.json();
     const parsed = loginSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: parsed.error.issues[0]?.message || 'Données invalides' },
-        { status: 400 }
+        { status: 422 }
       );
     }
 
@@ -39,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     if (error || !user) {
       return NextResponse.json(
-        { success: false, error: 'Identifiant ou compte introuvable.' },
+        { success: false, error: 'Identifiant ou mot de passe incorrect.' },
         { status: 401 }
       );
     }
@@ -49,7 +60,7 @@ export async function POST(req: NextRequest) {
       const isValid = verifyPassword(password, user.password_hash, user.salt);
       if (!isValid) {
         return NextResponse.json(
-          { success: false, error: 'Mot de passe incorrect.' },
+          { success: false, error: 'Identifiant ou mot de passe incorrect.' },
           { status: 401 }
         );
       }
@@ -95,7 +106,7 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { success: false, error: 'Erreur interne du serveur' },
       { status: 500 }

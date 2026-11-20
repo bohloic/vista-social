@@ -1,44 +1,82 @@
-import { getAdminSupabase } from '@/lib/supabase';
-import { Post } from '@/lib/types';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requireUser, requireWorkspaceRole, handleApiError, ApiError } from '@/lib/security/guards';
+import { checkRateLimit } from '@/lib/security/rate-limit';
+import { Post } from '@/lib/types';
 
-const postCreateSchema = z.object({
-  workspace_id: z.string().default('ws-default'),
-  author_name: z.string().default('Pulse CM'),
-  content: z.string().min(1, 'Le contenu est requis'),
-  post_type: z.enum(['post', 'reel', 'story', 'carousel', 'thread', 'short', 'pin']).default('post'),
-  media_urls: z.array(z.string()).default([]),
-  status: z.enum(['draft', 'needs_approval', 'approved', 'scheduled', 'publishing', 'published', 'failed']).default('scheduled'),
-  scheduled_for: z.string(),
-  published_at: z.string().optional(),
-  target_accounts: z.array(z.string()).min(1, 'Sélectionnez au moins un réseau'),
-  first_comment: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-});
+export const dynamic = 'force-dynamic';
 
-const postUpdateSchema = z.object({
-  id: z.string().min(1, 'Identifiant du post requis'),
-  content: z.string().min(1, 'Le contenu est requis').optional(),
-  post_type: z.enum(['post', 'reel', 'story', 'carousel', 'thread', 'short', 'pin']).optional(),
-  media_urls: z.array(z.string()).optional(),
-  status: z.enum(['draft', 'needs_approval', 'approved', 'scheduled', 'publishing', 'published', 'failed']).optional(),
-  scheduled_for: z.string().optional(),
-  first_comment: z.string().optional(),
-  target_accounts: z.array(z.string()).optional(),
-  tags: z.array(z.string()).optional(),
-});
+const postCreateSchema = z
+  .object({
+    workspace_id: z.string().uuid('workspace_id doit être un UUID valide'),
+    author_name: z.string().min(1).default('Pulse CM'),
+    content: z.string().min(1, 'Le contenu est requis').max(5000, 'Contenu trop volumineux'),
+    post_type: z.enum(['post', 'reel', 'story', 'carousel', 'thread', 'short', 'pin']).default('post'),
+    media_urls: z.array(z.string().url('URL média invalide')).default([]),
+    status: z
+      .enum(['draft', 'needs_approval', 'approved', 'scheduled', 'publishing', 'published', 'failed'])
+      .default('scheduled'),
+    scheduled_for: z.string().min(1, 'Date de programmation requise'),
+    published_at: z.string().optional(),
+    target_accounts: z.array(z.string()).min(1, 'Sélectionnez au moins un compte social'),
+    first_comment: z.string().max(2000).optional(),
+    tags: z.array(z.string()).default([]),
+  })
+  .strict();
 
-export async function GET() {
+const postUpdateSchema = z
+  .object({
+    id: z.string().uuid('Identifiant du post invalide (UUID requis)'),
+    content: z.string().min(1).max(5000).optional(),
+    post_type: z.enum(['post', 'reel', 'story', 'carousel', 'thread', 'short', 'pin']).optional(),
+    media_urls: z.array(z.string().url()).optional(),
+    status: z
+      .enum(['draft', 'needs_approval', 'approved', 'scheduled', 'publishing', 'published', 'failed'])
+      .optional(),
+    scheduled_for: z.string().optional(),
+    first_comment: z.string().max(2000).optional(),
+    target_accounts: z.array(z.string()).optional(),
+    tags: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export async function GET(req: NextRequest) {
   try {
-    const adminClient = getAdminSupabase();
-    const { data: posts, error } = await adminClient
+    const { user, supabase } = await requireUser(req);
+    const { searchParams } = new URL(req.url);
+    const rawWorkspaceId = searchParams.get('workspace_id') || user.workspaceId;
+
+    if (!rawWorkspaceId) {
+      throw new ApiError(400, 'MISSING_WORKSPACE_ID', 'Le paramètre workspace_id est obligatoire');
+    }
+
+    const parsedWs = z.string().uuid('workspace_id invalide (format UUID attendu)').safeParse(rawWorkspaceId);
+    if (!parsedWs.success) {
+      throw new ApiError(422, 'INVALID_WORKSPACE_ID', 'workspace_id invalide');
+    }
+    const workspaceId = parsedWs.data;
+
+    // Enforce workspace membership & role check [C3, M1, M2]
+    await requireWorkspaceRole(
+      supabase,
+      user.id,
+      workspaceId,
+      ['super_admin', 'admin', 'manager', 'editor', 'client'],
+      user.role
+    );
+
+    if (!supabase) {
+      return NextResponse.json({ posts: [] });
+    }
+
+    const { data: posts, error } = await supabase
       .from('posts')
       .select('*')
+      .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.warn('Could not fetch posts from Supabase:', error.message);
-      return Response.json({ posts: [] });
+      throw new ApiError(500, 'DATABASE_ERROR', 'Impossible de récupérer les posts');
     }
 
     const formattedPosts: Post[] = (posts || []).map((p: any) => ({
@@ -57,37 +95,44 @@ export async function GET() {
       created_at: p.created_at,
     }));
 
-    return Response.json({ posts: formattedPosts });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error fetching posts';
-    return Response.json({ posts: [], error: message });
+    return NextResponse.json({ posts: formattedPosts });
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const json = await req.json();
-    const parsed = postCreateSchema.safeParse(json);
-    if (!parsed.success) {
-      return Response.json({ error: parsed.error.errors[0]?.message || 'Données invalides' }, { status: 400 });
+    const { user, supabase } = await requireUser(req);
+
+    // Enforce Rate Limiting: 30 requests/min per user [M6]
+    checkRateLimit(`post:${user.id}`, 30, 60_000);
+
+    const body = await req.json();
+    const validated = postCreateSchema.parse(body);
+
+    // Enforce workspace membership and non-client role [C2, M1, M2]
+    await requireWorkspaceRole(
+      supabase,
+      user.id,
+      validated.workspace_id,
+      ['super_admin', 'admin', 'manager', 'editor'],
+      user.role
+    );
+
+    if (!supabase) {
+      const fallbackPost: Post = {
+        id: `post-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        ...validated,
+      };
+      return NextResponse.json({ post: fallbackPost }, { status: 201 });
     }
 
-    const validated = parsed.data;
-    const adminClient = getAdminSupabase();
-
-    // Check if a real workspace exists, else get the first one
-    let targetWorkspaceId = validated.workspace_id;
-    if (targetWorkspaceId === 'ws-default') {
-      const { data: ws } = await adminClient.from('workspaces').select('id').limit(1);
-      if (ws && ws.length > 0) {
-        targetWorkspaceId = ws[0].id;
-      }
-    }
-
-    const { data: inserted, error: insertError } = await adminClient
+    const { data: inserted, error: insertError } = await supabase
       .from('posts')
       .insert({
-        workspace_id: targetWorkspaceId,
+        workspace_id: validated.workspace_id,
         author_name: validated.author_name,
         content: validated.content,
         post_type: validated.post_type,
@@ -101,14 +146,7 @@ export async function POST(req: Request) {
       .single();
 
     if (insertError || !inserted) {
-      // Fallback local response
-      const fallbackPost: Post = {
-        id: `post-${Date.now()}`,
-        created_at: new Date().toISOString(),
-        ...validated,
-        workspace_id: targetWorkspaceId,
-      };
-      return Response.json({ post: fallbackPost }, { status: 201 });
+      throw new ApiError(500, 'POST_CREATION_FAILED', 'Échec de création du post en base de données');
     }
 
     const post: Post = {
@@ -126,25 +164,45 @@ export async function POST(req: Request) {
       created_at: inserted.created_at,
     };
 
-    return Response.json({ post }, { status: 201 });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur lors de la création du post';
-    return Response.json({ error: message }, { status: 400 });
+    return NextResponse.json({ post }, { status: 201 });
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
-    const json = await req.json();
-    const parsed = postUpdateSchema.safeParse(json);
-    if (!parsed.success) {
-      return Response.json({ error: parsed.error.errors[0]?.message || 'Données invalides' }, { status: 400 });
+    const { user, supabase } = await requireUser(req);
+    checkRateLimit(`post:${user.id}`, 30, 60_000);
+
+    const body = await req.json();
+    const validated = postUpdateSchema.parse(body);
+
+    if (!supabase) {
+      return NextResponse.json({ post: validated, success: true });
     }
 
-    const { id, ...updates } = parsed.data;
-    const adminClient = getAdminSupabase();
+    // Verify post exists and user has role on the post's workspace
+    const { data: existingPost } = await supabase
+      .from('posts')
+      .select('id, workspace_id')
+      .eq('id', validated.id)
+      .maybeSingle();
 
-    const { data: updated, error } = await adminClient
+    if (!existingPost) {
+      throw new ApiError(404, 'POST_NOT_FOUND', 'Publication introuvable');
+    }
+
+    await requireWorkspaceRole(
+      supabase,
+      user.id,
+      existingPost.workspace_id,
+      ['super_admin', 'admin', 'manager', 'editor'],
+      user.role
+    );
+
+    const { id, ...updates } = validated;
+    const { data: updated, error } = await supabase
       .from('posts')
       .update({
         ...updates,
@@ -155,25 +213,20 @@ export async function PUT(req: Request) {
       .single();
 
     if (error) {
-      console.warn('Update post in supabase error, returning fallback:', error.message);
-      return Response.json({
-        post: {
-          id,
-          ...updates,
-          updated_at: new Date().toISOString(),
-        },
-      });
+      throw new ApiError(500, 'POST_UPDATE_FAILED', 'Impossible de mettre à jour la publication');
     }
 
-    return Response.json({ post: updated, success: true });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du post';
-    return Response.json({ error: message }, { status: 400 });
+    return NextResponse.json({ post: updated, success: true });
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
   try {
+    const { user, supabase } = await requireUser(req);
+    checkRateLimit(`post:${user.id}`, 30, 60_000);
+
     const { searchParams } = new URL(req.url);
     let id = searchParams.get('id');
 
@@ -186,20 +239,40 @@ export async function DELETE(req: Request) {
       }
     }
 
-    if (!id) {
-      return Response.json({ error: 'Identifiant du post requis' }, { status: 400 });
+    const parsedId = z.string().uuid('ID de post invalide').safeParse(id);
+    if (!parsedId.success) {
+      throw new ApiError(422, 'INVALID_POST_ID', 'ID de publication invalide');
     }
 
-    const adminClient = getAdminSupabase();
-    const { error } = await adminClient.from('posts').delete().eq('id', id);
+    if (!supabase) {
+      return NextResponse.json({ success: true, message: 'Publication supprimée avec succès' });
+    }
 
+    const { data: existingPost } = await supabase
+      .from('posts')
+      .select('id, workspace_id')
+      .eq('id', parsedId.data)
+      .maybeSingle();
+
+    if (!existingPost) {
+      throw new ApiError(404, 'POST_NOT_FOUND', 'Publication introuvable');
+    }
+
+    await requireWorkspaceRole(
+      supabase,
+      user.id,
+      existingPost.workspace_id,
+      ['super_admin', 'admin', 'manager', 'editor'],
+      user.role
+    );
+
+    const { error } = await supabase.from('posts').delete().eq('id', parsedId.data);
     if (error) {
-      console.warn('Delete post in supabase error:', error.message);
+      throw new ApiError(500, 'POST_DELETION_FAILED', 'Échec de suppression de la publication');
     }
 
-    return Response.json({ success: true, message: 'Publication supprimée avec succès' });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
-    return Response.json({ error: message }, { status: 400 });
+    return NextResponse.json({ success: true, message: 'Publication supprimée avec succès' });
+  } catch (err) {
+    return handleApiError(err);
   }
 }

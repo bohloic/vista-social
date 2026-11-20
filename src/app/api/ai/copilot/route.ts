@@ -1,83 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runPulseAICopilot, CopilotAttachment, CopilotMemory } from '@/lib/gemini';
-import { getAdminSupabase } from '@/lib/supabase';
+import { requireUser, handleApiError, sanitizePromptForLLM } from '@/lib/security/guards';
+import { checkRateLimit } from '@/lib/security/rate-limit';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
 const attachmentSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  size: z.number(),
+  name: z.string().max(200),
+  type: z.string().max(100),
+  size: z.number().max(10 * 1024 * 1024, 'Taille max 10 Mo par fichier'),
   dataUrl: z.string().optional(),
-  textContent: z.string().optional(),
+  textContent: z.string().max(10000).optional(),
 });
 
-const copilotRequestSchema = z.object({
-  message: z.string().min(1, 'Message requis'),
-  history: z
-    .array(
-      z.object({
-        role: z.enum(['user', 'assistant']),
-        content: z.string(),
+const copilotRequestSchema = z
+  .object({
+    message: z.string().min(1, 'Message requis').max(5000, 'Message trop long'),
+    history: z
+      .array(
+        z.object({
+          role: z.enum(['user', 'assistant']),
+          content: z.string().max(5000),
+        })
+      )
+      .default([]),
+    currentPath: z.string().default('/'),
+    attachments: z.array(attachmentSchema).max(10, 'Maximum 10 fichiers par envoi').default([]),
+    memory: z
+      .object({
+        userPreferences: z.array(z.string()).optional(),
+        brandSummary: z.string().optional(),
+        keyEntities: z.record(z.string()).optional(),
+        notes: z.array(z.string()).optional(),
       })
-    )
-    .default([]),
-  currentPath: z.string().default('/'),
-  attachments: z.array(attachmentSchema).max(10, 'Maximum 10 fichiers par envoi').default([]),
-  memory: z
-    .object({
-      userPreferences: z.array(z.string()).optional(),
-      brandSummary: z.string().optional(),
-      keyEntities: z.record(z.string()).optional(),
-      notes: z.array(z.string()).optional(),
-    })
-    .optional(),
-  clientStats: z
-    .object({
-      crmCount: z.number().optional(),
-      workspaceName: z.string().optional(),
-    })
-    .optional(),
-});
+      .optional(),
+    clientStats: z
+      .object({
+        crmCount: z.number().optional(),
+        workspaceName: z.string().optional(),
+      })
+      .optional(),
+  })
+  .strict();
 
 export async function POST(req: NextRequest) {
   try {
+    const { user, supabase } = await requireUser(req);
+    checkRateLimit(`ai:${user.id}`, 10, 60_000);
+
     const body = await req.json();
-    const parsed = copilotRequestSchema.safeParse(body);
+    const parsed = copilotRequestSchema.parse(body);
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: parsed.error.issues[0]?.message || 'Requête invalide' },
-        { status: 400 }
-      );
-    }
-
-    const { message, history, currentPath, attachments, memory, clientStats } = parsed.data;
-    const supabase = getAdminSupabase();
+    const { message, history, currentPath, attachments, memory, clientStats } = parsed;
 
     // Gather live project stats concisely
     let postsCount = 0;
     let accountsCount = 0;
-    let workspaceId: string | undefined;
+    let workspaceId: string | undefined = user.workspaceId;
 
     if (supabase) {
       try {
         const [postsRes, accsRes, wsRes] = await Promise.all([
           supabase.from('posts').select('id', { count: 'exact', head: true }),
           supabase.from('social_accounts').select('id', { count: 'exact', head: true }),
-          supabase.from('workspaces').select('id').limit(1).maybeSingle(),
+          workspaceId ? Promise.resolve({ data: { id: workspaceId } }) : supabase.from('workspaces').select('id').limit(1).maybeSingle(),
         ]);
         postsCount = postsRes.count || 0;
         accountsCount = accsRes.count || 0;
-        workspaceId = wsRes.data?.id;
+        if (!workspaceId && wsRes.data?.id) workspaceId = wsRes.data.id;
       } catch {
         // non-blocking
       }
     }
 
+    const sanitizedMessage = sanitizePromptForLLM(message);
+
     const result = await runPulseAICopilot({
-      message,
+      message: sanitizedMessage,
       history,
       currentPath,
       attachments: attachments as CopilotAttachment[],
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
     let executedOnServer = false;
 
-    // Full Server-side CRUD Execution on Supabase
+    // Server-side CRUD Execution on Supabase (scoped strictly to user workspace)
     if (result.action && supabase && workspaceId) {
       const act = result.action;
       try {
@@ -110,7 +110,6 @@ export async function POST(req: NextRequest) {
           });
           executedOnServer = true;
         } else if (act.type === 'delete_post') {
-          // Delete latest post or query match
           const { data: latestPost } = await supabase
             .from('posts')
             .select('id')
@@ -120,7 +119,7 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
           if (latestPost?.id) {
-            await supabase.from('posts').delete().eq('id', latestPost.id);
+            await supabase.from('posts').delete().eq('id', latestPost.id).eq('workspace_id', workspaceId);
             executedOnServer = true;
           }
         } else if (act.type === 'update_post') {
@@ -133,7 +132,7 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
           if (latestPost?.id) {
-            await supabase.from('posts').update({ status: 'published' }).eq('id', latestPost.id);
+            await supabase.from('posts').update({ status: 'published' }).eq('id', latestPost.id).eq('workspace_id', workspaceId);
             executedOnServer = true;
           }
         } else if (act.type === 'create_pulse_page') {
@@ -153,11 +152,10 @@ export async function POST(req: NextRequest) {
         } else if (act.type === 'invite_team_member') {
           const email = String(act.payload.email || '');
           if (email) {
-            await supabase.from('team_members').insert({
+            await supabase.from('workspace_members').insert({
               workspace_id: workspaceId,
-              email,
+              user_id: user.id,
               role: String(act.payload.role || 'editor'),
-              status: 'pending',
             });
             executedOnServer = true;
           }
@@ -174,8 +172,7 @@ export async function POST(req: NextRequest) {
       executedOnServer,
       updatedMemory: result.updatedMemory || null,
     });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Erreur serveur PulseAI';
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  } catch (err) {
+    return handleApiError(err);
   }
 }

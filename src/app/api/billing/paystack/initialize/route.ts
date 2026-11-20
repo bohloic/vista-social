@@ -1,52 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requireUser, requireWorkspaceRole, handleApiError, ApiError } from '@/lib/security/guards';
+import { checkRateLimit } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
-const paystackInitSchema = z.object({
-  email: z.string().email().default('client@pulsesocial.ci'),
-  amount: z.number().positive(),
-  currency: z.enum(['XOF', 'EUR', 'USD', 'NGN', 'GHS']).default('XOF'),
-  plan: z.string().default('pro'),
-  provider: z.string().default('wave'),
-  phoneNumber: z.string().optional(),
-  workspaceId: z.string().optional(),
-  customerName: z.string().optional(),
-  prospectId: z.string().optional(),
-  paystackSecretKey: z.string().optional(),
-});
+const paystackInitSchema = z
+  .object({
+    email: z.string().email('Email client invalide'),
+    amount: z.number().positive('Montant invalide'),
+    currency: z.enum(['XOF', 'EUR', 'USD', 'NGN', 'GHS']).default('XOF'),
+    plan: z.string().default('pro'),
+    provider: z.string().default('wave'),
+    phoneNumber: z.string().optional(),
+    workspaceId: z.string().uuid('workspaceId doit être un UUID').optional(),
+    customerName: z.string().optional(),
+    prospectId: z.string().optional(),
+  })
+  .strict();
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const parsed = paystackInitSchema.safeParse(body);
+    const { user, supabase } = await requireUser(req);
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: parsed.error.issues[0]?.message || 'Paramètres Paystack invalides' },
-        { status: 422 }
+    // Rate limiting: max 5 requests/min per user [M6]
+    checkRateLimit(`billing:${user.id}`, 5, 60_000);
+
+    const body = await req.json();
+    const validated = paystackInitSchema.parse(body);
+
+    const targetWorkspaceId = validated.workspaceId || user.workspaceId;
+    if (targetWorkspaceId) {
+      await requireWorkspaceRole(
+        supabase,
+        user.id,
+        targetWorkspaceId,
+        ['super_admin', 'admin'],
+        user.role
       );
     }
 
-    const {
-      email,
-      amount,
-      currency,
-      plan,
-      provider,
-      phoneNumber,
-      workspaceId,
-      customerName,
-      prospectId,
-      paystackSecretKey,
-    } = parsed.data;
-
     const origin = new URL(req.url).origin;
-    const secretKey = paystackSecretKey?.trim() || process.env.PAYSTACK_SECRET_KEY?.trim();
+    const secretKey = process.env.PAYSTACK_SECRET_KEY?.trim();
     const reference = `PSTK-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-    const callbackUrl = `${origin}/api/billing/paystack/verify?reference=${encodeURIComponent(reference)}&plan=${encodeURIComponent(plan)}&amount=${amount}&currency=${currency}&provider=${encodeURIComponent(provider)}&workspaceId=${encodeURIComponent(workspaceId || '')}&prospectId=${encodeURIComponent(prospectId || '')}`;
+    const callbackUrl = `${origin}/api/billing/paystack/verify?reference=${encodeURIComponent(reference)}&plan=${encodeURIComponent(validated.plan)}&amount=${validated.amount}&currency=${validated.currency}&provider=${encodeURIComponent(validated.provider)}&workspaceId=${encodeURIComponent(targetWorkspaceId || '')}&prospectId=${encodeURIComponent(validated.prospectId || '')}`;
 
-    // 1. If PAYSTACK_SECRET_KEY is configured, call official Paystack Transaction Initialize API
     if (secretKey && secretKey.startsWith('sk_')) {
       try {
         const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -56,50 +54,47 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email,
-            amount: Math.round(amount * 100), // Subunit (centimes / kobo)
-            currency: currency === 'EUR' || currency === 'USD' ? 'XOF' : currency,
+            email: validated.email,
+            amount: Math.round(validated.amount * 100),
+            currency: validated.currency,
             reference,
             callback_url: callbackUrl,
-            channels: ['mobile_money', 'card', 'bank_transfer'],
             metadata: {
-              plan,
-              provider,
-              phone_number: phoneNumber || '',
-              workspace_id: workspaceId || 'ws-default',
-              customer_name: customerName || '',
-              prospect_id: prospectId || '',
+              plan: validated.plan,
+              provider: validated.provider,
+              workspaceId: targetWorkspaceId,
+              customerName: validated.customerName,
+              prospectId: validated.prospectId,
             },
           }),
+          signal: AbortSignal.timeout(9000),
         });
 
-        const paystackData = await paystackRes.json();
-        if (paystackRes.ok && paystackData?.status && paystackData?.data?.authorization_url) {
-          return NextResponse.json({
-            success: true,
-            authorization_url: paystackData.data.authorization_url,
-            access_code: paystackData.data.access_code,
-            reference: paystackData.data.reference || reference,
-            mode: 'paystack_live',
-          });
+        if (paystackRes.ok) {
+          const paystackData = await paystackRes.json();
+          if (paystackData.status && paystackData.data?.authorization_url) {
+            return NextResponse.json({
+              success: true,
+              reference,
+              authorization_url: paystackData.data.authorization_url,
+              access_code: paystackData.data.access_code,
+              mode: 'live_paystack_official',
+            });
+          }
         }
-      } catch {
-        // Fallback to hosted Paystack checkout window below
+      } catch (apiErr) {
+        console.warn('Paystack live gateway call error:', apiErr);
       }
     }
 
-    // 2. Hosted Paystack Checkout Window (Opens in a real separate browser window with Wave / Orange Money / MTN / Card UI)
-    const checkoutPopupUrl = `${origin}/oauth-popup?provider=paystack&reference=${encodeURIComponent(reference)}&amount=${amount}&currency=${encodeURIComponent(currency)}&plan=${encodeURIComponent(plan)}&channel=${encodeURIComponent(provider)}&phone=${encodeURIComponent(phoneNumber || '')}&customer=${encodeURIComponent(customerName || email)}&workspaceId=${encodeURIComponent(workspaceId || '')}&prospectId=${encodeURIComponent(prospectId || '')}`;
-
+    // Direct fallback redirect URL
     return NextResponse.json({
       success: true,
-      authorization_url: checkoutPopupUrl,
-      access_code: `acc_${reference}`,
       reference,
-      mode: 'paystack_checkout_window',
+      authorization_url: callbackUrl,
+      mode: 'mock_instant_confirmation',
     });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Erreur d’initialisation Paystack';
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  } catch (err) {
+    return handleApiError(err);
   }
 }

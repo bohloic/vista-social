@@ -1,22 +1,37 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateSmartReply } from '@/lib/gemini';
+import { requireUser, handleApiError, sanitizePromptForLLM } from '@/lib/security/guards';
+import { checkRateLimit } from '@/lib/security/rate-limit';
 import { z } from 'zod';
 
-const requestSchema = z.object({
-  customerName: z.string().min(1),
-  customerMessage: z.string().min(1),
-  sentiment: z.string().default('neutral'),
-  channel: z.string().default('Instagram'),
-});
+export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+const requestSchema = z
+  .object({
+    customerName: z.string().min(1, 'Nom du client requis').max(100),
+    customerMessage: z.string().min(1, 'Message du client requis').max(2000),
+    sentiment: z.string().default('neutral'),
+    channel: z.string().default('Instagram'),
+  })
+  .strict();
+
+export async function POST(req: NextRequest) {
   try {
+    const { user } = await requireUser(req);
+    checkRateLimit(`ai:${user.id}`, 10, 60_000);
+
     const json = await req.json();
     const validated = requestSchema.parse(json);
-    const replies = await generateSmartReply(validated);
+
+    const sanitizedMessage = sanitizePromptForLLM(validated.customerMessage);
+
+    const replies = await generateSmartReply({
+      ...validated,
+      customerMessage: sanitizedMessage,
+    });
+
     return NextResponse.json({ replies });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Invalid request' }, { status: 400 });
+  } catch (err) {
+    return handleApiError(err);
   }
 }
-

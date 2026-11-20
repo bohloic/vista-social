@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { hashPassword } from '@/lib/auth-crypto';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import crypto from 'crypto';
 import { z } from 'zod';
 
@@ -8,24 +9,34 @@ export const dynamic = 'force-dynamic';
 
 const requestResetSchema = z.object({
   action: z.enum(['request', 'confirm']),
-  email: z.string().email('Format email invalide'),
+  email: z.string().email('Format email invalide').max(255),
   token: z.string().optional(),
-  newPassword: z.string().min(6, 'Le mot de passe doit comporter au moins 6 caractères').optional(),
+  newPassword: z.string().min(8, 'Le mot de passe doit comporter au moins 8 caractères').max(128).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    // Rate limit reset requests: 5 requests / min per IP
+    const rateLimit = checkRateLimit(`auth_reset:${ip}`, { maxTokens: 5, refillRate: 1 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Veuillez patienter.', retryAfter: rateLimit.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+      );
+    }
+
     const body = await req.json();
     const parsed = requestResetSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: parsed.error.issues[0]?.message || 'Données invalides' },
-        { status: 400 }
+        { status: 422 }
       );
     }
 
-    const { action, email, token, newPassword } = parsed.data;
+    const { action, email, newPassword } = parsed.data;
     const cleanEmail = email.toLowerCase().trim();
     const supabase = getAdminSupabase();
 
@@ -48,7 +59,7 @@ export async function POST(req: NextRequest) {
         // Return success message to prevent user enumeration
         return NextResponse.json({
           success: true,
-          message: `Si un compte correspond à ${cleanEmail}, un code de réinitialisation sécurisé a été généré.`,
+          message: `Si un compte correspond à ${cleanEmail}, les instructions de réinitialisation ont été générées.`,
         });
       }
 
@@ -75,10 +86,10 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Confirm Password Reset
     if (action === 'confirm') {
-      if (!newPassword || newPassword.length < 6) {
+      if (!newPassword || newPassword.length < 8) {
         return NextResponse.json(
-          { success: false, error: 'Le nouveau mot de passe doit comporter au moins 6 caractères' },
-          { status: 400 }
+          { success: false, error: 'Le nouveau mot de passe doit comporter au moins 8 caractères' },
+          { status: 422 }
         );
       }
 
