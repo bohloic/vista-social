@@ -7,7 +7,10 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test src/**/*.test.mjs"
+    "test": "node --test src/**/*.test.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "test:security": "node --experimental-strip-types --test tests/db/rls.spec.ts tests/api/security.spec.ts",
+    "check:security": "npm run check:secrets && npm run test:security"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

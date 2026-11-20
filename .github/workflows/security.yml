@@ -1,0 +1,38 @@
+name: Security & Hardening CI
+
+on:
+  push:
+    branches: [main, fix/security-hardening]
+  pull_request:
+    branches: [main]
+
+jobs:
+  security-audit:
+    name: Automated Security Hardening & Secret Isolation Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: 1. Gate Secret Leak & Env Verification [M3]
+        run: npm run check:secrets
+
+      - name: 2. Gate Security Unit & Contract Tests [C1][C2][C3][C4][M1][M2][M4][M6]
+        run: npm run test:security
+
+      - name: 3. Gate Production Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://mock-supabase-project.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key-placeholder
+          SUPABASE_SERVICE_ROLE_KEY: mock-service-role-key-placeholder
+          OAUTH_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
