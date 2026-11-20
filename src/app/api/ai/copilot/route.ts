@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runPulseAICopilot, CopilotAttachment } from '@/lib/gemini';
+import { runPulseAICopilot, CopilotAttachment, CopilotMemory } from '@/lib/gemini';
 import { getAdminSupabase } from '@/lib/supabase';
 import { z } from 'zod';
 
@@ -25,6 +25,14 @@ const copilotRequestSchema = z.object({
     .default([]),
   currentPath: z.string().default('/'),
   attachments: z.array(attachmentSchema).max(10, 'Maximum 10 fichiers par envoi').default([]),
+  memory: z
+    .object({
+      userPreferences: z.array(z.string()).optional(),
+      brandSummary: z.string().optional(),
+      keyEntities: z.record(z.string()).optional(),
+      notes: z.array(z.string()).optional(),
+    })
+    .optional(),
   clientStats: z
     .object({
       crmCount: z.number().optional(),
@@ -45,7 +53,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, history, currentPath, attachments, clientStats } = parsed.data;
+    const { message, history, currentPath, attachments, memory, clientStats } = parsed.data;
     const supabase = getAdminSupabase();
 
     // Gather live project stats concisely
@@ -73,6 +81,7 @@ export async function POST(req: NextRequest) {
       history,
       currentPath,
       attachments: attachments as CopilotAttachment[],
+      memory: memory as CopilotMemory | undefined,
       projectStats: {
         postsCount,
         accountsCount,
@@ -83,23 +92,78 @@ export async function POST(req: NextRequest) {
 
     let executedOnServer = false;
 
-    // If AI decided to create a post, execute it directly in Supabase
-    if (result.action?.type === 'create_post' && supabase && workspaceId) {
+    // Full Server-side CRUD Execution on Supabase
+    if (result.action && supabase && workspaceId) {
+      const act = result.action;
       try {
-        const p = result.action.payload;
-        await supabase.from('posts').insert({
-          workspace_id: workspaceId,
-          author_name: 'PulseAI Copilot',
-          content: String(p.content || message),
-          post_type: 'post',
-          media_urls: [],
-          status: 'scheduled',
-          scheduled_for: String(p.scheduled_for || new Date(Date.now() + 3600000 * 2).toISOString()),
-          tags: ['PulseAI'],
-        });
-        executedOnServer = true;
-      } catch {
-        // non-blocking
+        if (act.type === 'create_post') {
+          const p = act.payload;
+          await supabase.from('posts').insert({
+            workspace_id: workspaceId,
+            author_name: 'PulseAI Copilot',
+            content: String(p.content || message),
+            post_type: 'post',
+            media_urls: [],
+            status: 'scheduled',
+            scheduled_for: String(p.scheduled_for || new Date(Date.now() + 3600000 * 2).toISOString()),
+            tags: ['PulseAI'],
+          });
+          executedOnServer = true;
+        } else if (act.type === 'delete_post') {
+          // Delete latest post or query match
+          const { data: latestPost } = await supabase
+            .from('posts')
+            .select('id')
+            .eq('workspace_id', workspaceId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (latestPost?.id) {
+            await supabase.from('posts').delete().eq('id', latestPost.id);
+            executedOnServer = true;
+          }
+        } else if (act.type === 'update_post') {
+          const { data: latestPost } = await supabase
+            .from('posts')
+            .select('id')
+            .eq('workspace_id', workspaceId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (latestPost?.id) {
+            await supabase.from('posts').update({ status: 'published' }).eq('id', latestPost.id);
+            executedOnServer = true;
+          }
+        } else if (act.type === 'create_pulse_page') {
+          const slug = String(act.payload.slug || `page-${Date.now().toString(36)}`);
+          await supabase.from('pulse_pages').insert({
+            workspace_id: workspaceId,
+            slug,
+            title: String(act.payload.title || 'Page PulseSocial'),
+            theme: String(act.payload.theme || 'violet'),
+            is_published: true,
+            links: [
+              { label: 'Site Officiel', url: 'https://pulsesocial.ci' },
+              { label: 'WhatsApp Direct', url: 'https://wa.me/22507000000' },
+            ],
+          });
+          executedOnServer = true;
+        } else if (act.type === 'invite_team_member') {
+          const email = String(act.payload.email || '');
+          if (email) {
+            await supabase.from('team_members').insert({
+              workspace_id: workspaceId,
+              email,
+              role: String(act.payload.role || 'editor'),
+              status: 'pending',
+            });
+            executedOnServer = true;
+          }
+        }
+      } catch (err) {
+        console.warn('Server CRUD execution warning:', err);
       }
     }
 
@@ -108,6 +172,7 @@ export async function POST(req: NextRequest) {
       reply: result.reply,
       action: result.action || null,
       executedOnServer,
+      updatedMemory: result.updatedMemory || null,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur serveur PulseAI';

@@ -54,7 +54,7 @@ Reconstruction complète et autonome de l'ensemble des fonctionnalités de gesti
 * **Graphiques** : Recharts 3
 * **Validation des Schémas** : Zod 3
 * **IA Générative** : Google Gemini API (`gemini-2.0-flash`)
-* **Base de données** : PostgreSQL via Supabase (`ljpslbcouvyyzzvxxfme.supabase.co`)
+* **Base de données** : PostgreSQL via Supabase (avec politiques de sécurité Row-Level Security RLS)
 * **Monétisation** : Passerelle Mobile Money (Orange, MTN, Wave, Moov)
 
 ---

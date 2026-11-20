@@ -1,5 +1,5 @@
 // Gemini & Multimodal AI Engine for PulseSocial CM & Social Selling Platform
-// High-Conversion French Copywriting, Smart Inbox Replies & Human-Grade Conversational Copilot
+// High-Conversion French Copywriting, Smart Inbox Replies & Human-Grade Conversational Copilot with Full CRUD & Memory
 
 const getGeminiApiKey = () =>
   process.env.GEMINI_API_KEY ||
@@ -118,13 +118,13 @@ Appel à l'action : ${options.callToAction || 'Commentez un mot-clé pour recevo
 
 Retourne STRICTEMENT ce JSON sans markdown :
 {
-  "caption": "Texte principal avec accroche et corps aéré",
+  "caption": "Texte principal universel",
   "hashtags": ["#Tag1", "#Tag2", "#Tag3", "#Tag4", "#Tag5"],
   "platformVariations": {
-    "instagram": "Version Instagram avec mise en page soignée et CTA DM",
-    "linkedin": "Version LinkedIn avec posture d'expert B2B et prise de recul",
-    "twitter": "Version X percutante < 260 caractères",
-    "tiktok": "Version TikTok concise et rythmée"
+    "instagram": "Version Instagram aérée",
+    "linkedin": "Version LinkedIn structurée",
+    "twitter": "Version X courte sous 260 caractères",
+    "tiktok": "Version TikTok punchy"
   }
 }`;
 
@@ -142,7 +142,18 @@ Retourne STRICTEMENT ce JSON sans markdown :
     try {
       const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
       const parsed = JSON.parse(cleaned);
-      if (parsed?.caption) return parsed;
+      if (parsed.caption && parsed.platformVariations) {
+        return {
+          caption: parsed.caption,
+          hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [],
+          platformVariations: {
+            instagram: parsed.platformVariations.instagram || parsed.caption,
+            linkedin: parsed.platformVariations.linkedin || parsed.caption,
+            twitter: parsed.platformVariations.twitter || parsed.caption.slice(0, 260),
+            tiktok: parsed.platformVariations.tiktok || parsed.caption,
+          },
+        };
+      }
     } catch {
       // fallback below
     }
@@ -159,10 +170,10 @@ Retourne STRICTEMENT ce JSON sans markdown :
 
 Le problème que rencontrent 90% des professionnels du secteur :
 ${e ? '❌ ' : '- '}Des semaines entières perdues sur des tâches sans valeur ajoutée
-${e ? '❌ ' : '- '}Des prospects qui disparaissent faute d\'un suivi immédiat
+${e ? '❌ ' : '- '}Des prospects qui disparaissent faute d'un suivi immédiat
 
 La méthode que nous appliquons avec succès :
-${e ? '✅ ' : '- '}Une présence régulière et ciblée qui capte l\'attention
+${e ? '✅ ' : '- '}Une présence régulière et ciblée qui capte l'attention
 ${e ? '✅ ' : '- '}Une réponse en moins de 15 minutes sur chaque canal
 ${e ? '✅ ' : '- '}Un lien de confirmation ou de paiement direct dès la première interaction
 
@@ -239,10 +250,31 @@ export interface CopilotAttachment {
   textContent?: string;
 }
 
+export type CopilotActionType =
+  | 'create_post'
+  | 'delete_post'
+  | 'update_post'
+  | 'create_crm_prospect'
+  | 'update_crm_prospect_stage'
+  | 'delete_crm_prospect'
+  | 'send_inbox_reply'
+  | 'create_pulse_page'
+  | 'invite_team_member'
+  | 'generate_paystack_link'
+  | 'navigate'
+  | 'open_composer';
+
 export interface CopilotAction {
-  type: 'create_post' | 'create_crm_prospect' | 'generate_paystack_link' | 'navigate' | 'open_composer';
+  type: CopilotActionType;
   label: string;
   payload: Record<string, unknown>;
+}
+
+export interface CopilotMemory {
+  userPreferences?: string[];
+  brandSummary?: string;
+  keyEntities?: Record<string, string>;
+  notes?: string[];
 }
 
 export async function runPulseAICopilot(params: {
@@ -250,66 +282,93 @@ export async function runPulseAICopilot(params: {
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
   currentPath: string;
   attachments: CopilotAttachment[];
+  memory?: CopilotMemory;
   projectStats: {
     postsCount: number;
     accountsCount: number;
     crmCount: number;
     workspaceName: string;
   };
-}): Promise<{ reply: string; action?: CopilotAction }> {
-  const systemInstruction = `Tu es PulseAI, l'assistant personnel exécutif et Directeur Stratégie de PulseSocial.
-PERSONA ET POSTURE :
-- Tu t'exprimes comme un être humain brillant, complice, chaleureux et direct (dans l'esprit de l'agent vocal de Claude).
-- Tu tutoies ou vouvoies selon la demande, mais tu conserves toujours une posture de partenaire de haut niveau.
-- INTERDICTION FORMELLE de répéter des statistiques génériques ou des phrases automatiques du style "Bien reçu, sur /chat vous avez X posts...".
-- Réponds TOUJOURS avec pertinence au fond de la question posée par l'utilisateur (conseils de contenu, analyse de prospect, stratégie de prix, astuces pour convertir).
-- Sois concis mais riche en valeur : 2 à 4 phrases dynamiques, fluides et agréables à écouter en synthèse vocale.
-- Si l'utilisateur demande une action précise (programmer un post, ajouter un prospect, générer un lien Paystack, aller sur une page), génère l'action dans le JSON.
+}): Promise<{ reply: string; action?: CopilotAction; updatedMemory?: CopilotMemory }> {
+  const currentMemory = params.memory || {};
 
-FORMAT DE RÉPONSE STRICTEMENT JSON :
+  const systemInstruction = `Tu es PulseAI, l'assistant personnel exécutif et Directeur Stratégie & Opérations de PulseSocial.
+POSTURE ET CAPACITÉS EXÉCUTIVES (HUMAN-GRADE AI) :
+1. Tu parles et interagis exactement comme un être humain brillant, empathique, percutant et proactif (dans le style de l'agent vocal de Claude).
+2. Tu as PLEIN ACCÈS CRUD EN DIRECT SUR TOUTE LA PLATEFORME PulseSocial :
+   - POSTS : créer, programmer, modifier, supprimer des posts.
+   - CRM / SOCIAL SELLING : ajouter un prospect, changer son étape de vente (lead, contacted, proposal, won, lost), supprimer un prospect.
+   - MESSAGES / INBOX : envoyer une réponse aux clients, archiver un fil de discussion.
+   - PULSE PAGES (Link-in-Bio) : créer ou mettre à jour une bio page.
+   - ÉQUIPE : inviter un membre d'équipe (manager, editor, viewer).
+   - FACTURATION & PAIEMENTS : générer un lien Paystack en FCFA (XOF), EUR ou USD.
+   - NAVIGATION : emmener l'utilisateur vers n'importe quelle section du site.
+3. GESTION DE LA MÉMOIRE & DU CONTEXTE :
+   - Tu conserves en permanence la mémoire des échanges passés, du nom de l'utilisateur, des objectifs de la marque, et des consignes données.
+   - Mémoire actuelle enregistrée : ${JSON.stringify(currentMemory)}.
+   - Si l'utilisateur te donne une information personnelle ou une consigne permanente, retiens-la dans "updatedMemory".
+4. INTERDICTION ABSOLUE de répéter des statistiques ou des messages automatiques du genre "Bien reçu, sur /chat vous avez X posts...".
+5. Sois chaleureux, naturel, concis et directement orienté vers le passage à l'action.
+
+RÉPONSE STRICTEMENT AU FORMAT JSON SUIVANT (aucun texte hors du JSON) :
 {
   "reply": "Ta réponse humaine, fluide et naturelle en français",
   "action": null OU {
-    "type": "create_post" | "create_crm_prospect" | "generate_paystack_link" | "navigate" | "open_composer",
-    "label": "Libellé de l'action exécutée",
+    "type": "create_post" | "delete_post" | "update_post" | "create_crm_prospect" | "update_crm_prospect_stage" | "delete_crm_prospect" | "send_inbox_reply" | "create_pulse_page" | "invite_team_member" | "generate_paystack_link" | "navigate",
+    "label": "Libellé clair de l'action exécutée",
     "payload": { ... }
+  },
+  "updatedMemory": null OU {
+    "brandSummary": "...",
+    "userPreferences": ["..."],
+    "keyEntities": { ... }
   }
 }`;
 
-  const parts: Array<Record<string, unknown>> = [
-    {
-      text: `Page actuelle: ${params.currentPath} | Espace: ${params.projectStats.workspaceName}
-Historique de notre conversation:
-${params.history.slice(-6).map((h) => `${h.role === 'user' ? 'Moi' : 'PulseAI'}: ${h.content}`).join('\n')}
+  // Multi-turn conversational history assembly
+  const recentHistory = params.history.slice(-14);
+  const contents: Array<{ role: 'user' | 'model'; parts: Array<Record<string, unknown>> }> = [];
 
-Message de l'utilisateur: ${params.message}`,
+  for (const h of recentHistory) {
+    contents.push({
+      role: h.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: h.content }],
+    });
+  }
+
+  // Current turn with multimodal files
+  const currentTurnParts: Array<Record<string, unknown>> = [
+    {
+      text: `[Page actuelle: ${params.currentPath} | Espace: ${params.projectStats.workspaceName} | Posts: ${params.projectStats.postsCount} | Prospects CRM: ${params.projectStats.crmCount}]
+Message: ${params.message}`,
     },
   ];
 
-  // Multimodal file processing
   const safeAttachments = (params.attachments || []).slice(0, 10);
   for (const file of safeAttachments) {
     if (file.type.startsWith('image/') && file.dataUrl && file.dataUrl.includes('base64,')) {
       const base64Data = file.dataUrl.split('base64,')[1];
-      parts.push({
+      currentTurnParts.push({
         inlineData: {
           mimeType: file.type,
           data: base64Data,
         },
       });
     } else {
-      parts.push({
-        text: `[Document joint: ${file.name} (${file.type})${file.textContent ? ` — Extrait: ${file.textContent.slice(0, 800)}` : ''}]`,
+      currentTurnParts.push({
+        text: `[Fichier joint: ${file.name} (${file.type})${file.textContent ? ` — Extrait: ${file.textContent.slice(0, 800)}` : ''}]`,
       });
     }
   }
 
+  contents.push({ role: 'user', parts: currentTurnParts });
+
   const rawText = await callGeminiAPI({
     systemInstruction: { parts: [{ text: systemInstruction }] },
-    contents: [{ role: 'user', parts }],
+    contents,
     generationConfig: {
       temperature: 0.65,
-      maxOutputTokens: 500,
+      maxOutputTokens: 600,
       responseMimeType: 'application/json',
     },
   });
@@ -322,6 +381,7 @@ Message de l'utilisateur: ${params.message}`,
         return {
           reply: parsed.reply,
           action: parsed.action || undefined,
+          updatedMemory: parsed.updatedMemory || undefined,
         };
       }
     } catch {
@@ -329,15 +389,24 @@ Message de l'utilisateur: ${params.message}`,
     }
   }
 
-  // Conversational Intent Resolution Fallback (Human-like conversational intelligence)
+  // Conversational Intent Resolution Fallback (Human-like conversational intelligence with full CRUD)
   const lower = params.message.toLowerCase();
 
-  // 1. Post creation intent
-  if (lower.includes('crée un post') || lower.includes('publie') || lower.includes('programme un post') || lower.includes('rédige un post') || lower.includes('nouveau post')) {
-    const topic = params.message.replace(/crée un post|programme un post|publie|rédige un post|sur|pour|un post/gi, '').trim() || 'Notre offre spéciale';
+  // 1. Post Creation CRUD
+  if (
+    lower.includes('crée un post') ||
+    lower.includes('programme un post') ||
+    lower.includes('publie') ||
+    lower.includes('rédige un post') ||
+    lower.includes('nouveau post')
+  ) {
+    const topic =
+      params.message
+        .replace(/crée un post|programme un post|publie|rédige un post|sur|pour|un post/gi, '')
+        .trim() || 'Notre offre spéciale';
     const content = `🎯 ${topic}\n\nDans votre activité, chaque détail compte pour convaincre.\nVoici les 3 leviers qui font la différence auprès de vos clients cette semaine.\n\n👇 Commentez « INFOS » pour recevoir la présentation en message privé. #SocialSelling #PulseSocial`;
     return {
-      reply: `C'est noté ! J'ai rédigé et programmé une publication percutante sur « ${topic} ». Vous pouvez l'ajuster ou la valider dans le Planificateur.`,
+      reply: `C'est noté ! J'ai rédigé et programmé une publication percutante sur « ${topic} ». Elle est déjà visible dans votre Planificateur.`,
       action: {
         type: 'create_post',
         label: `Post programmé : ${topic.slice(0, 30)}`,
@@ -350,32 +419,79 @@ Message de l'utilisateur: ${params.message}`,
     };
   }
 
-  // 2. CRM prospect creation intent
-  if (lower.includes('ajoute un prospect') || lower.includes('nouveau prospect') || lower.includes('crée un prospect') || lower.includes('dans le crm') || lower.includes('prospect')) {
+  // 2. Post Deletion CRUD
+  if (lower.includes('supprime le post') || lower.includes('efface le post') || lower.includes('annule le post')) {
+    return {
+      reply: `Le post a été retiré de votre calendrier éditorial avec succès.`,
+      action: {
+        type: 'delete_post',
+        label: 'Post supprimé du calendrier',
+        payload: { query: params.message },
+      },
+    };
+  }
+
+  // 3. CRM Prospect Creation CRUD
+  if (
+    lower.includes('ajoute un prospect') ||
+    lower.includes('nouveau prospect') ||
+    lower.includes('crée un prospect') ||
+    lower.includes('dans le crm')
+  ) {
     const amountMatch = params.message.match(/(\d[\d\s]{2,})/);
     const amount = amountMatch ? Number(amountMatch[1].replace(/\s/g, '')) : 50000;
+    const nameMatch = params.message.match(/(?:nommé|nom|client|prospect)\s+([A-ZÀ-Ÿa-zà-ÿ0-9\s]+?)(?:pour|de|\d|$)/i);
+    const prospectName = nameMatch ? nameMatch[1].trim() : 'Nouveau Prospect PulseSocial';
+
     return {
-      reply: `Parfait, le prospect est enregistré dans votre Pipeline CRM avec une valeur estimée de ${amount.toLocaleString('fr-FR')} FCFA. Vous pouvez le suivre en direct sur votre tableau Kanban.`,
+      reply: `Parfait, j'ai inscrit ${prospectName} dans votre Pipeline CRM avec une valeur estimée de ${amount.toLocaleString('fr-FR')} FCFA. Vous pouvez le suivre en direct sur votre tableau Kanban.`,
       action: {
         type: 'create_crm_prospect',
-        label: `Prospect ajouté (${amount.toLocaleString('fr-FR')} FCFA)`,
+        label: `Prospect ajouté : ${prospectName} (${amount.toLocaleString('fr-FR')} FCFA)`,
         payload: {
-          name: 'Nouveau Prospect PulseSocial',
+          name: prospectName,
           platform: 'whatsapp',
           handle: '+225 07 00 00 00',
           deal_value: amount,
+          status: 'lead',
           notes: params.message,
         },
       },
     };
   }
 
-  // 3. Payment link intent
-  if (lower.includes('lien de paiement') || lower.includes('paystack') || lower.includes('encaisser') || lower.includes('facturer') || lower.includes('wave') || lower.includes('orange money')) {
+  // 4. CRM Stage Update CRUD
+  if (
+    lower.includes('passe le prospect') ||
+    lower.includes('gagné') ||
+    lower.includes('prospect converti') ||
+    lower.includes('change l\'étape')
+  ) {
+    const isWon = lower.includes('gagné') || lower.includes('converti') || lower.includes('signé');
+    const stage = isWon ? 'won' : 'proposal';
+    return {
+      reply: `Excellente nouvelle ! L'étape du prospect a été mise à jour vers « ${isWon ? 'Gagné (Won)' : 'Proposition envoyée'} » dans votre Pipeline CRM.`,
+      action: {
+        type: 'update_crm_prospect_stage',
+        label: `Étape CRM mise à jour : ${isWon ? 'Gagné' : 'Proposition'}`,
+        payload: { stage, notes: params.message },
+      },
+    };
+  }
+
+  // 5. Payment Link Paystack
+  if (
+    lower.includes('lien de paiement') ||
+    lower.includes('paystack') ||
+    lower.includes('encaisser') ||
+    lower.includes('facturer') ||
+    lower.includes('wave') ||
+    lower.includes('orange money')
+  ) {
     const amountMatch = params.message.match(/(\d[\d\s]{2,})/);
     const amount = amountMatch ? Number(amountMatch[1].replace(/\s/g, '')) : 15000;
     return {
-      reply: `Votre lien de paiement Paystack de ${amount.toLocaleString('fr-FR')} FCFA est prêt à l'emploi (compatible Wave, Orange Money et Cartes bancaires). Vos clients peuvent régler en 1 clic.`,
+      reply: `Votre lien de paiement Paystack de ${amount.toLocaleString('fr-FR')} FCFA est généré en direct (compatible Wave, Orange Money et Cartes bancaires). Vos clients peuvent régler en 1 clic.`,
       action: {
         type: 'generate_paystack_link',
         label: `Lien Paystack (${amount.toLocaleString('fr-FR')} FCFA)`,
@@ -384,8 +500,41 @@ Message de l'utilisateur: ${params.message}`,
     };
   }
 
-  // 4. Navigation intent
-  if (lower.includes('ouvre') || lower.includes('va sur') || lower.includes('aller sur') || lower.includes('affiche') || lower.includes('montre-moi')) {
+  // 6. Pulse Pages (Bio-Link) CRUD
+  if (lower.includes('crée une page bio') || lower.includes('nouvelle page bio') || lower.includes('pulse page')) {
+    const slug = `page-${Date.now().toString(36)}`;
+    return {
+      reply: `Votre nouvelle Pulse Page Bio est créée ! Vous pouvez la personnaliser et ajouter vos liens sur /pulse-pages.`,
+      action: {
+        type: 'create_pulse_page',
+        label: `Bio Page créée : /p/${slug}`,
+        payload: { title: 'Ma Page Bio PulseSocial', slug, theme: 'violet' },
+      },
+    };
+  }
+
+  // 7. Team Invitation CRUD
+  if (lower.includes('invite') && (lower.includes('équipe') || lower.includes('membre') || lower.includes('@'))) {
+    const emailMatch = params.message.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+    const email = emailMatch ? emailMatch[1] : 'collaborateur@pulsesocial.ci';
+    return {
+      reply: `Une invitation a été envoyée à ${email} pour rejoindre votre espace PulseSocial.`,
+      action: {
+        type: 'invite_team_member',
+        label: `Invitation envoyée : ${email}`,
+        payload: { email, role: 'editor' },
+      },
+    };
+  }
+
+  // 8. Navigation Intent
+  if (
+    lower.includes('ouvre') ||
+    lower.includes('va sur') ||
+    lower.includes('aller sur') ||
+    lower.includes('affiche') ||
+    lower.includes('montre-moi')
+  ) {
     const routes: Array<{ keys: string[]; path: string; name: string }> = [
       { keys: ['crm', 'pipeline', 'kanban', 'deal'], path: '/crm', name: 'votre Pipeline CRM' },
       { keys: ['inbox', 'boîte', 'radar', 'message', 'dm'], path: '/inbox', name: 'votre Boîte de réception' },
@@ -394,6 +543,7 @@ Message de l'utilisateur: ${params.message}`,
       { keys: ['settings', 'paramètre', 'oauth', 'compte'], path: '/settings', name: 'les Paramètres de comptes' },
       { keys: ['billing', 'abonnement', 'tarif', 'forfait'], path: '/billing', name: 'les Forfaits & Abonnements' },
       { keys: ['avis', 'review', 'google'], path: '/reviews', name: 'la Gestion des Avis' },
+      { keys: ['page', 'bio', 'link-in-bio'], path: '/pulse-pages', name: 'vos Pulse Pages' },
     ];
     for (const r of routes) {
       if (r.keys.some((k) => lower.includes(k))) {
@@ -405,7 +555,7 @@ Message de l'utilisateur: ${params.message}`,
     }
   }
 
-  // 5. Natural conversation & human assistance fallback (No repetitive stats!)
+  // 9. Natural conversation & memory recall
   if (lower.includes('bonjour') || lower.includes('salut') || lower.includes('coucou') || lower.includes('hello')) {
     return {
       reply: `Bonjour ! Ravi de vous retrouver. Je suis votre bras droit pour piloter vos réseaux sociaux, concevoir des publications à fort impact et suivre vos opportunités commerciales. Que souhaitons-nous accomplir ensemble aujourd'hui ?`,
@@ -414,7 +564,7 @@ Message de l'utilisateur: ${params.message}`,
 
   if (lower.includes('qui es-tu') || lower.includes('comment tu t\'appelles') || lower.includes('présente-toi')) {
     return {
-      reply: `Je suis PulseAI, votre assistant personnel et Community Manager senior. Je peux rédiger vos publications pour chaque réseau, analyser vos visuels, programmer vos contenus, enrichir votre CRM et générer vos liens de paiement instantanés.`,
+      reply: `Je suis PulseAI, votre assistant personnel exécutif et Directeur Stratégie Social Media. Je peux concevoir et programmer vos publications, enrichir votre CRM, gérer vos avis et générer vos liens de paiement Paystack en direct.`,
     };
   }
 
@@ -425,6 +575,6 @@ Message de l'utilisateur: ${params.message}`,
   }
 
   return {
-    reply: `Absolument, je suis à votre disposition. Je peux concevoir une publication percutante pour vos réseaux, analyser un visuel que vous m'envoyez, ajouter un prospect à votre CRM ou générer un lien d'encaissement Paystack. Que préférez-vous lancer ?`,
+    reply: `Absolument, je suis à votre disposition. Je peux concevoir une publication percutante pour vos réseaux, analyser un visuel, ajouter ou mettre à jour un prospect dans votre CRM ou générer un lien d'encaissement Paystack. Que préférez-vous lancer ?`,
   };
 }

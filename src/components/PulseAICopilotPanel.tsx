@@ -18,8 +18,10 @@ import {
   CheckCircle2,
   ExternalLink,
   Trash2,
+  Brain,
+  Radio,
 } from 'lucide-react';
-import type { CopilotAction, CopilotAttachment } from '@/lib/gemini';
+import type { CopilotAction, CopilotAttachment, CopilotMemory } from '@/lib/gemini';
 
 interface ChatMessage {
   id: string;
@@ -47,7 +49,7 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
       id: 'welcome',
       role: 'assistant',
       content:
-        'Bonjour ! Je suis PulseAI, votre assistant personnel exécutif et Directeur Social Media. Je suis là pour échanger avec vous en temps réel, concevoir vos publications, peaufiner vos accroches, analyser vos visuels et accélérer vos conversions. Que souhaitez-vous qu’on développe ensemble aujourd’hui ?',
+        'Bonjour ! Je suis PulseAI, votre copilote exécutif et Directeur Stratégie Social Media. Je peux concevoir vos publications, enrichir votre CRM, gérer vos avis et générer vos liens de paiement Paystack en direct. Échangez avec moi par écrit ou directement à la voix !',
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -56,21 +58,35 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
   const [attachments, setAttachments] = useState<CopilotAttachment[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Persistent Memory
+  const [memory, setMemory] = useState<CopilotMemory>({
+    userPreferences: [],
+    brandSummary: 'PulseSocial Agency',
+    keyEntities: {},
+  });
+
   // Voice states
   const [isListening, setIsListening] = useState(false);
+  const [interimSpeech, setInterimSpeech] = useState('');
   const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Restore history and memory on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem('pulsesocial_copilot_history');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed.slice(-20));
+          setMessages(parsed.slice(-30));
         }
+      }
+
+      const savedMem = localStorage.getItem('pulsesocial_copilot_memory');
+      if (savedMem) {
+        setMemory(JSON.parse(savedMem));
       }
     } catch {
       // ignore
@@ -79,13 +95,12 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [messages, loading, interimSpeech]);
 
   const persistMessages = (next: ChatMessage[]) => {
     setMessages(next);
     try {
-      // Save without heavy base64 dataUrls to preserve localStorage quota
-      const lite = next.slice(-20).map((m) => ({
+      const lite = next.slice(-30).map((m) => ({
         ...m,
         attachments: m.attachments?.map((a) => ({ name: a.name, type: a.type, size: a.size })),
       }));
@@ -93,6 +108,18 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
     } catch {
       // ignore
     }
+  };
+
+  const persistMemory = (newMem: CopilotMemory) => {
+    setMemory((prev) => {
+      const merged = { ...prev, ...newMem };
+      try {
+        localStorage.setItem('pulsesocial_copilot_memory', JSON.stringify(merged));
+      } catch {
+        // ignore
+      }
+      return merged;
+    });
   };
 
   // Text-to-Speech (French Voice Output)
@@ -113,52 +140,105 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
     }
   };
 
-  // Speech-to-Text (Microphone Input fr-FR)
-  const toggleListening = () => {
+  // Robust Speech-to-Text with Upfront Microphone Permission & Real-Time Interim Transcript
+  const toggleListening = async () => {
     if (typeof window === 'undefined') return;
+
     const SpeechRecognitionAPI =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognitionAPI) {
-      setUploadError('Reconnaissance vocale non supportée sur ce navigateur (utilisez Chrome ou Edge).');
+      setUploadError('Reconnaissance vocale non supportée sur ce navigateur (veuillez utiliser Google Chrome, Microsoft Edge ou Safari).');
       return;
     }
 
+    // If currently recording, stop
     if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+      setIsListening(false);
+      setInterimSpeech('');
+      return;
+    }
+
+    setUploadError(null);
+
+    // 1. Explicitly prompt / verify microphone permissions via getUserMedia
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Immediately release tracks so SpeechRecognition has sole access to audio hardware
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (permErr: any) {
+      const isDenied = permErr?.name === 'NotAllowedError' || permErr?.name === 'PermissionDeniedError';
+      if (isDenied) {
+        setUploadError("Microphone bloqué : veuillez autoriser le micro dans les paramètres ou la barre d'adresse de votre navigateur.");
+      } else {
+        setUploadError("Impossible d'accéder au microphone. Vérifiez vos périphériques audio.");
+      }
       setIsListening(false);
       return;
     }
 
+    // 2. Start SpeechRecognition with real-time interim streaming
     try {
       const recognition = new SpeechRecognitionAPI();
       recognition.lang = 'fr-FR';
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
         setUploadError(null);
+        setInterimSpeech('');
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results?.[0]?.[0]?.transcript;
-        if (transcript) {
-          setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        let interim = '';
+        let finalChunk = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const item = event.results[i];
+          const transcript = item[0]?.transcript || '';
+          if (item.isFinal) {
+            finalChunk += transcript;
+          } else {
+            interim += transcript;
+          }
         }
+
+        if (finalChunk.trim()) {
+          setInput((prev) => (prev ? `${prev.trim()} ${finalChunk.trim()}` : finalChunk.trim()));
+        }
+        setInterimSpeech(interim.trim());
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (event: any) => {
+        if (event.error === 'not-allowed') {
+          setUploadError("Accès micro refusé : autorisez le microphone dans votre navigateur.");
+        } else if (event.error === 'network') {
+          setUploadError("Erreur réseau pour la reconnaissance vocale.");
+        } else if (event.error !== 'no-speech') {
+          setUploadError(`Note vocale (${event.error}). Vous pouvez taper directement.`);
+        }
         setIsListening(false);
+        setInterimSpeech('');
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        setInterimSpeech('');
       };
 
       recognitionRef.current = recognition;
       recognition.start();
-    } catch {
+    } catch (err: any) {
+      setUploadError("Erreur lors de l'activation du microphone. Veuillez réessayer.");
       setIsListening(false);
     }
   };
@@ -208,19 +288,22 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // Execute agentic actions returned by PulseAI
+  // Full CRUD Client Actions on Platform Features
   const executeClientAction = async (action: CopilotAction): Promise<string | undefined> => {
+    // 1. Navigation
     if (action.type === 'navigate' && typeof action.payload.path === 'string') {
       router.push(action.payload.path);
       if (onClose) onClose();
       return undefined;
     }
 
-    if (action.type === 'create_post') {
+    // 2. Posts CRUD Events
+    if (action.type === 'create_post' || action.type === 'delete_post' || action.type === 'update_post') {
       window.dispatchEvent(new Event('posts-updated'));
       return undefined;
     }
 
+    // 3. CRM Prospect Create CRUD
     if (action.type === 'create_crm_prospect') {
       try {
         const saved = localStorage.getItem('pulsesocial_crm_prospects');
@@ -232,9 +315,9 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
           handle: String(action.payload.handle || '+225 07 00 00 00'),
           deal_value: Number(action.payload.deal_value || 50000),
           currency: 'FCFA',
-          status: 'lead',
-          lead_score: 88,
-          notes: String(action.payload.notes || 'Créé via PulseAI Copilot'),
+          status: String(action.payload.status || 'lead'),
+          lead_score: 90,
+          notes: String(action.payload.notes || 'Inscrit via PulseAI Copilot'),
           last_interaction: new Date().toISOString(),
         };
         localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify([newProspect, ...list]));
@@ -245,6 +328,63 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
       return undefined;
     }
 
+    // 4. CRM Prospect Stage Update CRUD
+    if (action.type === 'update_crm_prospect_stage') {
+      try {
+        const saved = localStorage.getItem('pulsesocial_crm_prospects');
+        if (saved) {
+          const list = JSON.parse(saved);
+          if (Array.isArray(list) && list.length > 0) {
+            list[0].status = String(action.payload.stage || 'won');
+            list[0].last_interaction = new Date().toISOString();
+            localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify(list));
+            window.dispatchEvent(new Event('crm-updated'));
+          }
+        }
+      } catch {
+        // ignore
+      }
+      return undefined;
+    }
+
+    // 5. CRM Prospect Deletion CRUD
+    if (action.type === 'delete_crm_prospect') {
+      try {
+        const saved = localStorage.getItem('pulsesocial_crm_prospects');
+        if (saved) {
+          const list = JSON.parse(saved);
+          if (Array.isArray(list) && list.length > 1) {
+            localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify(list.slice(1)));
+          } else {
+            localStorage.removeItem('pulsesocial_crm_prospects');
+          }
+          window.dispatchEvent(new Event('crm-updated'));
+        }
+      } catch {
+        // ignore
+      }
+      return undefined;
+    }
+
+    // 6. Pulse Pages (Bio-Link) CRUD
+    if (action.type === 'create_pulse_page') {
+      window.dispatchEvent(new Event('pulse-pages-updated'));
+      return undefined;
+    }
+
+    // 7. Team Invitation CRUD
+    if (action.type === 'invite_team_member') {
+      window.dispatchEvent(new Event('team-updated'));
+      return undefined;
+    }
+
+    // 8. Inbox Reply CRUD
+    if (action.type === 'send_inbox_reply') {
+      window.dispatchEvent(new Event('inbox-updated'));
+      return undefined;
+    }
+
+    // 9. Paystack Payment Link
     if (action.type === 'generate_paystack_link') {
       try {
         const res = await fetch('/api/billing/paystack/initialize', {
@@ -269,6 +409,17 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
   };
 
   const handleSend = async (customPrompt?: string) => {
+    // If voice recognition is active, stop it before sending
+    if (isListening && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+      setIsListening(false);
+      setInterimSpeech('');
+    }
+
     const text = (customPrompt ?? input).trim();
     if ((!text && attachments.length === 0) || loading) return;
 
@@ -300,12 +451,14 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
         // ignore
       }
 
+      // Send multi-turn history & persistent memory
       const res = await fetch('/api/ai/copilot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMsg.content,
-          history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
+          history: messages.slice(-16).map((m) => ({ role: m.role, content: m.content })),
+          memory,
           currentPath: pathname,
           attachments: filesToSend,
           clientStats: { crmCount, workspaceName },
@@ -318,6 +471,10 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
 
       if (data.action) {
         paystackUrl = await executeClientAction(data.action);
+      }
+
+      if (data.updatedMemory) {
+        persistMemory(data.updatedMemory);
       }
 
       const assistantMsg: ChatMessage = {
@@ -352,13 +509,14 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
   const quickPrompts = [
     'Crée un post LinkedIn sur notre offre',
     'Ajoute un prospect CRM de 100000 FCFA',
+    'Passe le prospect en étape Gagné',
     'Génère un lien Paystack de 15000 FCFA',
-    'Aide-moi sur cette page',
+    'Crée une page bio pour nos réseaux',
   ];
 
   return (
     <div className={`flex flex-col bg-[#0A0E17] text-slate-100 ${compact ? 'h-full' : 'h-[calc(100vh-10rem)] rounded-3xl border border-slate-800 shadow-2xl overflow-hidden'}`}>
-      {/* Top Bar */}
+      {/* Top Bar with Memory & Voice Badges */}
       <div className="px-4 py-3 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-violet-600/30">
@@ -367,12 +525,17 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
           <div className="min-w-0">
             <h3 className="text-xs font-black text-white truncate flex items-center gap-1.5">
               PulseAI Copilot
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                Gemini Vocal
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                <Radio className="w-2.5 h-2.5 animate-pulse" />
+                Vocal &amp; CRUD Actif
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 hidden sm:inline-flex items-center gap-1">
+                <Brain className="w-2.5 h-2.5" />
+                Mémoire Continue
               </span>
             </h3>
             <p className="text-[10px] text-slate-400 truncate">
-              Contexte actif : <span className="font-mono text-violet-400">{pathname}</span> • Concis &amp; Exécutif
+              Contexte : <span className="font-mono text-violet-400">{pathname}</span> • Actions en direct sur Posts, CRM, Pages, Paystack
             </p>
           </div>
         </div>
@@ -495,10 +658,19 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
           </div>
         ))}
 
+        {/* Interim Speech Transcription Live Indicator */}
+        {interimSpeech && (
+          <div className="flex flex-col items-end">
+            <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-xs bg-violet-600/40 text-violet-200 border border-violet-500/30 animate-pulse italic">
+              « {interimSpeech} »
+            </div>
+          </div>
+        )}
+
         {loading && (
           <div className="flex items-center gap-2 text-xs text-violet-400 px-2">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span>PulseAI réfléchit et exécute...</span>
+            <span>PulseAI réfléchit et exécute vos actions en direct...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -517,6 +689,25 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
           </button>
         ))}
       </div>
+
+      {/* Live Voice Recording Status Bar */}
+      {isListening && (
+        <div className="px-3.5 py-2 bg-rose-500/10 border-t border-rose-500/30 flex items-center justify-between text-xs text-rose-300 animate-pulse">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
+            <span className="font-semibold text-[11px]">
+              Micro ouvert : parlez naturellement (en français)...
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleListening}
+            className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
+          >
+            Terminer la dictée
+          </button>
+        </div>
+      )}
 
       {/* Pending File Attachments Bar (Max 10) */}
       {attachments.length > 0 && (
@@ -583,22 +774,27 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
         <button
           type="button"
           onClick={toggleListening}
-          className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative ${
             isListening
-              ? 'bg-rose-600 border-rose-500 text-white animate-pulse shadow-lg shadow-rose-600/30'
+              ? 'bg-rose-600 border-rose-500 text-white animate-pulse shadow-lg shadow-rose-600/40 ring-2 ring-rose-400/50'
               : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
           }`}
-          title={isListening ? 'Arrêter la dictée vocale' : 'Parler à PulseAI (Vocal fr-FR)'}
+          title={isListening ? 'Arrêter la dictée vocale' : 'Parler à PulseAI au micro (Vocal fr-FR)'}
         >
-          {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4" />}
+          {isListening && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-400 rounded-full animate-ping" />
+          )}
         </button>
 
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={isListening ? 'Écoute en cours (parlez)...' : 'Écrivez ou parlez à PulseAI...'}
-          className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+          placeholder={isListening ? 'Écoute active en français (parlez)...' : 'Écrivez ou dictez au micro à PulseAI...'}
+          className={`flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border text-xs text-white placeholder-slate-500 focus:outline-none transition-colors ${
+            isListening ? 'border-rose-500/60 ring-1 ring-rose-500/30' : 'border-slate-800 focus:border-violet-500'
+          }`}
         />
 
         <button
