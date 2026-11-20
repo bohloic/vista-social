@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
+import { requireUser, requireWorkspaceRole, ApiError, handleApiError } from '@/lib/security/guards';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { encryptToken } from '@/lib/security/encryption';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -21,21 +24,43 @@ const connectSchema = z.object({
     'threads',
     'whatsapp',
   ]),
-  accountName: z.string().min(1, 'Nom du compte requis'),
-  username: z.string().min(1, 'Identifiant requis'),
-  avatarUrl: z.string().optional(),
-  accessToken: z.string().optional(),
-  workspaceId: z.string().optional(),
+  accountName: z.string().min(1, 'Nom du compte requis').max(120),
+  username: z.string().min(1, 'Identifiant requis').max(120),
+  avatarUrl: z.string().url().or(z.string().startsWith('/')).optional(),
+  accessToken: z.string().max(2048).optional(),
+  workspaceId: z.string().uuid(),
 });
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await requireUser(req);
+    const ip = getClientIp(req);
+    const rateLimit = checkRateLimit(`social_connect_get:${user.id}:${ip}`, { maxTokens: 60, refillRate: 5 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const requestedWorkspaceId = searchParams.get('workspaceId');
+    const targetWsId = requestedWorkspaceId && isUuid(requestedWorkspaceId) ? requestedWorkspaceId : user.workspace_id;
+
+    if (!targetWsId) {
+      return NextResponse.json({ accounts: [] });
+    }
+
+    await requireWorkspaceRole(user.id, targetWsId, ['super_admin', 'admin', 'manager', 'editor', 'client']);
+
     const supabase = getAdminSupabase();
     if (!supabase) return NextResponse.json({ accounts: [] });
 
+    // [C4 Fix]: Strictly omit access_token, refresh_token from select query
     const { data: rawAccounts, error } = await supabase
       .from('social_accounts')
-      .select('*')
+      .select('id, workspace_id, platform, platform_account_id, account_name, username, avatar_url, is_connected, status, followers_count, metadata, created_at, updated_at')
+      .eq('workspace_id', targetWsId)
       .order('created_at', { ascending: false });
 
     if (error || !rawAccounts) {
@@ -68,47 +93,39 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ accounts: deduplicatedAccounts });
-  } catch {
-    return NextResponse.json({ accounts: [] });
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await requireUser(req);
+    const ip = getClientIp(req);
+    const rateLimit = checkRateLimit(`social_connect_post:${user.id}:${ip}`, { maxTokens: 15, refillRate: 1 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+      );
+    }
+
     const body = await req.json();
     const parsed = connectSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: parsed.error.issues[0]?.message || 'Données invalides' },
-        { status: 400 }
+        { status: 422 }
       );
     }
 
     const { platform, accountName, username, avatarUrl, accessToken, workspaceId } = parsed.data;
+    await requireWorkspaceRole(user.id, workspaceId, ['super_admin', 'admin', 'manager', 'editor']);
+
     const supabase = getAdminSupabase();
-
     if (!supabase) {
-      return NextResponse.json(
-        { success: false, error: 'Base de données inaccessible' },
-        { status: 503 }
-      );
-    }
-
-    // Resolve valid workspace UUID
-    let targetWsId = workspaceId;
-    if (!isUuid(targetWsId)) {
-      const { data: ws } = await supabase.from('workspaces').select('id').limit(1).maybeSingle();
-      if (ws?.id) {
-        targetWsId = ws.id;
-      } else {
-        const { data: newWs } = await supabase
-          .from('workspaces')
-          .insert({ name: 'Pulse Workspace', slug: 'pulse-workspace' })
-          .select('id')
-          .single();
-        targetWsId = newWs?.id;
-      }
+      throw new ApiError('DATABASE_UNAVAILABLE', 'Base de données inaccessible', 503);
     }
 
     const cleanHandle = username.trim().replace(/^@/, '');
@@ -117,10 +134,15 @@ export async function POST(req: NextRequest) {
         ? `@${cleanHandle}`
         : cleanHandle;
 
+    // [C4 Fix]: Encrypt OAuth tokens before writing to database
+    const rawToken = accessToken || `oauth_token_${platform}_${Date.now()}`;
+    const encryptedToken = encryptToken(rawToken);
+
     // Check if account already exists to prevent duplicate insertion
     const { data: existingAccounts } = await supabase
       .from('social_accounts')
-      .select('*')
+      .select('id, avatar_url, access_token')
+      .eq('workspace_id', workspaceId)
       .eq('platform', platform)
       .or(`username.ilike.@${cleanHandle},username.ilike.${cleanHandle}`);
 
@@ -132,17 +154,17 @@ export async function POST(req: NextRequest) {
           account_name: accountName,
           username: formattedUsername,
           avatar_url: avatarUrl || existing.avatar_url,
-          access_token: accessToken || existing.access_token,
+          access_token: encryptedToken,
           is_connected: true,
           status: 'active',
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
-        .select()
+        .select('id, workspace_id, platform, platform_account_id, account_name, username, avatar_url, is_connected, status, followers_count, metadata, created_at, updated_at')
         .single();
 
       if (updateErr) {
-        return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
+        throw new ApiError('INTERNAL_ERROR', updateErr.message, 500);
       }
 
       return NextResponse.json({
@@ -157,13 +179,13 @@ export async function POST(req: NextRequest) {
     const { data: connectedAccount, error: insertError } = await supabase
       .from('social_accounts')
       .insert({
-        workspace_id: targetWsId,
+        workspace_id: workspaceId,
         platform,
         platform_account_id: platformAccountId,
         account_name: accountName,
         username: formattedUsername,
         avatar_url: avatarUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
-        access_token: accessToken || `oauth_token_${platform}_${Date.now()}`,
+        access_token: encryptedToken,
         is_connected: true,
         status: 'active',
         followers_count: Math.floor(Math.random() * 5000) + 120,
@@ -172,14 +194,11 @@ export async function POST(req: NextRequest) {
           connected_at: new Date().toISOString(),
         },
       })
-      .select()
+      .select('id, workspace_id, platform, platform_account_id, account_name, username, avatar_url, is_connected, status, followers_count, metadata, created_at, updated_at')
       .single();
 
     if (insertError) {
-      return NextResponse.json(
-        { success: false, error: insertError.message },
-        { status: 500 }
-      );
+      throw new ApiError('INTERNAL_ERROR', insertError.message, 500);
     }
 
     return NextResponse.json({
@@ -187,38 +206,54 @@ export async function POST(req: NextRequest) {
       message: `Compte ${accountName} (${platform}) connecté avec succès via OAuth 2.0 !`,
       account: connectedAccount,
     });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Erreur interne du serveur';
-    return NextResponse.json(
-      { success: false, error: msg },
-      { status: 500 }
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
+    const user = await requireUser(req);
+    const ip = getClientIp(req);
+    const rateLimit = checkRateLimit(`social_connect_del:${user.id}:${ip}`, { maxTokens: 15, refillRate: 1 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json({ success: false, error: 'Identifiant du compte requis' }, { status: 400 });
+    if (!id || !isUuid(id)) {
+      throw new ApiError('BAD_REQUEST', 'Identifiant du compte valide requis (UUID)', 400);
     }
 
     const supabase = getAdminSupabase();
     if (!supabase) {
-      return NextResponse.json({ success: false, error: 'Base de données inaccessible' }, { status: 503 });
+      throw new ApiError('DATABASE_UNAVAILABLE', 'Base de données inaccessible', 503);
     }
 
-    const { error } = await supabase.from('social_accounts').delete().eq('id', id);
+    const { data: targetAccount } = await supabase
+      .from('social_accounts')
+      .select('id, workspace_id')
+      .eq('id', id)
+      .maybeSingle();
 
+    if (!targetAccount) {
+      throw new ApiError('NOT_FOUND', 'Compte introuvable', 404);
+    }
+
+    await requireWorkspaceRole(user.id, targetAccount.workspace_id, ['super_admin', 'admin', 'manager']);
+
+    const { error } = await supabase.from('social_accounts').delete().eq('id', id);
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      throw new ApiError('INTERNAL_ERROR', error.message, 500);
     }
 
     return NextResponse.json({ success: true, message: 'Compte déconnecté et supprimé avec succès' });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Erreur interne du serveur';
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  } catch (err) {
+    return handleApiError(err);
   }
 }

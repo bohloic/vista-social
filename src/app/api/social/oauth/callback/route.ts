@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
+import { encryptToken } from '@/lib/security/encryption';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,9 +64,14 @@ async function persistConnectedSocialAccount(params: {
       }
     }
 
+    // [C4 Fix]: Encrypt OAuth token at rest
+    const rawToken = connectionId || `composio_oauth_${platform}_${Date.now()}`;
+    const encryptedToken = encryptToken(rawToken);
+
     const { data: existingAccounts } = await supabase
       .from('social_accounts')
-      .select('*')
+      .select('id, avatar_url')
+      .eq('workspace_id', targetWsId)
       .eq('platform', platform)
       .or(`username.ilike.@${cleanHandle},username.ilike.${cleanHandle}`);
 
@@ -76,13 +82,13 @@ async function persistConnectedSocialAccount(params: {
         .update({
           account_name: accountName,
           username: formattedUsername,
-          access_token: connectionId || existing.access_token || `composio_${platform}_${Date.now()}`,
+          access_token: encryptedToken,
           is_connected: true,
           status: 'active',
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
-        .select()
+        .select('id, workspace_id, platform, platform_account_id, account_name, username, avatar_url, is_connected, status, followers_count, metadata, created_at, updated_at')
         .single();
 
       return updated || fallbackAccount;
@@ -97,7 +103,7 @@ async function persistConnectedSocialAccount(params: {
         account_name: accountName,
         username: formattedUsername,
         avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
-        access_token: connectionId || `composio_oauth_${platform}_${Date.now()}`,
+        access_token: encryptedToken,
         is_connected: true,
         status: 'active',
         followers_count: Math.floor(Math.random() * 4000) + 450,
@@ -107,7 +113,7 @@ async function persistConnectedSocialAccount(params: {
           connected_at: new Date().toISOString(),
         },
       })
-      .select()
+      .select('id, workspace_id, platform, platform_account_id, account_name, username, avatar_url, is_connected, status, followers_count, metadata, created_at, updated_at')
       .single();
 
     return inserted || fallbackAccount;
