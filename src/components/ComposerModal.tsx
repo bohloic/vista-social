@@ -160,41 +160,13 @@ export function ComposerModal({
     }
   };
 
-  // High-Definition Studio Visual Generator (Canvas/SVG Vector DataURL)
-  const generateHighDefVisual = (promptText: string, ratio: string, style: string) => {
-    const width = ratio === '16:9' ? 1200 : ratio === '9:16' ? 675 : ratio === '4:5' ? 960 : 1080;
-    const height = ratio === '16:9' ? 675 : ratio === '9:16' ? 1200 : ratio === '4:5' ? 1200 : 1080;
-    const styleGradients: Record<string, [string, string, string]> = {
-      photorealistic: ['#0f172a', '#1e1b4b', '#4338ca'],
-      cinematic: ['#09090b', '#18181b', '#3b0764'],
-      vibrant: ['#ec4899', '#8b5cf6', '#3b82f6'],
-      luxury: ['#1c1917', '#78350f', '#d97706'],
-      corporate: ['#0f172a', '#1e293b', '#2563eb'],
-      minimalist: ['#020617', '#0f172a', '#334155'],
-    };
-    const [c1, c2, c3] = styleGradients[style] || styleGradients.vibrant;
-    const cleanTitle = promptText.length > 55 ? promptText.slice(0, 52) + '...' : promptText;
-
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      <defs>
-        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${c1}" />
-          <stop offset="50%" stop-color="${c2}" />
-          <stop offset="100%" stop-color="${c3}" />
-        </linearGradient>
-      </defs>
-      <rect width="${width}" height="${height}" fill="url(#bgGrad)" />
-      <circle cx="${width * 0.8}" cy="${height * 0.2}" r="${width * 0.25}" fill="#ffffff" opacity="0.08" />
-      <circle cx="${width * 0.2}" cy="${height * 0.8}" r="${width * 0.3}" fill="#a855f7" opacity="0.15" />
-      <g transform="translate(${width * 0.08}, ${height * 0.45})">
-        <rect width="200" height="36" rx="18" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1.5" />
-        <text x="100" y="23" fill="#ffffff" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" letter-spacing="1">STUDIO IA PULSESOCIAL</text>
-        <text x="0" y="90" fill="#ffffff" font-family="system-ui, sans-serif" font-size="${width > 800 ? '42' : '30'}" font-weight="900">${cleanTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>
-        <text x="0" y="135" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="18" font-weight="500">Visuel Haute Définition • ${style.toUpperCase()}</text>
-      </g>
-    </svg>`;
-
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  // Photorealistic Studio Visual Generator (Direct Pollinations / Unsplash HD Photo Engine)
+  const generateRealPhotographicVisual = (promptText: string, ratio: string, style: string) => {
+    const width = ratio === '16:9' ? 1280 : ratio === '9:16' ? 720 : ratio === '4:5' ? 1080 : 1080;
+    const height = ratio === '16:9' ? 720 : ratio === '9:16' ? 1280 : ratio === '4:5' ? 1350 : 1080;
+    const cleanPrompt = encodeURIComponent(`${promptText}, 8k photorealistic photography, commercial studio lighting, high detail, ${style}`);
+    const seed = Math.floor(Math.random() * 999999);
+    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux&enhance=true`;
   };
 
   // Upload handler for photos and videos (with instantaneous FileReader fallback)
@@ -233,7 +205,7 @@ export function ComposerModal({
     }
   };
 
-  // AI Visual Generator handler (Guaranteed to return HD visual preview)
+  // AI Visual Generator handler (Guaranteed to return REAL photorealistic HD visual)
   const handleGenerateAiVisual = async () => {
     if (!aiVisualPrompt.trim()) return;
 
@@ -254,8 +226,9 @@ export function ComposerModal({
 
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.url) {
-          setGeneratedVisualPreview(data.url);
+        const outputUrl = data.imageUrl || data.url;
+        if (outputUrl) {
+          setGeneratedVisualPreview(outputUrl);
           setAiVisualLoading(false);
           return;
         }
@@ -264,8 +237,8 @@ export function ComposerModal({
       // fallback to generated visual
     }
 
-    // Instantaneous High Definition visual generation
-    const fallbackVisual = generateHighDefVisual(aiVisualPrompt, aiVisualRatio, aiVisualStyle);
+    // Direct Instantaneous High Definition visual generation
+    const fallbackVisual = generateRealPhotographicVisual(aiVisualPrompt, aiVisualRatio, aiVisualStyle);
     setGeneratedVisualPreview(fallbackVisual);
     setAiVisualLoading(false);
   };
@@ -809,8 +782,8 @@ export function ComposerModal({
           {/* RIGHT: Live Platform Preview Simulator */}
           <div className="lg:col-span-5 p-6 bg-slate-950/60 flex flex-col items-center overflow-y-auto border-l border-slate-800/60">
             {/* Preview Platform Switcher */}
-            <div className="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-2xl mb-4 shadow-sm">
-              {(['instagram', 'linkedin', 'twitter', 'tiktok', 'facebook'] as SocialPlatform[]).map(
+            <div className="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-2xl mb-4 shadow-sm flex-wrap justify-center">
+              {(['instagram', 'linkedin', 'twitter', 'tiktok', 'facebook', 'pinterest'] as SocialPlatform[]).map(
                 (p) => (
                   <button
                     key={p}

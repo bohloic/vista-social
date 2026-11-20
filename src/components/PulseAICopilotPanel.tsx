@@ -47,7 +47,7 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
       id: 'welcome',
       role: 'assistant',
       content:
-        'Bonjour ! Je suis PulseAI. Je suis prêt à créer vos posts, gérer votre CRM, générer vos liens Paystack ou analyser jusqu’à 10 fichiers (images, vidéos, docs). Parlez ou écrivez votre demande.',
+        'Bonjour ! Je suis PulseAI, votre assistant personnel exécutif et Directeur Social Media. Je suis là pour échanger avec vous en temps réel, concevoir vos publications, peaufiner vos accroches, analyser vos visuels et accélérer vos conversions. Que souhaitez-vous qu’on développe ensemble aujourd’hui ?',
       timestamp: new Date().toISOString(),
     },
   ]);

@@ -1,5 +1,5 @@
-// Gemini AI Engine for PulseSocial CM & Social Selling Platform
-// Supports High-Conversion Social Captions, Smart Replies, and Concise Multimodal Voice Copilot
+// Gemini & Multimodal AI Engine for PulseSocial CM & Social Selling Platform
+// High-Conversion French Copywriting, Smart Inbox Replies & Human-Grade Conversational Copilot
 
 const getGeminiApiKey = () =>
   process.env.GEMINI_API_KEY ||
@@ -15,45 +15,92 @@ export interface CaptionOptions {
   callToAction?: string;
 }
 
-const CAPTION_SYSTEM_INSTRUCTION = `Tu es un Directeur Créatif et Copywriter Senior spécialisé en Social Selling B2B & B2C francophone (Europe & Afrique de l'Ouest).
-RÈGLES DE QUALITÉ ÉDITORIALE :
-1. Rédige exclusivement en français naturel, percutant et professionnel (zéro phrase générique ou cliché).
-2. Structure chaque post selon la méthode AIDA / PAS :
-   - Accroche puissante sur la 1ère ligne (scroll-stopper).
-   - Corps aéré avec sauts de ligne et 2-3 points de valeur concrets.
-   - Appel à l'action (CTA) orienté conversion Social Selling (ex: commenter un mot-clé pour recevoir les détails en DM ou réserver un créneau).
-3. Adapte le style natif à chaque réseau :
-   - LinkedIn : posture d'expert B2B, retour d'expérience, question ouverte stratégique.
-   - Instagram : visuel, storytelling rapide, sauts de ligne propres, CTA DM.
-   - TikTok : dynamique, court, style créateur viral.
-   - X (Twitter) : ultra-percutant, strictement < 260 caractères.
-4. Retourne UNIQUEMENT un JSON valide strict sans balises markdown.`;
+const CAPTION_SYSTEM_INSTRUCTION = `Tu es un Directeur Créatif et Copywriter Senior spécialisé en Social Selling B2B & B2C francophone.
+RÈGLES DE QUALITÉ ÉDITORIALE ABSOLUE :
+1. Rédige exclusivement en français vivant, percutant et professionnel. Zéro jargon artificiel, zéro cliché IA ("Dans un monde en constante évolution...", "Plongeons dans...").
+2. Structure chaque post selon la méthode AIDA :
+   - Ligne 1 : Accroche magnétique qui arrête le scroll (chiffre, contradiction, question franche).
+   - Corps : 2 à 3 points concrets et aérés avec sauts de ligne pour une lisibilité parfaite.
+   - Conclusion & CTA : Appel à l'action naturel et engageant (ex: commenter un mot pour recevoir les détails en DM, ou lien direct).
+3. Adapte le ton spécifiquement à chaque plateforme :
+   - LinkedIn : posture d'expert stratégique, retour d'expérience terrain.
+   - Instagram : narratif, esthétique, CTA orienté message privé DM.
+   - TikTok : ultra-dynamique, accrocheur en 3 secondes.
+   - X (Twitter) : tranchant, direct, strictement sous 260 caractères.
+4. Retourne STRICTEMENT un JSON valide sans balises markdown.`;
+
+async function callPollinationsTextAPI(systemPrompt: string, userPrompt: string): Promise<string | null> {
+  try {
+    const res = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        model: 'openai',
+        jsonMode: true,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (res.ok) {
+      const text = await res.text();
+      return text.trim();
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
 async function callGeminiAPI(payload: Record<string, unknown>): Promise<string | null> {
   const apiKey = getGeminiApiKey();
-  if (!apiKey) return null;
 
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-  for (const model of models) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+  // Try Google Gemini API if key is present
+  if (apiKey && apiKey.length > 5) {
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+    for (const model of models) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(9000),
+          }
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) return text;
         }
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text;
+      } catch {
+        // try next model
       }
-    } catch {
-      // try next model
     }
   }
+
+  // Resilient fallback: Call high-performance text generation engine
+  try {
+    const systemText =
+      typeof payload.systemInstruction === 'object' && payload.systemInstruction !== null
+        ? ((payload.systemInstruction as { parts?: Array<{ text?: string }> })?.parts?.[0]?.text || '')
+        : '';
+    const contents = payload.contents as Array<{ parts?: Array<{ text?: string }> }> | undefined;
+    const userText = contents?.[0]?.parts?.[0]?.text || '';
+
+    if (userText) {
+      const pollText = await callPollinationsTextAPI(systemText, userText);
+      if (pollText) return pollText;
+    }
+  } catch {
+    // fallback to deterministic
+  }
+
   return null;
 }
 
@@ -62,22 +109,22 @@ export async function generateSocialCaption(options: CaptionOptions): Promise<{
   hashtags: string[];
   platformVariations: Record<string, string>;
 }> {
-  const prompt = `Rédige une publication sociale à fort taux de conversion sur le sujet : "${options.topic}".
+  const prompt = `Rédige une publication sociale à fort impact pour : "${options.topic}".
 Ton demandé : ${options.tone}.
 Réseaux cibles : ${options.platforms.join(', ')}.
-Emojis : ${options.includeEmojis ? 'Oui (dosés avec élégance)' : 'Non'}.
-Hashtags : ${options.includeHashtags ? 'Oui (5 hashtags stratégiques de niche)' : 'Non'}.
-Appel à l'action souhaité : ${options.callToAction || 'Inciter à commenter un mot-clé pour recevoir les infos en message privé (DM)'}.
+Emojis : ${options.includeEmojis ? 'Oui (utilisés avec parcimonie)' : 'Non'}.
+Hashtags : ${options.includeHashtags ? 'Oui (5 hashtags précis de niche)' : 'Non'}.
+Appel à l'action : ${options.callToAction || 'Commentez un mot-clé pour recevoir le lien direct en DM'}.
 
-Retourne STRICTEMENT ce format JSON :
+Retourne STRICTEMENT ce JSON sans markdown :
 {
-  "caption": "Texte principal complet avec accroche, valeur ajoutée et CTA",
+  "caption": "Texte principal avec accroche et corps aéré",
   "hashtags": ["#Tag1", "#Tag2", "#Tag3", "#Tag4", "#Tag5"],
   "platformVariations": {
-    "instagram": "Version optimisée Instagram avec accroche et CTA DM",
-    "linkedin": "Version experte B2B LinkedIn structurée et crédible",
-    "twitter": "Version concise et percutante < 260 caractères",
-    "tiktok": "Version courte et virale pour TikTok"
+    "instagram": "Version Instagram avec mise en page soignée et CTA DM",
+    "linkedin": "Version LinkedIn avec posture d'expert B2B et prise de recul",
+    "twitter": "Version X percutante < 260 caractères",
+    "tiktok": "Version TikTok concise et rythmée"
   }
 }`;
 
@@ -85,7 +132,7 @@ Retourne STRICTEMENT ce format JSON :
     systemInstruction: { parts: [{ text: CAPTION_SYSTEM_INSTRUCTION }] },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.72,
+      temperature: 0.7,
       maxOutputTokens: 900,
       responseMimeType: 'application/json',
     },
@@ -101,24 +148,28 @@ Retourne STRICTEMENT ce format JSON :
     }
   }
 
-  // High-quality structured French Social Selling fallback
+  // Elite Human Copywriter Fallback
   const e = options.includeEmojis;
   const cta =
     options.callToAction ||
-    'Commentez « INFOS » ou « TARIF » ci-dessous pour recevoir tous les détails en DM.';
+    'Commentez « INFOS » ou « TARIF » ci-dessous pour recevoir tous les détails en message privé.';
   const cleanTopic = options.topic.trim();
 
-  const mainCaption = `${e ? '🎯 ' : ''}${cleanTopic} — Ce qui change vraiment la donne aujourd'hui.
+  const mainCaption = `${e ? '🎯 ' : ''}${cleanTopic} — Pourquoi cela change tout pour votre activité.
 
-La plupart des professionnels passent à côté d'un levier simple mais décisif :
-${e ? '✅ ' : '- '}Une exécution plus rapide et structurée
-${e ? '✅ ' : '- '}Des résultats mesurables dès la première semaine
-${e ? '✅ ' : '- '}Une expérience client fluide du premier contact à l'encaissement
+Le problème que rencontrent 90% des professionnels du secteur :
+${e ? '❌ ' : '- '}Des semaines entières perdues sur des tâches sans valeur ajoutée
+${e ? '❌ ' : '- '}Des prospects qui disparaissent faute d\'un suivi immédiat
+
+La méthode que nous appliquons avec succès :
+${e ? '✅ ' : '- '}Une présence régulière et ciblée qui capte l\'attention
+${e ? '✅ ' : '- '}Une réponse en moins de 15 minutes sur chaque canal
+${e ? '✅ ' : '- '}Un lien de confirmation ou de paiement direct dès la première interaction
 
 ${e ? '👇 ' : ''}${cta}`;
 
   const tags = options.includeHashtags
-    ? ['#SocialSelling', '#CroissanceDigitale', '#Strategie', '#Business', '#PulseSocial']
+    ? ['#SocialSelling', '#CroissanceDigitale', '#BusinessStrategy', '#AfriqueDigitale', '#PulseSocial']
     : [];
 
   return {
@@ -126,9 +177,9 @@ ${e ? '👇 ' : ''}${cta}`;
     hashtags: tags,
     platformVariations: {
       instagram: `${mainCaption}\n\n${tags.join(' ')}`.trim(),
-      linkedin: `${e ? '💡 ' : ''}Retour terrain sur : ${cleanTopic}.\n\nAprès avoir observé des dizaines d'équipes, un constat s'impose : la régularité et la clarté de l'offre battent toujours le volume brut.\n\n3 axes immédiats à activer :\n1. Clarifier votre promesse en 1 phrase\n2. Transformer chaque commentaire qualifié en discussion privée\n3. Simplifier la prise de décision avec un lien direct\n\n${cta}`,
-      twitter: `${e ? '⚡ ' : ''}${cleanTopic.slice(0, 170)} — Passez à l'action sans friction. ${e ? '👇 ' : ''}Commentez INFOS pour le détail.`,
-      tiktok: `${e ? '🔥 ' : ''}POV : Vous optimisez enfin « ${cleanTopic} » et vos prospects viennent directement en DM. ${cta}`,
+      linkedin: `${e ? '💡 ' : ''}Retour d'expérience sur : ${cleanTopic}.\n\nDans un marché saturé de bruit, ce n'est pas le volume de publication qui fait la différence, c'est la pertinence de votre proposition de valeur et la rapidité de conversion.\n\nTrois règles immuables que nous constatons sur le terrain :\n1. Une accroche limpide : votre cible doit comprendre son bénéfice en 3 secondes.\n2. Le passage en privé : le vrai chiffre d'affaires se signe dans les DM, jamais en commentaire public.\n3. Zéro friction : un moyen de paiement instantané ou un créneau direct.\n\n${cta}`,
+      twitter: `${e ? '⚡ ' : ''}${cleanTopic.slice(0, 160)} — Ce qui compte vraiment : la clarté et la conversion rapide. ${e ? '👇 ' : ''}Répondez INFOS pour la méthode.`,
+      tiktok: `${e ? '🔥 ' : ''}POV : Vous appliquez enfin la bonne stratégie sur « ${cleanTopic} » et vos DM se transforment en clients réguliers. ${cta}`,
     },
   };
 }
@@ -139,26 +190,26 @@ export async function generateSmartReply(context: {
   sentiment: string;
   channel: string;
 }): Promise<string[]> {
-  const systemPrompt = `Tu es un expert en Relation Client et Social Selling francophone.
-Rédige 3 réponses courtes (2 à 3 phrases max chacune), chaleureuses, professionnelles et orientées conversion (invitation en DM, lien de paiement ou prise de RDV si intention d'achat).
+  const systemPrompt = `Tu es un Community Manager et Directeur de Relation Client d'exception.
+Rédige 3 réponses en français irréprochable, chaleureuses, humaines et orientées vers l'action concrète (DM, lien de paiement, ou échange direct).
 Retourne STRICTEMENT un tableau JSON de 3 chaînes : ["Option 1", "Option 2", "Option 3"].`;
 
   const prompt = `Canal : ${context.channel}
 Client : ${context.customerName}
-Sentiment détecté : ${context.sentiment}
-Message client : "${context.customerMessage}"
+Sentiment : ${context.sentiment}
+Message reçu : "${context.customerMessage}"
 
-Génère 3 options distinctes :
-1) Chaleureuse & Orientée DM
-2) Directe & Professionnelle (Expert)
-3) Orientée Clôture / Passage à l'action`;
+Génère 3 réponses distinctes :
+1) Chaleureuse & conversationnelle
+2) Professionnelle & rassurante
+3) Directe avec invitation à concrétiser`;
 
   const rawText = await callGeminiAPI({
     systemInstruction: { parts: [{ text: systemPrompt }] },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.55,
-      maxOutputTokens: 450,
+      temperature: 0.6,
+      maxOutputTokens: 400,
       responseMimeType: 'application/json',
     },
   });
@@ -174,9 +225,9 @@ Génère 3 options distinctes :
   }
 
   return [
-    `Bonjour ${context.customerName}, merci pour votre message ! Je viens de vous envoyer tous les détails et tarifs en message privé pour avancer rapidement.`,
-    `Bonjour ${context.customerName}, ravi d'échanger avec vous. Voici les informations clés concernant votre demande — souhaitez-vous que je vous transmette le lien de réservation ou de paiement ?`,
-    `Merci ${context.customerName} ! Notre équipe est disponible immédiatement pour finaliser cela avec vous. Préférez-vous un échange rapide sur WhatsApp ou un lien direct ?`,
+    `Bonjour ${context.customerName}, avec grand plaisir ! Je viens de vous envoyer les informations détaillées en message privé pour échanger plus tranquillement.`,
+    `Bonjour ${context.customerName}, merci pour votre intérêt. C'est exactement ce que nous proposons. Souhaitez-vous que nous vous transmettions le lien direct pour démarrer ?`,
+    `Ravi de vous lire ${context.customerName} ! Notre équipe est disponible dès maintenant pour finaliser cela avec vous. Vous préférez un échange rapide sur WhatsApp ou ici ?`,
   ];
 }
 
@@ -184,7 +235,7 @@ export interface CopilotAttachment {
   name: string;
   type: string;
   size: number;
-  dataUrl?: string; // base64 data URL for images or text preview
+  dataUrl?: string;
   textContent?: string;
 }
 
@@ -206,47 +257,36 @@ export async function runPulseAICopilot(params: {
     workspaceName: string;
   };
 }): Promise<{ reply: string; action?: CopilotAction }> {
-  const systemInstruction = `Tu es PulseAI, l'assistant exécutif vocal et textuel intégré à PulseSocial.
-RÈGLES STRICTES (ECONOMIE DE TOKENS) :
-1. Sois ULTRA-CONCIS, précis et pragmatique (2 à 5 phrases maximum, ou 3 puces courtes). Zéro formule de politesse longue, zéro remplissage.
-2. Parle en français clair, naturel à l'oral (adapté à la synthèse vocale).
-3. Tu connais toute la plateforme PulseSocial :
-   - "/" (Tableau de bord & Routine 15 min)
-   - "/publish" (Planificateur, Calendrier IA sectoriel, Compositeur IA)
-   - "/inbox" (Radar à Prospects IA, Fenêtre 24h Meta/WhatsApp, Script LinkedIn 1-clic)
-   - "/crm" (Pipeline Kanban 4 colonnes + liens Paystack/Wave/Orange Money & Cal.com)
-   - "/analytics" (KPIs 7/30/90j & Export PDF)
-   - "/reviews" (Avis Google/Facebook + réponses IA)
-   - "/pulse-pages" (Link-in-Bio)
-   - "/billing" (Abonnements Paystack FCFA)
-   - "/settings" (OAuth 2.0 Composio 1-clic, Tokens Manuels, Cal.com, Test Supabase)
-4. Si l'utilisateur te demande d'EXÉCUTER une tâche (créer/programmer un post, ajouter un prospect CRM, générer un lien Paystack, aller sur une page, ouvrir le compositeur), renseigne le champ "action" dans le JSON.
-5. Si l'utilisateur envoie des fichiers (images, vidéos, documents), analyse-les directement et réponds de manière utile et concise.
+  const systemInstruction = `Tu es PulseAI, l'assistant personnel exécutif et Directeur Stratégie de PulseSocial.
+PERSONA ET POSTURE :
+- Tu t'exprimes comme un être humain brillant, complice, chaleureux et direct (dans l'esprit de l'agent vocal de Claude).
+- Tu tutoies ou vouvoies selon la demande, mais tu conserves toujours une posture de partenaire de haut niveau.
+- INTERDICTION FORMELLE de répéter des statistiques génériques ou des phrases automatiques du style "Bien reçu, sur /chat vous avez X posts...".
+- Réponds TOUJOURS avec pertinence au fond de la question posée par l'utilisateur (conseils de contenu, analyse de prospect, stratégie de prix, astuces pour convertir).
+- Sois concis mais riche en valeur : 2 à 4 phrases dynamiques, fluides et agréables à écouter en synthèse vocale.
+- Si l'utilisateur demande une action précise (programmer un post, ajouter un prospect, générer un lien Paystack, aller sur une page), génère l'action dans le JSON.
 
-FORMAT DE RÉPONSE STRICTEMENT JSON (sans markdown) :
+FORMAT DE RÉPONSE STRICTEMENT JSON :
 {
-  "reply": "Ta réponse concise en français",
+  "reply": "Ta réponse humaine, fluide et naturelle en français",
   "action": null OU {
     "type": "create_post" | "create_crm_prospect" | "generate_paystack_link" | "navigate" | "open_composer",
-    "label": "Libellé court de l'action exécutée",
+    "label": "Libellé de l'action exécutée",
     "payload": { ... }
   }
-}
-
-Exemples de payload :
-- create_post: { "content": "...", "post_type": "post", "scheduled_for": "ISO_DATE" }
-- create_crm_prospect: { "name": "...", "platform": "whatsapp", "handle": "+225...", "deal_value": 50000, "notes": "..." }
-- generate_paystack_link: { "amount": 15000, "currency": "XOF", "customerName": "...", "provider": "wave" }
-- navigate: { "path": "/crm" }
-- open_composer: {}`;
-
-  const contextSummary = `[CONTEXTE] Page actuelle: ${params.currentPath} | Workspace: ${params.projectStats.workspaceName} | Posts: ${params.projectStats.postsCount} | Comptes sociaux: ${params.projectStats.accountsCount} | Prospects CRM: ${params.projectStats.crmCount}`;
+}`;
 
   const parts: Array<Record<string, unknown>> = [
-    { text: `${contextSummary}\n\nHistorique récent:\n${params.history.slice(-6).map((h) => `${h.role === 'user' ? 'Utilisateur' : 'PulseAI'}: ${h.content}`).join('\n')}\n\nDemande actuelle: ${params.message}` },
+    {
+      text: `Page actuelle: ${params.currentPath} | Espace: ${params.projectStats.workspaceName}
+Historique de notre conversation:
+${params.history.slice(-6).map((h) => `${h.role === 'user' ? 'Moi' : 'PulseAI'}: ${h.content}`).join('\n')}
+
+Message de l'utilisateur: ${params.message}`,
+    },
   ];
 
-  // Attach up to 10 multimodal files
+  // Multimodal file processing
   const safeAttachments = (params.attachments || []).slice(0, 10);
   for (const file of safeAttachments) {
     if (file.type.startsWith('image/') && file.dataUrl && file.dataUrl.includes('base64,')) {
@@ -259,7 +299,7 @@ Exemples de payload :
       });
     } else {
       parts.push({
-        text: `[Fichier joint: ${file.name} (${file.type}, ${Math.round(file.size / 1024)} Ko)${file.textContent ? ` — Extrait: ${file.textContent.slice(0, 600)}` : ''}]`,
+        text: `[Document joint: ${file.name} (${file.type})${file.textContent ? ` — Extrait: ${file.textContent.slice(0, 800)}` : ''}]`,
       });
     }
   }
@@ -268,7 +308,7 @@ Exemples de payload :
     systemInstruction: { parts: [{ text: systemInstruction }] },
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      temperature: 0.4,
+      temperature: 0.65,
       maxOutputTokens: 500,
       responseMimeType: 'application/json',
     },
@@ -289,21 +329,18 @@ Exemples de payload :
     }
   }
 
-  // Deterministic intelligent command router fallback (concise & functional even if Gemini key hits quota)
+  // Conversational Intent Resolution Fallback (Human-like conversational intelligence)
   const lower = params.message.toLowerCase();
-  const filesNote =
-    safeAttachments.length > 0
-      ? ` (${safeAttachments.length} fichier${safeAttachments.length > 1 ? 's' : ''} reçu${safeAttachments.length > 1 ? 's' : ''} : ${safeAttachments.map((f) => f.name).join(', ')})`
-      : '';
 
-  if (lower.includes('crée un post') || lower.includes('publie') || lower.includes('programme un post') || lower.includes('rédige un post')) {
-    const topic = params.message.replace(/crée un post|programme un post|publie|rédige un post|sur|pour/gi, '').trim() || 'Notre nouvelle offre PulseSocial';
-    const content = `🎯 ${topic}\n\nPassez à la vitesse supérieure avec une stratégie claire et mesurable.\n👇 Commentez « INFOS » pour recevoir tous les détails en DM ! #SocialSelling #PulseSocial`;
+  // 1. Post creation intent
+  if (lower.includes('crée un post') || lower.includes('publie') || lower.includes('programme un post') || lower.includes('rédige un post') || lower.includes('nouveau post')) {
+    const topic = params.message.replace(/crée un post|programme un post|publie|rédige un post|sur|pour|un post/gi, '').trim() || 'Notre offre spéciale';
+    const content = `🎯 ${topic}\n\nDans votre activité, chaque détail compte pour convaincre.\nVoici les 3 leviers qui font la différence auprès de vos clients cette semaine.\n\n👇 Commentez « INFOS » pour recevoir la présentation en message privé. #SocialSelling #PulseSocial`;
     return {
-      reply: `Post créé et programmé sur "${topic}"${filesNote}. Vous pouvez le consulter dans le Planificateur.`,
+      reply: `C'est noté ! J'ai rédigé et programmé une publication percutante sur « ${topic} ». Vous pouvez l'ajuster ou la valider dans le Planificateur.`,
       action: {
         type: 'create_post',
-        label: 'Post programmé dans Supabase',
+        label: `Post programmé : ${topic.slice(0, 30)}`,
         payload: {
           content,
           post_type: 'post',
@@ -313,16 +350,17 @@ Exemples de payload :
     };
   }
 
-  if (lower.includes('ajoute un prospect') || lower.includes('nouveau prospect') || lower.includes('crée un prospect') || lower.includes('dans le crm')) {
+  // 2. CRM prospect creation intent
+  if (lower.includes('ajoute un prospect') || lower.includes('nouveau prospect') || lower.includes('crée un prospect') || lower.includes('dans le crm') || lower.includes('prospect')) {
     const amountMatch = params.message.match(/(\d[\d\s]{2,})/);
-    const amount = amountMatch ? Number(amountMatch[1].replace(/\s/g, '')) : 75000;
+    const amount = amountMatch ? Number(amountMatch[1].replace(/\s/g, '')) : 50000;
     return {
-      reply: `Prospect ajouté dans le Pipeline CRM (${amount.toLocaleString('fr-FR')} FCFA)${filesNote}.`,
+      reply: `Parfait, le prospect est enregistré dans votre Pipeline CRM avec une valeur estimée de ${amount.toLocaleString('fr-FR')} FCFA. Vous pouvez le suivre en direct sur votre tableau Kanban.`,
       action: {
         type: 'create_crm_prospect',
-        label: 'Prospect ajouté au Kanban CRM',
+        label: `Prospect ajouté (${amount.toLocaleString('fr-FR')} FCFA)`,
         payload: {
-          name: 'Nouveau Prospect PulseAI',
+          name: 'Nouveau Prospect PulseSocial',
           platform: 'whatsapp',
           handle: '+225 07 00 00 00',
           deal_value: amount,
@@ -332,41 +370,61 @@ Exemples de payload :
     };
   }
 
-  if (lower.includes('lien de paiement') || lower.includes('paystack') || lower.includes('encaisser') || lower.includes('facturer')) {
+  // 3. Payment link intent
+  if (lower.includes('lien de paiement') || lower.includes('paystack') || lower.includes('encaisser') || lower.includes('facturer') || lower.includes('wave') || lower.includes('orange money')) {
     const amountMatch = params.message.match(/(\d[\d\s]{2,})/);
     const amount = amountMatch ? Number(amountMatch[1].replace(/\s/g, '')) : 15000;
     return {
-      reply: `Lien Paystack généré pour ${amount.toLocaleString('fr-FR')} FCFA (Wave / Orange Money / Carte). Cliquez sur le bouton ci-dessous pour l'ouvrir.`,
+      reply: `Votre lien de paiement Paystack de ${amount.toLocaleString('fr-FR')} FCFA est prêt à l'emploi (compatible Wave, Orange Money et Cartes bancaires). Vos clients peuvent régler en 1 clic.`,
       action: {
         type: 'generate_paystack_link',
-        label: `Ouvrir Paystack (${amount.toLocaleString('fr-FR')} FCFA)`,
+        label: `Lien Paystack (${amount.toLocaleString('fr-FR')} FCFA)`,
         payload: { amount, currency: 'XOF', provider: 'wave', customerName: 'Client PulseSocial' },
       },
     };
   }
 
-  if (lower.includes('ouvre') || lower.includes('va sur') || lower.includes('aller sur') || lower.includes('affiche')) {
+  // 4. Navigation intent
+  if (lower.includes('ouvre') || lower.includes('va sur') || lower.includes('aller sur') || lower.includes('affiche') || lower.includes('montre-moi')) {
     const routes: Array<{ keys: string[]; path: string; name: string }> = [
-      { keys: ['crm', 'pipeline', 'kanban'], path: '/crm', name: 'Pipeline CRM' },
-      { keys: ['inbox', 'boîte', 'radar', 'message'], path: '/inbox', name: 'Boîte de réception & Radar' },
-      { keys: ['publish', 'planificateur', 'calendrier'], path: '/publish', name: 'Planificateur' },
-      { keys: ['analytics', 'statistique', 'rapport'], path: '/analytics', name: 'Analytics' },
-      { keys: ['settings', 'paramètre', 'oauth', 'token'], path: '/settings', name: 'Paramètres & Comptes' },
-      { keys: ['billing', 'abonnement', 'facturation'], path: '/billing', name: 'Abonnement & Paystack' },
-      { keys: ['avis', 'review'], path: '/reviews', name: 'Avis Clients' },
-      { keys: ['bio', 'pulse page'], path: '/pulse-pages', name: 'Pulse Pages' },
+      { keys: ['crm', 'pipeline', 'kanban', 'deal'], path: '/crm', name: 'votre Pipeline CRM' },
+      { keys: ['inbox', 'boîte', 'radar', 'message', 'dm'], path: '/inbox', name: 'votre Boîte de réception' },
+      { keys: ['publish', 'planificateur', 'calendrier', 'post'], path: '/publish', name: 'le Planificateur de posts' },
+      { keys: ['analytics', 'statistique', 'rapport', 'chiffre'], path: '/analytics', name: 'les Analytics' },
+      { keys: ['settings', 'paramètre', 'oauth', 'compte'], path: '/settings', name: 'les Paramètres de comptes' },
+      { keys: ['billing', 'abonnement', 'tarif', 'forfait'], path: '/billing', name: 'les Forfaits & Abonnements' },
+      { keys: ['avis', 'review', 'google'], path: '/reviews', name: 'la Gestion des Avis' },
     ];
     for (const r of routes) {
       if (r.keys.some((k) => lower.includes(k))) {
         return {
-          reply: `Redirection vers ${r.name}.`,
-          action: { type: 'navigate', label: `Ouverture de ${r.name}`, payload: { path: r.path } },
+          reply: `Je vous emmène directement sur ${r.name}.`,
+          action: { type: 'navigate', label: `Ouvrir ${r.name}`, payload: { path: r.path } },
         };
       }
     }
   }
 
+  // 5. Natural conversation & human assistance fallback (No repetitive stats!)
+  if (lower.includes('bonjour') || lower.includes('salut') || lower.includes('coucou') || lower.includes('hello')) {
+    return {
+      reply: `Bonjour ! Ravi de vous retrouver. Je suis votre bras droit pour piloter vos réseaux sociaux, concevoir des publications à fort impact et suivre vos opportunités commerciales. Que souhaitons-nous accomplir ensemble aujourd'hui ?`,
+    };
+  }
+
+  if (lower.includes('qui es-tu') || lower.includes('comment tu t\'appelles') || lower.includes('présente-toi')) {
+    return {
+      reply: `Je suis PulseAI, votre assistant personnel et Community Manager senior. Je peux rédiger vos publications pour chaque réseau, analyser vos visuels, programmer vos contenus, enrichir votre CRM et générer vos liens de paiement instantanés.`,
+    };
+  }
+
+  if (lower.includes('conseil') || lower.includes('stratégie') || lower.includes('comment') || lower.includes('aide-moi') || lower.includes('idée')) {
+    return {
+      reply: `Pour maximiser votre impact en ce moment, je vous conseille de miser sur un format court axé sur un problème concret de vos clients, suivi d'une incitation à échanger en message privé (DM). Souhaitez-vous que je vous rédige un exemple clé en main pour Instagram ou LinkedIn ?`,
+    };
+  }
+
   return {
-    reply: `Bien reçu${filesNote}. Sur ${params.currentPath}, vous avez ${params.projectStats.postsCount} post(s), ${params.projectStats.accountsCount} compte(s) connecté(s) et ${params.projectStats.crmCount} prospect(s) CRM. Demandez-moi par exemple : « Crée un post sur… », « Ajoute un prospect CRM de 50000 FCFA », « Génère un lien Paystack de 15000 FCFA » ou « Ouvre le CRM ».`,
+    reply: `Absolument, je suis à votre disposition. Je peux concevoir une publication percutante pour vos réseaux, analyser un visuel que vous m'envoyez, ajouter un prospect à votre CRM ou générer un lien d'encaissement Paystack. Que préférez-vous lancer ?`,
   };
 }

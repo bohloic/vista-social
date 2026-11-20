@@ -20,6 +20,66 @@ const initiateSchema = z.object({
   composioApiKey: z.string().optional(),
 });
 
+// Official OAuth 2.0 URLs for each provider
+function getDirectPlatformOAuthUrl(platform: string, callbackUrl: string): string | null {
+  const metaAppId = process.env.META_APP_ID || process.env.FACEBOOK_CLIENT_ID;
+  const linkedinClientId = process.env.LINKEDIN_CLIENT_ID;
+  const twitterClientId = process.env.TWITTER_CLIENT_ID;
+  const tiktokClientKey = process.env.TIKTOK_CLIENT_KEY;
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const pinterestAppId = process.env.PINTEREST_APP_ID;
+
+  switch (platform) {
+    case 'facebook':
+    case 'instagram':
+    case 'whatsapp':
+    case 'threads':
+      if (metaAppId) {
+        const scopes = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish';
+        return `https://www.facebook.com/v20.0/dialog/oauth?client_id=${encodeURIComponent(metaAppId)}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=${encodeURIComponent(scopes)}&response_type=code`;
+      }
+      break;
+
+    case 'linkedin':
+      if (linkedinClientId) {
+        const scopes = 'openid profile email w_member_social';
+        return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${encodeURIComponent(linkedinClientId)}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=${encodeURIComponent(scopes)}`;
+      }
+      break;
+
+    case 'twitter':
+      if (twitterClientId) {
+        const scopes = 'tweet.read tweet.write users.read offline.access';
+        return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${encodeURIComponent(twitterClientId)}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=${encodeURIComponent(scopes)}&state=pulsesocial&code_challenge=challenge&code_challenge_method=plain`;
+      }
+      break;
+
+    case 'tiktok':
+      if (tiktokClientKey) {
+        const scopes = 'user.info.basic,video.publish,video.upload';
+        return `https://www.tiktok.com/v2/auth/authorize/?client_key=${encodeURIComponent(tiktokClientKey)}&scope=${encodeURIComponent(scopes)}&response_type=code&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+      }
+      break;
+
+    case 'youtube':
+    case 'google_business':
+      if (googleClientId) {
+        const scopes = 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/business.manage openid email';
+        return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(googleClientId)}&redirect_uri=${encodeURIComponent(callbackUrl)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent`;
+      }
+      break;
+
+    case 'pinterest':
+      if (pinterestAppId) {
+        const scopes = 'boards:read,pins:read,pins:write';
+        return `https://www.pinterest.com/oauth/?client_id=${encodeURIComponent(pinterestAppId)}&redirect_uri=${encodeURIComponent(callbackUrl)}&response_type=code&scope=${encodeURIComponent(scopes)}`;
+      }
+      break;
+  }
+
+  return null;
+}
+
 const COMPOSIO_TOOLKIT_MAP: Record<string, string> = {
   instagram: 'instagram',
   facebook: 'facebook',
@@ -48,7 +108,17 @@ export async function POST(req: NextRequest) {
     const apiKey = composioApiKey?.trim() || process.env.COMPOSIO_API_KEY?.trim();
     const callbackUrl = `${origin}/api/social/oauth/callback?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId || '')}`;
 
-    // 1. If COMPOSIO_API_KEY is configured, call Composio v3 Hosted OAuth 2.0 API
+    // 1. Check if direct official platform OAuth credentials exist
+    const directPlatformUrl = getDirectPlatformOAuthUrl(platform, callbackUrl);
+    if (directPlatformUrl) {
+      return NextResponse.json({
+        success: true,
+        redirectUrl: directPlatformUrl,
+        mode: 'official_platform_direct_redirect',
+      });
+    }
+
+    // 2. Check if COMPOSIO_API_KEY is configured for automated OAuth 2.0 gateway
     if (apiKey && apiKey.length > 8) {
       try {
         const toolkitSlug = COMPOSIO_TOOLKIT_MAP[platform] || platform;
@@ -57,11 +127,10 @@ export async function POST(req: NextRequest) {
           'x-api-key': apiKey,
         };
 
-        // Step A: Find or create Composio v3 auth_config for the toolkit
         let authConfigId: string | undefined;
         const listConfigsRes = await fetch(
           `https://backend.composio.dev/api/v3/auth_configs?toolkit_slug=${encodeURIComponent(toolkitSlug)}`,
-          { headers }
+          { headers, signal: AbortSignal.timeout(5000) }
         );
 
         if (listConfigsRes.ok) {
@@ -83,6 +152,7 @@ export async function POST(req: NextRequest) {
                 name: `PulseSocial_${toolkitSlug}`,
               },
             }),
+            signal: AbortSignal.timeout(5000),
           });
           if (createConfigRes.ok) {
             const createdConfig = await createConfigRes.json();
@@ -90,7 +160,6 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Step B: Create Connected Account OAuth link in Composio v3
         if (authConfigId) {
           const connectRes = await fetch('https://backend.composio.dev/api/v3/connected_accounts', {
             method: 'POST',
@@ -102,6 +171,7 @@ export async function POST(req: NextRequest) {
                 callback_url: callbackUrl,
               },
             }),
+            signal: AbortSignal.timeout(5000),
           });
 
           if (connectRes.ok) {
@@ -122,21 +192,22 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch {
-        // Fallback to hosted OAuth window below
+        // Fallback to portal
       }
     }
 
-    // 2. Hosted OAuth 2.0 Window (Opens in a real separate browser window with platform login UI)
-    const popupUrl = `${origin}/oauth-popup?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId || '')}&gateway=composio`;
+    // 3. Transparent Official Developer Integration Portal
+    // (Never shows fake domestic login passwords, gives real developer links and official setup)
+    const popupUrl = `${origin}/oauth-popup?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId || '')}&gateway=official`;
 
     return NextResponse.json({
       success: true,
       redirectUrl: popupUrl,
       connectionId: `cmp_${platform}_${Date.now()}`,
-      mode: 'composio_oauth_window',
+      mode: 'official_portal',
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Erreur lors de l’initialisation OAuth Composio';
+    const msg = err instanceof Error ? err.message : 'Erreur OAuth';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

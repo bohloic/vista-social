@@ -4,15 +4,32 @@ import { createSignedSession } from '@/lib/auth-crypto';
 
 export const dynamic = 'force-dynamic';
 
+const ADMIN_EMAILS = [
+  'bohloic@gmail.com',
+  'admin@pulsesocial.ci',
+  ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()) : []),
+];
+
+const isAdminEmail = (e: string) => {
+  const clean = e.toLowerCase().trim();
+  return ADMIN_EMAILS.some((adm) => clean === adm.toLowerCase().trim());
+};
+
 async function resolveOrCreateGoogleUser(email: string, fullName: string, avatarUrl?: string) {
   const cleanEmail = email.toLowerCase().trim();
   const supabase = getAdminSupabase();
+
+  const isAdmin = isAdminEmail(cleanEmail);
+  const defaultRole = isAdmin ? 'super_admin' : 'client';
+  const isLifetimeFree = isAdmin;
+  const initialPlan = isAdmin ? 'agency' : 'free';
 
   let userRecord = {
     id: `google-${Date.now()}`,
     email: cleanEmail,
     fullName: fullName || cleanEmail.split('@')[0],
-    role: 'super_admin',
+    role: defaultRole,
+    isLifetimeFree,
     workspaceId: 'ws-default',
     workspaceName: 'Mon Espace PulseSocial',
     avatarUrl: avatarUrl || '',
@@ -32,7 +49,8 @@ async function resolveOrCreateGoogleUser(email: string, fullName: string, avatar
           id: existingProfile.id,
           email: existingProfile.email,
           fullName: existingProfile.full_name || fullName,
-          role: existingProfile.role || 'super_admin',
+          role: existingProfile.role || defaultRole,
+          isLifetimeFree: existingProfile.is_lifetime_free ?? isLifetimeFree,
           workspaceId: existingProfile.workspace_id || 'ws-default',
           workspaceName: existingProfile.workspaces?.name || 'Mon Espace PulseSocial',
           avatarUrl: existingProfile.avatar_url || avatarUrl || '',
@@ -56,7 +74,7 @@ async function resolveOrCreateGoogleUser(email: string, fullName: string, avatar
             .insert({
               name: `Espace ${fullName || 'PulseSocial'}`,
               slug: `ws-${Date.now()}`,
-              plan: 'agency',
+              plan: initialPlan,
             })
             .select('id, name')
             .single();
@@ -64,14 +82,14 @@ async function resolveOrCreateGoogleUser(email: string, fullName: string, avatar
           if (createdWs?.name) wsName = createdWs.name;
         }
 
-        // 3. Create user profile in Supabase
+        // 3. Create user profile in Supabase with standard client role if not admin
         const { data: createdUser } = await supabase
           .from('user_profiles')
           .insert({
             email: cleanEmail,
             full_name: fullName || cleanEmail.split('@')[0],
-            role: 'super_admin',
-            is_lifetime_free: true,
+            role: defaultRole,
+            is_lifetime_free: isLifetimeFree,
             workspace_id: wsId,
             avatar_url: avatarUrl || null,
           })
@@ -84,6 +102,7 @@ async function resolveOrCreateGoogleUser(email: string, fullName: string, avatar
             email: createdUser.email,
             fullName: createdUser.full_name,
             role: createdUser.role,
+            isLifetimeFree: createdUser.is_lifetime_free,
             workspaceId: createdUser.workspace_id || wsId || 'ws-default',
             workspaceName: wsName,
             avatarUrl: createdUser.avatar_url || '',

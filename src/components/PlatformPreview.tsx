@@ -259,6 +259,42 @@ export function PlatformPreview({
             </div>
           </div>
         )}
+
+        {/* PINTEREST PREVIEW */}
+        {platform === 'pinterest' && (
+          <div className="p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-red-600 tracking-wider uppercase">Épingle Pinterest</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-bold text-[10px] shadow-sm">
+                Enregistrer
+              </span>
+            </div>
+
+            <div className="w-full aspect-[2/3] bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+              {displayMedia ? (
+                renderMediaElement(displayMedia, 'w-full h-full object-cover')
+              ) : (
+                <div className="text-center p-4 text-slate-400">
+                  <span className="text-3xl block mb-1">📌</span>
+                  <span>Aucun visuel d&apos;épingle</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-bold text-xs text-slate-900 dark:text-white line-clamp-2">
+                {displayContent.split('\n')[0] || 'Idée Inspirante PulseSocial'}
+              </p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2">
+                {displayContent}
+              </p>
+              <div className="flex items-center gap-2 pt-2">
+                <img src={avatarUrl} alt={accountName} className="w-5 h-5 rounded-full object-cover" />
+                <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{accountName}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

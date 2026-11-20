@@ -15,12 +15,15 @@ import {
   EyeOff,
   CheckCircle2,
   KeyRound,
-  FileText,
+  UserPlus,
+  LogIn,
 } from 'lucide-react';
 import { LegalModal } from '@/components/LegalModals';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,6 +38,10 @@ export default function LoginPage() {
   // Forgot password state
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resetStep, setResetStep] = useState<'request' | 'confirm'>('request');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
@@ -120,7 +127,6 @@ export default function LoginPage() {
       );
 
       if (!popup) {
-        // Fallback if popup blocker is active
         window.location.href = data.url.replace('popup=1', 'popup=0');
         return;
       }
@@ -139,37 +145,47 @@ export default function LoginPage() {
 
   const handleEmailChange = (val: string) => {
     setEmail(val);
-    setEmailError(null);
-    setGeneralError(null);
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('pulsesocial_login_email', val);
+    if (emailError) {
+      if (!val.trim()) {
+        setEmailError('L’adresse email est requise.');
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) {
+        setEmailError('Format d’email invalide.');
+      } else {
+        setEmailError(null);
+      }
     }
   };
 
   const handlePasswordChange = (val: string) => {
     setPassword(val);
-    setPasswordError(null);
-    setGeneralError(null);
+    if (passwordError) {
+      if (!val) {
+        setPasswordError('Le mot de passe est requis.');
+      } else if (val.length < 6) {
+        setPasswordError('Le mot de passe doit comporter au moins 6 caractères.');
+      } else {
+        setPasswordError(null);
+      }
+    }
   };
 
-  const validateForm = (): boolean => {
+  const validateForm = () => {
     let isValid = true;
-
     if (!email.trim()) {
-      setEmailError('Veuillez saisir votre adresse e-mail.');
+      setEmailError('L’adresse email est requise.');
       isValid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setEmailError('Format d\'adresse e-mail invalide.');
+      setEmailError('Format d’email invalide.');
       isValid = false;
     } else {
       setEmailError(null);
     }
 
     if (!password) {
-      setPasswordError('Veuillez saisir votre mot de passe.');
+      setPasswordError('Le mot de passe est requis.');
       isValid = false;
-    } else if (password.length < 4) {
-      setPasswordError('Le mot de passe doit comporter au moins 4 caractères.');
+    } else if (password.length < 6) {
+      setPasswordError('Le mot de passe doit comporter au moins 6 caractères.');
       isValid = false;
     } else {
       setPasswordError(null);
@@ -182,17 +198,19 @@ export default function LoginPage() {
     e.preventDefault();
     setGeneralError(null);
 
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const payload = authMode === 'register'
+        ? { email: email.trim(), password, fullName: fullName.trim() || undefined }
+        : { email: email.trim(), password };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -201,9 +219,17 @@ export default function LoginPage() {
         return;
       }
 
-      // Store local user cache if needed and redirect
       if (typeof window !== 'undefined' && data.user) {
         localStorage.setItem('pulsesocial_user', JSON.stringify(data.user));
+        if (data.user.workspaceName) {
+          localStorage.setItem(
+            'pulsesocial_active_workspace',
+            JSON.stringify({
+              id: data.user.workspaceId || 'ws-default',
+              name: data.user.workspaceName,
+            })
+          );
+        }
       }
 
       router.push('/');
@@ -228,13 +254,47 @@ export default function LoginPage() {
     setResetLoading(true);
 
     try {
-      // Simulate or call supabase password reset
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setResetSuccess(
-        `Si un compte est associé à ${resetEmail.trim()}, un e-mail de réinitialisation sécurisé vient de vous être envoyé.`
-      );
+      if (resetStep === 'request') {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'request', email: resetEmail.trim() }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          setResetError(data.error || 'Impossible de réinitialiser le mot de passe.');
+          return;
+        }
+        setResetSuccess(data.message || 'Code envoyé.');
+        setResetStep('confirm');
+      } else {
+        if (!newPassword || newPassword.length < 6) {
+          setResetError('Le nouveau mot de passe doit comporter au moins 6 caractères.');
+          return;
+        }
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'confirm',
+            email: resetEmail.trim(),
+            token: resetCode.trim(),
+            newPassword,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          setResetError(data.error || 'Erreur lors de la mise à jour du mot de passe.');
+          return;
+        }
+        setResetSuccess('Mot de passe mis à jour avec succès ! Vous pouvez vous connecter.');
+        setTimeout(() => {
+          setForgotPasswordOpen(false);
+          setResetStep('request');
+        }, 1500);
+      }
     } catch {
-      setResetError('Impossible d\'envoyer l\'email de réinitialisation pour le moment.');
+      setResetError('Erreur réseau lors de la demande de réinitialisation.');
     } finally {
       setResetLoading(false);
     }
@@ -253,11 +313,48 @@ export default function LoginPage() {
             <Zap className="w-6 h-6 text-white fill-white" />
           </div>
           <h1 className="text-2xl font-black tracking-tight">
-            Connexion à <span className="text-violet-400">PulseSocial</span>
+            {authMode === 'login' ? 'Connexion à ' : 'Créer un compte '}
+            <span className="text-violet-400">PulseSocial</span>
           </h1>
           <p className="text-xs text-slate-400">
-            Accédez à votre espace de gestion des réseaux sociaux &amp; IA
+            {authMode === 'login'
+              ? 'Accédez à votre espace de gestion des réseaux sociaux & IA'
+              : 'Rejoignez la plateforme et automatisez votre présence sociale'}
           </p>
+        </div>
+
+        {/* Tab switch between Login and Register */}
+        <div className="flex bg-slate-900/90 p-1 rounded-2xl border border-slate-800 shadow-inner">
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode('login');
+              setGeneralError(null);
+            }}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              authMode === 'login'
+                ? 'bg-violet-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Se connecter</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode('register');
+              setGeneralError(null);
+            }}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              authMode === 'register'
+                ? 'bg-violet-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Créer un compte</span>
+          </button>
         </div>
 
         {/* Form Card */}
@@ -314,13 +411,30 @@ export default function LoginPage() {
             <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-slate-800" />
               <span className="flex-shrink mx-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                ou avec vos identifiants
+                ou avec votre email
               </span>
               <div className="flex-grow border-t border-slate-800" />
             </div>
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
+            {/* Full Name Field for Registration */}
+            {authMode === 'register' && (
+              <div>
+                <label htmlFor="register-name" className="text-xs font-bold text-slate-300 block mb-1.5">
+                  Nom complet ou Nom d&apos;agence
+                </label>
+                <input
+                  id="register-name"
+                  type="text"
+                  placeholder="Jean Dupont ou Agence Nova"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-800 bg-slate-950/80 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500"
+                />
+              </div>
+            )}
+
             {/* Email Field */}
             <div>
               <label htmlFor="login-email" className="text-xs font-bold text-slate-300 block mb-1.5">
@@ -332,7 +446,7 @@ export default function LoginPage() {
                   id="login-email"
                   type="email"
                   autoComplete="email"
-                  placeholder="admin@pulsesocial.app"
+                  placeholder="contact@monentreprise.ci"
                   value={email}
                   onChange={(e) => handleEmailChange(e.target.value)}
                   className={`w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border bg-slate-950/80 text-white placeholder-slate-600 focus:outline-none transition-all ${
@@ -355,25 +469,28 @@ export default function LoginPage() {
                 <label htmlFor="login-password" className="text-xs font-bold text-slate-300">
                   Mot de passe
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForgotPasswordOpen(true);
-                    setResetEmail(email);
-                    setResetError(null);
-                    setResetSuccess(null);
-                  }}
-                  className="text-[11px] text-violet-400 hover:text-violet-300 hover:underline cursor-pointer"
-                >
-                  Mot de passe oublié ?
-                </button>
+                {authMode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotPasswordOpen(true);
+                      setResetEmail(email);
+                      setResetStep('request');
+                      setResetError(null);
+                      setResetSuccess(null);
+                    }}
+                    className="text-[11px] text-violet-400 hover:text-violet-300 hover:underline cursor-pointer"
+                  >
+                    Mot de passe oublié ?
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => handlePasswordChange(e.target.value)}
@@ -408,11 +525,13 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Vérification sécurisée...</span>
+                  <span>Validation en cours...</span>
                 </>
               ) : (
                 <>
-                  <span>Se connecter à mon espace</span>
+                  <span>
+                    {authMode === 'login' ? 'Se connecter à mon espace' : 'Créer mon compte client'}
+                  </span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -423,15 +542,15 @@ export default function LoginPage() {
           <div className="pt-2 border-t border-slate-800/80 text-center">
             {isAppInitialized === false ? (
               <p className="text-[11px] text-slate-400">
-                Première utilisation ou nouveau déploiement ?{' '}
+                Première installation ?{' '}
                 <Link href="/setup" className="text-violet-400 hover:underline font-semibold">
-                  Lancer l&apos;assistant Setup
+                  Lancer l&apos;assistant Setup Administrateur
                 </Link>
               </p>
             ) : (
               <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Environnement configuré • Connexion sécurisée</span>
+                <span>Protection des données SSL/TLS • Comptes sécurisés</span>
               </p>
             )}
           </div>
@@ -441,7 +560,7 @@ export default function LoginPage() {
         <div className="space-y-2 text-center">
           <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Session chiffrée SSL/TLS &amp; Protection Supabase Auth</span>
+            <span>Sécurité renforcée &amp; Protection des données bancaires Paystack</span>
           </div>
 
           <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500 pt-1">
@@ -458,7 +577,7 @@ export default function LoginPage() {
               onClick={() => setLegalModalType('terms')}
               className="hover:text-slate-300 underline cursor-pointer"
             >
-              CGU &amp; Mobile Money
+              CGU &amp; Abonnements
             </button>
           </div>
         </div>
@@ -473,7 +592,7 @@ export default function LoginPage() {
                 <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center">
                   <KeyRound className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-white">Réinitialiser le mot de passe</h3>
+                <h3 className="font-bold text-sm text-white">Réinitialisation du mot de passe</h3>
               </div>
               <button
                 type="button"
@@ -484,66 +603,81 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {resetSuccess ? (
-              <div className="space-y-4 text-center py-2">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center border border-emerald-500/20">
-                  <CheckCircle2 className="w-6 h-6" />
+            {resetSuccess && resetStep === 'confirm' && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>{resetSuccess}</span>
+              </div>
+            )}
+
+            {resetError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{resetError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleForgotPasswordSubmit} noValidate className="space-y-4">
+              <div>
+                <label htmlFor="reset-email" className="text-xs font-bold text-slate-300 block mb-1">
+                  Votre Adresse Email
+                </label>
+                <input
+                  id="reset-email"
+                  type="email"
+                  placeholder="contact@monentreprise.ci"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  disabled={resetStep === 'confirm'}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 disabled:opacity-60"
+                />
+              </div>
+
+              {resetStep === 'confirm' && (
+                <div>
+                  <label htmlFor="reset-new-password" className="text-xs font-bold text-slate-300 block mb-1">
+                    Nouveau mot de passe
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="reset-new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="Minimum 6 caractères"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 pr-9 text-xs rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                    >
+                      {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">{resetSuccess}</p>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setForgotPasswordOpen(false)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-colors cursor-pointer"
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-white cursor-pointer"
                 >
-                  Fermer
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all disabled:opacity-60 cursor-pointer"
+                >
+                  {resetLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>
+                    {resetStep === 'request' ? 'Vérifier mon compte' : 'Enregistrer le nouveau mot de passe'}
+                  </span>
                 </button>
               </div>
-            ) : (
-              <form onSubmit={handleForgotPasswordSubmit} noValidate className="space-y-4">
-                <p className="text-xs text-slate-400">
-                  Entrez votre adresse email ci-dessous. Nous vous enverrons un lien sécurisé pour définir un nouveau mot de passe.
-                </p>
-
-                {resetError && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{resetError}</span>
-                  </div>
-                )}
-
-                <div>
-                  <label htmlFor="reset-email" className="text-xs font-bold text-slate-300 block mb-1">
-                    Adresse Email
-                  </label>
-                  <input
-                    id="reset-email"
-                    type="email"
-                    placeholder="admin@pulsesocial.app"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setForgotPasswordOpen(false)}
-                    className="px-4 py-2 text-xs text-slate-400 hover:text-white cursor-pointer"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={resetLoading}
-                    className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all disabled:opacity-60 cursor-pointer"
-                  >
-                    {resetLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                    <span>Envoyer les instructions</span>
-                  </button>
-                </div>
-              </form>
-            )}
+            </form>
           </div>
         </div>
       )}
