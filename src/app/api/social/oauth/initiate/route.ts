@@ -20,7 +20,7 @@ const initiateSchema = z.object({
   composioApiKey: z.string().optional(),
 });
 
-// Official OAuth 2.0 URLs for each provider
+// Official Direct OAuth 2.0 URLs for each provider (if custom client IDs are configured)
 function getDirectPlatformOAuthUrl(platform: string, callbackUrl: string): string | null {
   const metaAppId = process.env.META_APP_ID || process.env.FACEBOOK_CLIENT_ID;
   const linkedinClientId = process.env.LINKEDIN_CLIENT_ID;
@@ -89,6 +89,8 @@ const COMPOSIO_TOOLKIT_MAP: Record<string, string> = {
   whatsapp: 'whatsapp',
   google_business: 'googlemybusiness',
   youtube: 'youtube',
+  pinterest: 'pinterest',
+  threads: 'threads',
 };
 
 export async function POST(req: NextRequest) {
@@ -108,7 +110,7 @@ export async function POST(req: NextRequest) {
     const apiKey = composioApiKey?.trim() || process.env.COMPOSIO_API_KEY?.trim();
     const callbackUrl = `${origin}/api/social/oauth/callback?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId || '')}`;
 
-    // 1. Check if direct official platform OAuth credentials exist
+    // 1. Direct custom developer credentials (if explicitly configured by the user)
     const directPlatformUrl = getDirectPlatformOAuthUrl(platform, callbackUrl);
     if (directPlatformUrl) {
       return NextResponse.json({
@@ -118,86 +120,82 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Check if COMPOSIO_API_KEY is configured for automated OAuth 2.0 gateway
+    // 2. Automated 1-Click OAuth via Composio Connect MCP Gateway
+    // (https://connect.composio.dev/mcp - Official Composio Connect Endpoint)
     if (apiKey && apiKey.length > 8) {
+      const toolkitSlug = COMPOSIO_TOOLKIT_MAP[platform] || platform;
+
       try {
-        const toolkitSlug = COMPOSIO_TOOLKIT_MAP[platform] || platform;
-        const headers = {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-        };
-
-        let authConfigId: string | undefined;
-        const listConfigsRes = await fetch(
-          `https://backend.composio.dev/api/v3/auth_configs?toolkit_slug=${encodeURIComponent(toolkitSlug)}`,
-          { headers, signal: AbortSignal.timeout(5000) }
-        );
-
-        if (listConfigsRes.ok) {
-          const listData = await listConfigsRes.json();
-          const items = listData?.items || listData?.data || [];
-          if (Array.isArray(items) && items.length > 0) {
-            authConfigId = items[0].id;
-          }
-        }
-
-        if (!authConfigId && listConfigsRes.status !== 401) {
-          const createConfigRes = await fetch('https://backend.composio.dev/api/v3/auth_configs', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              toolkit: { slug: toolkitSlug },
-              auth_config: {
-                type: 'use_composio_managed_auth',
-                name: `PulseSocial_${toolkitSlug}`,
+        const mcpRes = await fetch('https://connect.composio.dev/mcp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, text/event-stream',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'tools/call',
+            params: {
+              name: 'COMPOSIO_MANAGE_CONNECTIONS',
+              arguments: {
+                toolkits: [toolkitSlug],
               },
-            }),
-            signal: AbortSignal.timeout(5000),
-          });
-          if (createConfigRes.ok) {
-            const createdConfig = await createConfigRes.json();
-            authConfigId = createdConfig?.auth_config?.id || createdConfig?.id;
-          }
-        }
+            },
+            id: Date.now(),
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
 
-        if (authConfigId) {
-          const connectRes = await fetch('https://backend.composio.dev/api/v3/connected_accounts', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              auth_config: { id: authConfigId },
-              connection: {
-                user_id: workspaceId || 'pulsesocial-default',
-                callback_url: callbackUrl,
-              },
-            }),
-            signal: AbortSignal.timeout(5000),
-          });
+        if (mcpRes.ok) {
+          const mcpText = await mcpRes.text();
+          let redirectUrl: string | null = null;
+          let errorMessage: string | null = null;
 
-          if (connectRes.ok) {
-            const connectData = await connectRes.json();
-            const redirectUrl =
-              connectData?.redirect_url ||
-              connectData?.redirectUrl ||
-              connectData?.connectionData?.val?.redirectUrl;
-
-            if (redirectUrl) {
-              return NextResponse.json({
-                success: true,
-                redirectUrl,
-                connectionId: connectData?.id || connectData?.connectedAccountId,
-                mode: 'composio_v3_live',
-              });
+          for (const line of mcpText.split('\n')) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                const resText = data?.result?.content?.[0]?.text;
+                if (resText) {
+                  const parsedResult = JSON.parse(resText);
+                  const toolkitData = parsedResult?.data?.results?.[toolkitSlug];
+                  if (toolkitData) {
+                    redirectUrl = toolkitData.redirect_url || null;
+                    errorMessage = toolkitData.error_message || null;
+                  }
+                }
+              } catch {
+                // Ignore chunk parse error
+              }
             }
           }
+
+          if (redirectUrl) {
+            return NextResponse.json({
+              success: true,
+              redirectUrl,
+              mode: 'composio_connect_managed',
+            });
+          }
+
+          // If toolkit needs custom configuration (e.g. Twitter / TikTok)
+          if (errorMessage && errorMessage.includes('dashboard.composio.dev')) {
+            const dashboardSetupUrl = `https://dashboard.composio.dev/~/org/connect/apps/${toolkitSlug}?open=true`;
+            return NextResponse.json({
+              success: true,
+              redirectUrl: dashboardSetupUrl,
+              mode: 'composio_setup_required',
+              message: `Pour ${platform}, connectez votre application une seule fois sur le dashboard Composio.`,
+            });
+          }
         }
-      } catch {
-        // Fallback to portal
+      } catch (mcpErr) {
+        console.warn('Composio Connect MCP fetch error:', mcpErr);
       }
     }
 
-    // 3. Transparent Official Developer Integration Portal
-    // (Never shows fake domestic login passwords, gives real developer links and official setup)
+    // 3. Fallback to Official Integration Portal
     const popupUrl = `${origin}/oauth-popup?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId || '')}&gateway=official`;
 
     return NextResponse.json({
