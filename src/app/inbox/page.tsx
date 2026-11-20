@@ -361,9 +361,19 @@ export default function InboxPage() {
     showToast(`✓ Lien de paiement Paystack (${paymentOperator.toUpperCase()}) inséré !`);
   };
 
-  // Insert Cal.com appointment link
+  // Insert Cal.com appointment link (configured in /settings)
   const handleInsertCalLink = () => {
-    const calText = `📅 Je vous invite à réserver un créneau de 15 min directement dans mon agenda pour échanger :\nhttps://cal.com/pulsesocial/rdv-15min`;
+    let calUrl = 'https://cal.com/pulsesocial/rdv-15min';
+    try {
+      const saved = localStorage.getItem('pulsesocial_manual_tokens');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.calComUrl && parsed.calComUrl.trim()) calUrl = parsed.calComUrl.trim();
+      }
+    } catch {
+      // ignore
+    }
+    const calText = `📅 Je vous invite à réserver un créneau de 15 min directement dans mon agenda pour échanger :\n${calUrl}`;
     setReplyText((prev) => (prev ? `${prev}\n\n${calText}` : calText));
     showToast('✓ Lien de rendez-vous Cal.com inséré !');
   };

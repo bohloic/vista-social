@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ComposerModal } from '@/components/ComposerModal';
 import { LegalModal } from '@/components/LegalModals';
+import { GlobalAICopilot } from '@/components/GlobalAICopilot';
 import { Post } from '@/lib/types';
 
 export default function RootLayout({
@@ -101,6 +102,9 @@ export default function RootLayout({
               accounts={[]}
               onSavePost={handleSavePost}
             />
+
+            {/* Global Voice & Multimodal AI Copilot accessible everywhere */}
+            <GlobalAICopilot />
           </div>
         )}
       </body>

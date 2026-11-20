@@ -45,6 +45,10 @@ const PAGE_METADATA: Record<string, { title: string; subtitle: string }> = {
     title: 'Tableau de bord',
     subtitle: 'Vue d’ensemble des performances et publications',
   },
+  '/chat': {
+    title: 'Chat IA & Copilote Vocal',
+    subtitle: 'Assistant exécutif Gemini (Voix, 10 fichiers max, actions directes)',
+  },
   '/publish': {
     title: 'Planificateur & Calendrier',
     subtitle: 'Programmation et automatisation multi-réseaux',

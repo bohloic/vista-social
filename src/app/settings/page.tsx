@@ -125,6 +125,7 @@ export default function SettingsPage() {
   const [tokens, setTokens] = useState({
     composioApiKey: '',
     paystackSecretKey: '',
+    calComUrl: 'https://cal.com/pulsesocial/rdv-15min',
     metaToken: '',
     xBearerToken: '',
     linkedInToken: '',
@@ -806,6 +807,20 @@ export default function SettingsPage() {
                 value={tokens.paystackSecretKey}
                 onChange={(e) => setTokens({ ...tokens, paystackSecretKey: e.target.value })}
                 className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-cyan-500 font-mono"
+              />
+            </div>
+
+            <div className="space-y-1.5 p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 md:col-span-2">
+              <label className="text-xs font-bold text-emerald-300 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                Lien d&apos;Agenda Cal.com (Prise de RDV automatique dans /inbox et /crm)
+              </label>
+              <input
+                type="url"
+                placeholder="https://cal.com/votre-entreprise/15min"
+                value={tokens.calComUrl}
+                onChange={(e) => setTokens({ ...tokens, calComUrl: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-emerald-500 font-mono"
               />
             </div>
 

@@ -313,9 +313,19 @@ export default function CRMPage() {
     }
   };
 
-  // Copy Cal.com link
+  // Copy Cal.com link (configured in /settings)
   const copyCalLink = (p: CRMProspect) => {
-    navigator.clipboard.writeText('https://cal.com/pulsesocial/rdv-15min');
+    let calUrl = 'https://cal.com/pulsesocial/rdv-15min';
+    try {
+      const saved = localStorage.getItem('pulsesocial_manual_tokens');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.calComUrl && parsed.calComUrl.trim()) calUrl = parsed.calComUrl.trim();
+      }
+    } catch {
+      // ignore
+    }
+    navigator.clipboard.writeText(calUrl);
     showToast(`✓ Lien Cal.com copié pour ${p.name} !`);
   };
 

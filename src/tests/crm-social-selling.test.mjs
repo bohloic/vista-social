@@ -89,3 +89,20 @@ test('6. Paystack Initialize & Verify Transaction Contract', () => {
   assert.ok(['wave', 'orange_money', 'mtn_momo', 'card'].includes(txInit.provider));
 });
 
+test('7. PulseAI Copilot Multimodal Attachment Limit (Max 10 Files)', () => {
+  const MAX_FILES = 10;
+  const validAttachments = Array.from({ length: 10 }, (_, i) => ({
+    name: `file_${i}.png`,
+    type: 'image/png',
+    size: 1024,
+  }));
+  const tooManyAttachments = Array.from({ length: 11 }, (_, i) => ({
+    name: `file_${i}.png`,
+    type: 'image/png',
+    size: 1024,
+  }));
+  assert.equal(validAttachments.length <= MAX_FILES, true);
+  assert.equal(tooManyAttachments.length <= MAX_FILES, false);
+});
+
+

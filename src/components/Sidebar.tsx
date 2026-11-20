@@ -29,6 +29,7 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
+  { href: '/chat', label: 'Chat IA (PulseAI)', icon: Sparkles, badge: 'Vocal' },
   { href: '/publish', label: 'Planificateur', icon: Calendar, badge: 'Smart' },
   { href: '/inbox', label: 'Boîte de réception', icon: Inbox },
   { href: '/crm', label: 'Pipeline CRM', icon: Briefcase, badge: 'Kanban' },
