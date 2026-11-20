@@ -29,3 +29,16 @@ Ce document trace l'ensemble des arbitrages d'ingénierie, des choix de remédia
 - **Contexte** : Faille M6 (absence de rate limiting). La contrainte §2 impose de ne pas ajouter de dépendance non strictement nécessaire ou dépréciée si `lru-cache` n'est pas installé.
 - **Décision** : Implémentation d'un algorithme de Token Bucket en mémoire pure avec `Map` auto-nettoyante à TTL glissant (`src/lib/security/rate-limit.ts`).
 - **Principe** : Zéro dépendance superflue, haute performance, résistant aux attaques par déni de service.
+
+
+## Décision 005 — Phase 1 : Schéma RLS, Indexation et Politiques de Sécurité [C1, Y1, G1]
+- **Contexte** : Absence totale de RLS sur les tables de l'application (C1) et absence d'index de filtrage multi-tenant (Y1).
+- **Décision** :
+  - Génération de la migration `supabase/migrations/20261120230500_security_hardening.sql`.
+  - Application systématique de `ENABLE ROW LEVEL SECURITY` et `FORCE ROW LEVEL SECURITY` sur l'ensemble des 18 tables.
+  - Création des fonctions helpers `is_workspace_member`, `has_workspace_role` et `is_super_admin` avec `SECURITY DEFINER` et `SET search_path = public` immuable.
+  - Isolement complet des tables sensibles : `social_accounts` restreint strictement à `['super_admin', 'admin', 'manager']` ; `posts` en écriture restreint à `['super_admin', 'admin', 'manager', 'editor']` ; `pulse_pages` en lecture publique uniquement si `is_published = true`.
+  - Ajout des 7 index manquants pour optimiser les filtres `(workspace_id, created_at DESC)`, `(workspace_id, status)`, etc.
+  - Procédure de déploiement documentée : `npx supabase db push --linked`.
+  - Politique de mot de passe (G1) : Configuration recommandée dans le Dashboard Supabase (`Authentication -> Policies -> Minimum password length: 12, Require symbols and numbers`), doublée de la validation cryptographique applicative dans `auth-crypto.ts`.
+- **Vérification** : `tests/db/rls.spec.ts` validé à 100%.
