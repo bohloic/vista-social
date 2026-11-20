@@ -1,0 +1,233 @@
+{
+  "sqlFiles": [
+    "supabase_schema.sql"
+  ],
+  "apiRoutes": [
+    "src/app/api/ai/copilot/route.ts",
+    "src/app/api/ai/generate-caption/route.ts",
+    "src/app/api/ai/generate-media/route.ts",
+    "src/app/api/ai/smart-reply/route.ts",
+    "src/app/api/auth/callback/route.ts",
+    "src/app/api/auth/google/route.ts",
+    "src/app/api/auth/google/verify/route.ts",
+    "src/app/api/auth/login/route.ts",
+    "src/app/api/auth/logout/route.ts",
+    "src/app/api/auth/me/route.ts",
+    "src/app/api/auth/register/route.ts",
+    "src/app/api/auth/reset-password/route.ts",
+    "src/app/api/billing/mobile-money/checkout/route.ts",
+    "src/app/api/billing/paystack/initialize/route.ts",
+    "src/app/api/billing/paystack/verify/route.ts",
+    "src/app/api/billing/plans/route.ts",
+    "src/app/api/health/route.ts",
+    "src/app/api/posts/route.ts",
+    "src/app/api/pulse-pages/route.ts",
+    "src/app/api/setup/route.ts",
+    "src/app/api/social/connect/route.ts",
+    "src/app/api/social/oauth/callback/route.ts",
+    "src/app/api/social/oauth/initiate/route.ts",
+    "src/app/api/team/members/route.ts",
+    "src/app/api/upload/route.ts"
+  ],
+  "serverActions": [
+    "scripts/inventory.mjs"
+  ],
+  "supabaseUsage": [
+    {
+      "file": "scripts/inventory.mjs",
+      "hits": [
+        "getAdminSupabase",
+        "service_role",
+        "createClient",
+        "auth.getUser",
+        "auth.getSession",
+        "cookies()"
+      ]
+    },
+    {
+      "file": "scripts/verify-all.mjs",
+      "hits": [
+        "service_role",
+        "createClient"
+      ]
+    },
+    {
+      "file": "src/app/api/ai/copilot/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/auth/callback/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/auth/google/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/auth/google/verify/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/auth/login/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/auth/me/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/auth/register/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/auth/reset-password/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/billing/mobile-money/checkout/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/billing/paystack/verify/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/posts/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/pulse-pages/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/setup/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/social/connect/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/social/oauth/callback/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/api/team/members/route.ts",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/app/p/[slug]/page.tsx",
+      "hits": [
+        "getAdminSupabase"
+      ]
+    },
+    {
+      "file": "src/lib/auth-crypto.ts",
+      "hits": [
+        "service_role"
+      ]
+    },
+    {
+      "file": "src/lib/supabase.ts",
+      "hits": [
+        "getAdminSupabase",
+        "service_role",
+        "createClient"
+      ]
+    }
+  ],
+  "envVars": [
+    "ADMIN_EMAILS",
+    "COMPOSIO_API_KEY",
+    "FACEBOOK_CLIENT_ID",
+    "GEMINI_API_KEY",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_OAUTH_ENABLED",
+    "LINKEDIN_CLIENT_ID",
+    "META_APP_ID",
+    "NEXT_PUBLIC_GEMINI_API_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NODE_ENV",
+    "PAYSTACK_SECRET_KEY",
+    "PINTEREST_APP_ID",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "TIKTOK_CLIENT_KEY",
+    "TWITTER_CLIENT_ID"
+  ],
+  "zodUsage": [
+    "src/app/api/ai/copilot/route.ts",
+    "src/app/api/ai/generate-caption/route.ts",
+    "src/app/api/ai/generate-media/route.ts",
+    "src/app/api/ai/smart-reply/route.ts",
+    "src/app/api/auth/login/route.ts",
+    "src/app/api/auth/register/route.ts",
+    "src/app/api/auth/reset-password/route.ts",
+    "src/app/api/billing/mobile-money/checkout/route.ts",
+    "src/app/api/billing/paystack/initialize/route.ts",
+    "src/app/api/posts/route.ts",
+    "src/app/api/pulse-pages/route.ts",
+    "src/app/api/setup/route.ts",
+    "src/app/api/social/connect/route.ts",
+    "src/app/api/social/oauth/initiate/route.ts",
+    "src/app/api/team/members/route.ts"
+  ],
+  "idReaders": [
+    "src/app/api/ai/copilot/route.ts",
+    "src/app/api/auth/callback/route.ts",
+    "src/app/api/auth/google/verify/route.ts",
+    "src/app/api/auth/login/route.ts",
+    "src/app/api/auth/register/route.ts",
+    "src/app/api/billing/mobile-money/checkout/route.ts",
+    "src/app/api/billing/paystack/initialize/route.ts",
+    "src/app/api/billing/paystack/verify/route.ts",
+    "src/app/api/posts/route.ts",
+    "src/app/api/pulse-pages/route.ts",
+    "src/app/api/setup/route.ts",
+    "src/app/api/social/connect/route.ts",
+    "src/app/api/social/oauth/callback/route.ts",
+    "src/app/api/social/oauth/initiate/route.ts",
+    "src/app/api/team/members/route.ts",
+    "src/app/billing/page.tsx",
+    "src/app/inbox/page.tsx",
+    "src/app/login/page.tsx",
+    "src/app/oauth-popup/page.tsx",
+    "src/app/p/[slug]/page.tsx",
+    "src/app/pulse-pages/page.tsx",
+    "src/app/reviews/page.tsx",
+    "src/app/settings/page.tsx",
+    "src/components/ComposerModal.tsx"
+  ]
+}
