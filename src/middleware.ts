@@ -37,6 +37,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/api/social/oauth/') ||
     pathname.startsWith('/api/billing/paystack/') ||
+    pathname.startsWith('/api/ai/') ||
     pathname === '/api/setup' ||
     pathname === '/api/health' ||
     pathname.startsWith('/_next') ||
@@ -48,6 +49,9 @@ export function middleware(request: NextRequest) {
 
   // 4. Protect all other routes (/, /publish, /inbox, /analytics, /listening, /reviews, /pulse-pages, /billing, /settings, /api/...)
   if (!isValidSession) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
+    }
     const loginUrl = new URL('/login', request.url);
     if (pathname !== '/') {
       loginUrl.searchParams.set('redirect', pathname);
