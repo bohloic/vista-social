@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import './globals.css';
 import { Sidebar } from '@/components/Sidebar';
@@ -25,6 +25,25 @@ export default function RootLayout({
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/oauth-popup');
 
+  // Register PWA Service Worker & Global Alt+P shortcut
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('PWA Service Worker registration skipped:', err);
+      });
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Alt + P opens Composer Modal
+      if (e.altKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        setComposerOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleSavePost = async (newPost: Omit<Post, 'id' | 'created_at'>) => {
     try {
       await fetch('/api/posts', {
@@ -46,7 +65,13 @@ export default function RootLayout({
           name="description"
           content="PulseSocial : Planificateur multi-réseaux, Boîte de réception unifiée, Assistant IA Gemini 2.0, Pulse Pages et Abonnements Mobile Money."
         />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#F7F5F0" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="PulseSocial" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="min-h-screen bg-[#F7F5F0] text-slate-800 antialiased font-sans selection:bg-violet-500 selection:text-white">
         {isSetupOrPublic ? (

@@ -20,7 +20,9 @@ import {
   Trash2,
   Brain,
   Radio,
+  HelpCircle,
 } from 'lucide-react';
+import { ResourceShortcutGuide } from './ResourceShortcutGuide';
 import type { CopilotAction, CopilotAttachment, CopilotMemory } from '@/lib/gemini';
 
 interface ChatMessage {
@@ -69,9 +71,22 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
   const [isListening, setIsListening] = useState(false);
   const [interimSpeech, setInterimSpeech] = useState('');
   const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true);
+  const [showShortcutGuide, setShowShortcutGuide] = useState(false);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Global Keyboard Shortcut: Alt + M to toggle Microphone
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        toggleListening();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isListening]);
 
   // Restore history and memory on mount
   useEffect(() => {
@@ -739,10 +754,36 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
       )}
 
       {uploadError && (
-        <div className="px-3 py-1.5 bg-rose-500/10 text-rose-400 text-[10px] border-t border-rose-500/20">
-          {uploadError}
+        <div className="px-3 py-2 bg-rose-500/10 text-rose-400 text-[10px] border-t border-rose-500/20 flex items-center justify-between gap-2">
+          <span>{uploadError}</span>
+          <button
+            type="button"
+            onClick={() => setShowShortcutGuide(true)}
+            className="shrink-0 underline font-bold hover:text-rose-300 cursor-pointer"
+          >
+            Aide &amp; Raccourci
+          </button>
         </div>
       )}
+
+      {/* Quick Resource Shortcut Indicator */}
+      <div className="px-3 py-1 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-[11px]">
+        <div className="flex items-center gap-1.5 text-slate-400">
+          <Mic className="w-3 h-3 text-[#6366F1]" />
+          <span className="text-[10px]">Raccourci micro :</span>
+          <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-800 text-amber-300 rounded border border-slate-700 shadow-xs">
+            Alt + M
+          </kbd>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowShortcutGuide(true)}
+          className="text-[10px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+        >
+          <span>Aide micro</span>
+          <HelpCircle className="w-3 h-3" />
+        </button>
+      </div>
 
       {/* Composer Input + Voice Mic + File Upload */}
       <form
@@ -806,6 +847,13 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
           <Send className="w-4 h-4" />
         </button>
       </form>
+
+      {/* Resource Shortcut & Permission Guide */}
+      <ResourceShortcutGuide
+        isOpen={showShortcutGuide}
+        onClose={() => setShowShortcutGuide(false)}
+        resourceType="microphone"
+      />
     </div>
   );
 }

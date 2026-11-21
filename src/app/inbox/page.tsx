@@ -438,11 +438,11 @@ export default function InboxPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Flame className="w-6 h-6 text-amber-400" />
+          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <Flame className="w-6 h-6 text-amber-500" />
             Radar à Prospects &amp; Assistant Prospecteur (Social Selling)
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 font-medium">
             Détectez les intentions d&apos;achat en temps réel, qualifiez avec l&apos;IA et convertissez via WhatsApp, LinkedIn et liens de paiement.
           </p>
         </div>
@@ -625,7 +625,7 @@ export default function InboxPage() {
         </div>
 
         {/* RIGHT PANE: Active Chat & Assistant Prospecteur (8 cols) */}
-        {activeConv ? (
+        {filteredConversations.length > 0 && activeConv && filteredConversations.some((c) => c.id === activeConv.id) ? (
           <div className="md:col-span-7 lg:col-span-8 flex flex-col h-full bg-slate-950/40">
             {/* Prospector Header with Deal Value & CRM Dispatch */}
             <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">

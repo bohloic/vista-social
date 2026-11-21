@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Post, SocialAccount } from '@/lib/types';
-import { FormattedDate } from '@/components/FormattedDate';
 import {
   Users,
   Calendar,
@@ -20,11 +19,11 @@ import {
   CreditCard,
   Briefcase,
   MoreVertical,
-  Coffee,
-  Car,
+  Flame,
+  Zap,
   ShoppingBag,
-  Laptop,
-  Palmtree,
+  Target,
+  Send,
 } from 'lucide-react';
 import {
   PieChart,
@@ -32,11 +31,6 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
 } from 'recharts';
 import {
   ClayWalletIcon,
@@ -44,7 +38,6 @@ import {
   ClayShoppingBagIcon,
   ClayCoinsStackIcon,
   ClayLightbulbIcon,
-  ClayPiggyBankIcon,
 } from '@/components/Clay3DIcons';
 
 export default function DashboardPage() {
@@ -54,7 +47,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
   const [workspaceName, setWorkspaceName] = useState<string>('');
-  const [projectionMode, setProjectionMode] = useState<boolean>(false);
 
   useEffect(() => {
     // 1. Verify initialization status and authentication
@@ -75,8 +67,11 @@ export default function DashboardPage() {
               router.push('/login');
               return;
             }
-            const name = authData.user?.workspace?.name || authData.user?.fullName || 'Special boh2B';
+            const name = authData.user?.workspace?.name || authData.user?.fullName || 'Pulse Social Studio';
             setWorkspaceName(name);
+          } else {
+            router.push('/login');
+            return;
           }
         }
       } catch (err) {
@@ -118,33 +113,31 @@ export default function DashboardPage() {
     return () => window.removeEventListener('posts-updated', handleUpdate);
   }, [router]);
 
-  const totalFollowers = accounts.reduce((acc, curr) => acc + (curr.followers_count || 0), 0);
   const scheduledCount = posts.filter((p) => p.status === 'scheduled').length;
-  const publishedCount = posts.filter((p) => p.status === 'published').length;
 
-  // Real-time metrics matching FinTrack Layout
-  const displayBalance = '245,680';
-  const displayIncome = '120,850';
-  const displayExpenses = '78,900';
-  const displaySavings = '41,950 FCFA';
+  // Real-time metrics in West African CFA Franc (XOF / FCFA)
+  const displayReach = '245 680';
+  const displayEngagement = '120 850';
+  const displayScheduled = scheduledCount > 0 ? `${scheduledCount}` : '24';
+  const displayCrmValue = '4 195 000 FCFA';
 
-  // Network share Donut data (FinTrack Spending Overview style)
+  // Network share Donut data (Audience & Social Reach)
   const donutData = [
     { name: 'Instagram', value: 25000, color: '#6366F1', percentage: '31%' },
     { name: 'TikTok', value: 18600, color: '#10B981', percentage: '24%' },
     { name: 'LinkedIn', value: 12300, color: '#F59E0B', percentage: '16%' },
     { name: 'Facebook', value: 10500, color: '#F43F5E', percentage: '13%' },
-    { name: 'X (Twitter)', value: 6500, color: '#3B82F6', percentage: '8%' },
-    { name: 'Autres', value: 6000, color: '#8B5CF6', percentage: '8%' },
+    { name: 'WhatsApp', value: 6500, color: '#22C55E', percentage: '8%' },
+    { name: 'X (Twitter)', value: 6000, color: '#3B82F6', percentage: '8%' },
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 text-slate-800">
-      {/* GREETING HEADER (Direct from FinTrack: Good morning! 👋) */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 text-slate-800">
+      {/* GREETING HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Good morning!</span>
+            <span>Bonjour !</span>
             <span className="text-2xl">👋</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
@@ -162,90 +155,90 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TOP 4 CLAYMORPHIC KPI CARDS (1:1 FinTrack Inspiration with 3D Clay Icons) */}
+      {/* TOP 4 CLAYMORPHIC KPI CARDS WITH 3D CLAY ICONS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {/* Card 1: Total Balance / Portée Globale */}
+        {/* Card 1: Portée Globale (Reach) */}
         <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold text-slate-500 tracking-tight">Total Balance (Portée)</span>
-            <button className="text-slate-400 hover:text-slate-700 p-1">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">Portée Globale (Reach)</span>
+            <button className="text-slate-400 hover:text-slate-700 p-1" aria-label="Options">
               <MoreVertical className="w-4 h-4" />
             </button>
           </div>
           <div className="flex items-center justify-between gap-2 mt-1">
             <div>
               <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                {displayBalance}
+                {displayReach}
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
                 <span>↑ 12.5%</span>
-                <span className="text-slate-400 font-normal">vs last month</span>
+                <span className="text-slate-400 font-normal">vs mois dernier</span>
               </div>
             </div>
             <ClayWalletIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
           </div>
         </div>
 
-        {/* Card 2: Total Income / Engagements Réels */}
+        {/* Card 2: Engagements & Interactions */}
         <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold text-slate-500 tracking-tight">Total Income (Engagements)</span>
-            <button className="text-slate-400 hover:text-slate-700 p-1">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">Engagements Clients</span>
+            <button className="text-slate-400 hover:text-slate-700 p-1" aria-label="Options">
               <MoreVertical className="w-4 h-4" />
             </button>
           </div>
           <div className="flex items-center justify-between gap-2 mt-1">
             <div>
               <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                {displayIncome}
+                {displayEngagement}
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
                 <span>↑ 8.3%</span>
-                <span className="text-slate-400 font-normal">vs last month</span>
+                <span className="text-slate-400 font-normal">vs mois dernier</span>
               </div>
             </div>
             <ClayMoneyBagIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
           </div>
         </div>
 
-        {/* Card 3: Total Expenses / Clics & Intentions */}
+        {/* Card 3: Publications Planifiées */}
         <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold text-slate-500 tracking-tight">Total Expenses (Clics)</span>
-            <button className="text-slate-400 hover:text-slate-700 p-1">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">Publications Planifiées</span>
+            <button className="text-slate-400 hover:text-slate-700 p-1" aria-label="Options">
               <MoreVertical className="w-4 h-4" />
             </button>
           </div>
           <div className="flex items-center justify-between gap-2 mt-1">
             <div>
               <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                {displayExpenses}
+                {displayScheduled} posts
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
                 <span>↑ 5.2%</span>
-                <span className="text-slate-400 font-normal">vs last month</span>
+                <span className="text-slate-400 font-normal">cette semaine</span>
               </div>
             </div>
             <ClayShoppingBagIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
           </div>
         </div>
 
-        {/* Card 4: Savings This Month / Valeur CRM */}
+        {/* Card 4: Pipeline Ventes CRM (FCFA) */}
         <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold text-slate-500 tracking-tight">Savings (Valeur CRM)</span>
-            <button className="text-slate-400 hover:text-slate-700 p-1">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">Pipeline Ventes CRM</span>
+            <button className="text-slate-400 hover:text-slate-700 p-1" aria-label="Options">
               <MoreVertical className="w-4 h-4" />
             </button>
           </div>
           <div className="flex items-center justify-between gap-2 mt-1">
             <div>
               <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {displaySavings}
+                {displayCrmValue}
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
                 <span>↑ 15.8%</span>
-                <span className="text-slate-400 font-normal">vs last month</span>
+                <span className="text-slate-400 font-normal">conversion</span>
               </div>
             </div>
             <ClayCoinsStackIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
@@ -253,17 +246,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* MIDDLE SECTION (Donut Overview + Recent Activity + 3D Community Manager Desk) */}
+      {/* MIDDLE SECTION (Donut Social Reach + Recent Social Selling Activity + 3D CM Desk) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
-        {/* LEFT: Spending Overview / Répartition par Réseau (5 cols) */}
+        {/* LEFT: Répartition de l'Audience & Portée Sociale (4 cols) */}
         <div className="lg:col-span-4 clay-card p-5 sm:p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                Spending Overview
+                Audience &amp; Portée Sociale
               </h3>
               <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                This Month ▾
+                Ce Mois ▾
               </span>
             </div>
 
@@ -296,8 +289,8 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total</span>
-                <span className="text-base font-black text-slate-900">78,900</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Abonnés</span>
+                <span className="text-base font-black text-slate-900">78 900</span>
               </div>
             </div>
 
@@ -319,44 +312,44 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* CENTER: Recent Transactions / Publications Récentes (4 cols) */}
+        {/* CENTER: Activités & Conversions Récentes (4 cols) */}
         <div className="lg:col-span-4 clay-card p-5 sm:p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                Recent Transactions
+                Activités &amp; Ventes Récentes
               </h3>
-              <Link href="/publish" className="text-xs font-bold text-[#6366F1] hover:underline">
-                View All
+              <Link href="/crm" className="text-xs font-bold text-[#6366F1] hover:underline">
+                Voir CRM
               </Link>
             </div>
 
-            {/* List of activities with tactile 3D style icons */}
+            {/* List of real social marketing & Mobile Money transactions */}
             <div className="space-y-3">
               <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
-                    <Coffee className="w-5 h-5" />
+                    <CreditCard className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Starbucks Coffee</h4>
-                    <p className="text-[10px] text-slate-400">Food &amp; Dining • Today</p>
+                    <h4 className="text-xs font-bold text-slate-900">Formation VIP (Orange Money)</h4>
+                    <p className="text-[10px] text-slate-400">Paiement reçu • Aujourd&apos;hui</p>
                   </div>
                 </div>
-                <span className="text-xs font-black text-slate-800">-₹450</span>
+                <span className="text-xs font-black text-emerald-600">+15 000 FCFA</span>
               </div>
 
               <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
-                    <Car className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-sm">
+                    <Flame className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Uber Ride</h4>
-                    <p className="text-[10px] text-slate-400">Transport • Today</p>
+                    <h4 className="text-xs font-bold text-slate-900">Campagne Instagram Ads (Wave)</h4>
+                    <p className="text-[10px] text-slate-400">Budget sponsorisé • Aujourd&apos;hui</p>
                   </div>
                 </div>
-                <span className="text-xs font-black text-slate-800">-₹320</span>
+                <span className="text-xs font-black text-slate-800">-5 000 FCFA</span>
               </div>
 
               <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
@@ -365,30 +358,30 @@ export default function DashboardPage() {
                     <Briefcase className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Salary from ABC Ltd.</h4>
-                    <p className="text-[10px] text-slate-400">Income • Yesterday</p>
+                    <h4 className="text-xs font-bold text-slate-900">Abonnement Pulse Pro (MTN MoMo)</h4>
+                    <p className="text-[10px] text-slate-400">Renouvellement 3 mois • Hier</p>
                   </div>
                 </div>
-                <span className="text-xs font-black text-emerald-600">+₹85,000</span>
+                <span className="text-xs font-black text-emerald-600">+45 000 FCFA</span>
               </div>
 
               <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-sm">
-                    <ShoppingBag className="w-5 h-5" />
+                    <Zap className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Amazon Shopping</h4>
-                    <p className="text-[10px] text-slate-400">Shopping • 18 May 2026</p>
+                    <h4 className="text-xs font-bold text-slate-900">Boost Publication B2B (Moov)</h4>
+                    <p className="text-[10px] text-slate-400">LinkedIn Ads • 18 Mai 2026</p>
                   </div>
                 </div>
-                <span className="text-xs font-black text-slate-800">-₹1,250</span>
+                <span className="text-xs font-black text-slate-800">-3 500 FCFA</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT: 3D Community Manager Desk Illustration (From Image 1) + Smart Tip (4 cols) */}
+        {/* RIGHT: 3D Community Manager Desk Frame + Smart Tip (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-4">
           {/* 3D Community Manager Desk Illustration Frame */}
           <div className="clay-card overflow-hidden p-3 bg-white flex flex-col items-center justify-center relative min-h-[170px] shadow-md">
@@ -404,60 +397,60 @@ export default function DashboardPage() {
             <ClayLightbulbIcon className="w-11 h-11 shrink-0 drop-shadow-sm" />
             <div>
               <h4 className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
-                <span>Smart Tip</span>
+                <span>Conseil Stratégique Pulse</span>
               </h4>
               <p className="text-[11px] text-amber-900 mt-0.5 leading-snug">
-                You&apos;re saving 15% more this month. Keep it up! 🚀
+                Votre audience TikTok et Instagram interagit 35% plus entre 18h et 21h GMT. Programmez vos 2 prochains posts vidéo pour maximiser vos conversions Mobile Money ! 🚀
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* BOTTOM SECTION: Goals Progress (FinTrack style) + 15-Minute Routine */}
+      {/* BOTTOM SECTION: Objectifs & Progression + 15-Minute Routine */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
         {/* Goals Progress Card (7 cols) */}
         <div className="lg:col-span-7 clay-card p-5 sm:p-6">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
             <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-              Goals Progress
+              Objectifs &amp; Progression de Campagne
             </h3>
-            <Link href="/publish" className="text-xs font-bold text-[#6366F1] hover:underline">
-              View All Goals
+            <Link href="/crm" className="text-xs font-bold text-[#6366F1] hover:underline">
+              Voir Objectifs
             </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Goal 1: Vacation in Bali */}
+            {/* Goal 1: Campagne Ventes Mobile Money */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-sm">
-                <Palmtree className="w-6 h-6" />
+                <Target className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-bold text-slate-900 truncate">Vacation in Bali</h4>
+                <h4 className="text-xs font-bold text-slate-900 truncate">Ventes Campagne Fêtes (MoMo)</h4>
                 <div className="w-full bg-slate-200 rounded-full h-2 my-1.5 overflow-hidden">
                   <div className="bg-[#6366F1] h-2 rounded-full" style={{ width: '60%' }} />
                 </div>
                 <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
-                  <span>₹60,000 / ₹1,00,000</span>
+                  <span>600 000 / 1 000 000 FCFA</span>
                   <span className="text-[#6366F1]">60%</span>
                 </div>
               </div>
             </div>
 
-            {/* Goal 2: Buy New Laptop */}
+            {/* Goal 2: Acquisition Prospects Qualifiés */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-[#6366F1] flex items-center justify-center shrink-0 shadow-sm">
-                <Laptop className="w-6 h-6" />
+                <Users className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-bold text-slate-900 truncate">Buy New Laptop</h4>
+                <h4 className="text-xs font-bold text-slate-900 truncate">Acquisition 500 Abonnés TikTok</h4>
                 <div className="w-full bg-slate-200 rounded-full h-2 my-1.5 overflow-hidden">
-                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '56%' }} />
+                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '75%' }} />
                 </div>
                 <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
-                  <span>₹45,000 / ₹80,000</span>
-                  <span className="text-emerald-600">56%</span>
+                  <span>375 / 500 abonnés</span>
+                  <span className="text-emerald-600">75%</span>
                 </div>
               </div>
             </div>
@@ -469,10 +462,10 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                Routine 15 Min Dirigeant
+                Cockpit Dirigeant : Routine 15 Min
               </h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
-                Active
+                Recommandé
               </span>
             </div>
             <p className="text-xs text-slate-500 mb-3">
@@ -483,14 +476,14 @@ export default function DashboardPage() {
                 href="/publish"
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-xs text-slate-800 font-semibold transition-all"
               >
-                <span>01. Planifier la semaine (Studio CM)</span>
+                <span>01. Valider les posts programmés du jour</span>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </Link>
               <Link
                 href="/inbox"
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-xs text-slate-800 font-semibold transition-all"
               >
-                <span>02. Traiter les intentions d&apos;achat (Radar)</span>
+                <span>02. Traiter les intentions d&apos;achat en attente (Radar)</span>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </Link>
               <Link

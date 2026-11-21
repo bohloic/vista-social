@@ -377,16 +377,20 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
                   <div className="w-20 h-3 bg-slate-200 rounded animate-pulse" />
                   <div className="w-14 h-2 bg-slate-200 rounded animate-pulse" />
                 </div>
-              ) : (
+              ) : user ? (
                 <>
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                    {user?.fullName || 'Super-Admin'}
+                    {user.fullName}
                     <ChevronDown className="w-3 h-3 text-slate-400" />
                   </span>
                   <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-semibold">
-                    <ShieldCheck className="w-3 h-3 text-emerald-500" /> Accès à vie
+                    <ShieldCheck className="w-3 h-3 text-emerald-500" /> {user.role === 'super_admin' ? 'Super-Admin' : 'Membre Actif'}
                   </span>
                 </>
+              ) : (
+                <Link href="/login" className="text-xs font-bold text-[#6366F1] hover:underline">
+                  Se connecter
+                </Link>
               )}
             </div>
           </button>

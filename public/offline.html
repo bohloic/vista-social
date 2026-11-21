@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseSocial - Hors Ligne</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #F7F5F0;
+      color: #1e293b;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      border-radius: 28px;
+      padding: 2.5rem 2rem;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1.5rem;
+      background: #eef2ff;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 900;
+      margin: 0 0 0.5rem;
+      color: #0f172a;
+    }
+    p {
+      font-size: 0.875rem;
+      color: #64748b;
+      line-height: 1.5;
+      margin: 0 0 1.5rem;
+    }
+    button {
+      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.75rem;
+      border-radius: 14px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+      transition: transform 0.1s;
+    }
+    button:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h1>Vous êtes hors ligne</h1>
+    <p>
+      PulseSocial nécessite une connexion internet pour synchroniser vos réseaux sociaux et vos données en temps réel.
+    </p>
+    <button onclick="window.location.reload()">Réessayer la connexion</button>
+  </div>
+</body>
+</html>

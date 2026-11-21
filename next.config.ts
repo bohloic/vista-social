@@ -10,6 +10,8 @@ const securityHeaders = [
       "img-src 'self' data: blob: https:",
       "media-src 'self' data: blob: https:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://api.paystack.co https://*.composio.dev https://text.pollinations.ai https://image.pollinations.ai",
+      "worker-src 'self' blob:",
+      "manifest-src 'self'",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -37,7 +39,7 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
+    value: "camera=(self), microphone=(self), geolocation=()",
   },
 ];
 

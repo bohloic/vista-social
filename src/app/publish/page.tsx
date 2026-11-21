@@ -555,11 +555,11 @@ export default function PublishPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-violet-400" />
+          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-[#6366F1]" />
             Planificateur &amp; Calendrier Éditorial
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 font-medium">
             Organisez et automatisez votre calendrier de publication sur tous vos réseaux avec synchronisation Supabase.
           </p>
         </div>
