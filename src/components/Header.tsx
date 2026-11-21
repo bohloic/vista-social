@@ -195,11 +195,11 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
 
   const initials = user?.fullName
     ? user.fullName
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .substring(0, 2)
-        .toUpperCase()
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase()
     : 'PS';
 
   const filteredSearchResults = SEARCH_ITEMS.filter((item) =>
@@ -313,11 +313,10 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
               setActiveDropdown(activeDropdown === 'notifications' ? null : 'notifications');
               if (unreadCount > 0) setUnreadCount(0);
             }}
-            className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              activeDropdown === 'notifications'
-                ? 'bg-slate-200 text-slate-900'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
-            }`}
+            className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${activeDropdown === 'notifications'
+              ? 'bg-slate-200 text-slate-900'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+              }`}
             aria-label="Notifications Système"
           >
             <Bell className="w-4 h-4" />
@@ -359,9 +358,8 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
         <div className="relative">
           <button
             onClick={() => setActiveDropdown(activeDropdown === 'profile' ? null : 'profile')}
-            className={`flex items-center gap-2.5 pl-2 sm:pl-3 border-l border-slate-200 hover:opacity-90 transition-opacity cursor-pointer ${
-              activeDropdown === 'profile' ? 'opacity-100' : ''
-            }`}
+            className={`flex items-center gap-2.5 pl-2 sm:pl-3 border-l border-slate-200 hover:opacity-90 transition-opacity cursor-pointer ${activeDropdown === 'profile' ? 'opacity-100' : ''
+              }`}
           >
             {isLoadingUser ? (
               <div className="w-9 h-9 rounded-full bg-slate-200 animate-pulse border border-slate-300" />

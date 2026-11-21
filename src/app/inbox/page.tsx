@@ -477,11 +477,10 @@ export default function InboxPage() {
             <button
               key={ch.id}
               onClick={() => setChannelFilter(ch.id)}
-              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors cursor-pointer ${
-                channelFilter === ch.id
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-slate-800/80 text-slate-400 hover:text-white'
-              }`}
+              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors cursor-pointer ${channelFilter === ch.id
+                ? 'bg-violet-600 text-white'
+                : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                }`}
             >
               {ch.label}
             </button>
@@ -503,11 +502,10 @@ export default function InboxPage() {
             <button
               key={f.id}
               onClick={() => setIntentFilter(f.id)}
-              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors cursor-pointer ${
-                intentFilter === f.id
-                  ? 'bg-amber-500 text-slate-950 font-black'
-                  : 'bg-slate-800/80 text-slate-400 hover:text-white'
-              }`}
+              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors cursor-pointer ${intentFilter === f.id
+                ? 'bg-amber-500 text-slate-950 font-black'
+                : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                }`}
             >
               {f.label}
             </button>
@@ -564,11 +562,10 @@ export default function InboxPage() {
                       setActiveConvId(conv.id);
                       setAiReplies([]);
                     }}
-                    className={`p-3.5 cursor-pointer transition-colors flex items-start gap-3 ${
-                      isSelected
-                        ? 'bg-violet-950/50 border-l-4 border-violet-500'
-                        : 'hover:bg-slate-800/40'
-                    }`}
+                    className={`p-3.5 cursor-pointer transition-colors flex items-start gap-3 ${isSelected
+                      ? 'bg-violet-950/50 border-l-4 border-violet-500'
+                      : 'hover:bg-slate-800/40'
+                      }`}
                   >
                     <div className="relative shrink-0">
                       <img
@@ -588,13 +585,12 @@ export default function InboxPage() {
                         </span>
                         {/* Score Badge */}
                         <span
-                          className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
-                            score >= 80
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                              : score >= 65
+                          className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${score >= 80
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : score >= 65
                               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                               : 'bg-slate-800 text-slate-400'
-                          }`}
+                            }`}
                         >
                           {score >= 80 ? `🔥 ${score}%` : `⚡ ${score}%`}
                         </span>
@@ -702,11 +698,10 @@ export default function InboxPage() {
                     className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
                   >
                     <div
-                      className={`max-w-[80%] p-3.5 rounded-2xl text-xs leading-relaxed shadow-sm ${
-                        isOutbound
-                          ? 'bg-violet-600 text-white rounded-br-xs'
-                          : 'bg-slate-800 text-white border border-slate-700 rounded-bl-xs'
-                      }`}
+                      className={`max-w-[80%] p-3.5 rounded-2xl text-xs leading-relaxed shadow-sm ${isOutbound
+                        ? 'bg-violet-600 text-white rounded-br-xs'
+                        : 'bg-slate-800 text-white border border-slate-700 rounded-bl-xs'
+                        }`}
                     >
                       <p className="whitespace-pre-line">{msg.content}</p>
                     </div>
@@ -864,11 +859,10 @@ export default function InboxPage() {
                       key={op.id}
                       type="button"
                       onClick={() => setPaymentOperator(op.id)}
-                      className={`p-2 rounded-xl text-center font-bold text-[11px] border transition-colors cursor-pointer ${
-                        paymentOperator === op.id
-                          ? 'bg-emerald-600 text-white border-emerald-500'
-                          : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
-                      }`}
+                      className={`p-2 rounded-xl text-center font-bold text-[11px] border transition-colors cursor-pointer ${paymentOperator === op.id
+                        ? 'bg-emerald-600 text-white border-emerald-500'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
+                        }`}
                     >
                       {op.label}
                     </button>

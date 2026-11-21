@@ -569,22 +569,20 @@ export default function PublishPage() {
           <div className="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xs">
             <button
               onClick={() => setViewMode('calendar')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'calendar'
-                  ? 'bg-violet-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === 'calendar'
+                ? 'bg-violet-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Calendrier</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'list'
-                  ? 'bg-violet-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === 'list'
+                ? 'bg-violet-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               <List className="w-3.5 h-3.5" />
               <span>File d&apos;attente</span>
@@ -630,11 +628,10 @@ export default function PublishPage() {
           <button
             key={plat}
             onClick={() => setPlatformFilter(plat)}
-            className={`px-3 py-1 rounded-xl text-xs font-medium capitalize transition-colors cursor-pointer ${
-              platformFilter === plat
-                ? 'bg-violet-600 text-white font-bold shadow-sm'
-                : 'text-slate-400 bg-slate-800/80 hover:bg-slate-800 hover:text-white border border-slate-700/40'
-            }`}
+            className={`px-3 py-1 rounded-xl text-xs font-medium capitalize transition-colors cursor-pointer ${platformFilter === plat
+              ? 'bg-violet-600 text-white font-bold shadow-sm'
+              : 'text-slate-400 bg-slate-800/80 hover:bg-slate-800 hover:text-white border border-slate-700/40'
+              }`}
           >
             {plat === 'all' ? 'Tous les réseaux' : plat === 'twitter' ? 'X' : plat}
           </button>
@@ -897,11 +894,10 @@ export default function PublishPage() {
                       key={s.id}
                       type="button"
                       onClick={() => setSelectedSector(s.id)}
-                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                        selectedSector === s.id
-                          ? 'bg-violet-600/20 border-violet-500 text-white ring-1 ring-violet-500'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                      }`}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${selectedSector === s.id
+                        ? 'bg-violet-600/20 border-violet-500 text-white ring-1 ring-violet-500'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                        }`}
                     >
                       <span className="text-lg">{s.icon}</span>
                       <span className="font-bold text-[11px] leading-tight">{s.label}</span>
@@ -926,11 +922,10 @@ export default function PublishPage() {
                       key={obj.id}
                       type="button"
                       onClick={() => setSelectedObjective(obj.id)}
-                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        selectedObjective === obj.id
-                          ? 'bg-fuchsia-600/20 border-fuchsia-500 text-white ring-1 ring-fuchsia-500'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                      }`}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${selectedObjective === obj.id
+                        ? 'bg-fuchsia-600/20 border-fuchsia-500 text-white ring-1 ring-fuchsia-500'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                        }`}
                     >
                       <span className="font-bold text-[11px] block text-white">{obj.label}</span>
                       <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">{obj.desc}</span>
@@ -949,11 +944,10 @@ export default function PublishPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedFrequency(3)}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                      selectedFrequency === 3
-                        ? 'bg-pink-600/20 border-pink-500 text-white ring-1 ring-pink-500'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                    }`}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${selectedFrequency === 3
+                      ? 'bg-pink-600/20 border-pink-500 text-white ring-1 ring-pink-500'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                      }`}
                   >
                     <span className="font-bold text-[11px] block text-white">3 Posts (Hebdo Express)</span>
                     <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
@@ -964,11 +958,10 @@ export default function PublishPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedFrequency(7)}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                      selectedFrequency === 7
-                        ? 'bg-pink-600/20 border-pink-500 text-white ring-1 ring-pink-500'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                    }`}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${selectedFrequency === 7
+                      ? 'bg-pink-600/20 border-pink-500 text-white ring-1 ring-pink-500'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                      }`}
                   >
                     <span className="font-bold text-[11px] block text-white">7 Posts (Semaine Complète)</span>
                     <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">

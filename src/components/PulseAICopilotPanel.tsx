@@ -565,11 +565,10 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
                 window.speechSynthesis.cancel();
               }
             }}
-            className={`p-1.5 rounded-lg border text-xs transition-colors cursor-pointer ${
-              voiceOutputEnabled
-                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                : 'bg-slate-900 border-slate-800 text-slate-500'
-            }`}
+            className={`p-1.5 rounded-lg border text-xs transition-colors cursor-pointer ${voiceOutputEnabled
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+              : 'bg-slate-900 border-slate-800 text-slate-500'
+              }`}
             title={voiceOutputEnabled ? 'Désactiver la voix IA' : 'Activer la voix IA'}
           >
             {voiceOutputEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -607,11 +606,10 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
             className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div
-              className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed space-y-2 ${
-                msg.role === 'user'
-                  ? 'bg-violet-600 text-white rounded-br-sm'
-                  : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
-              }`}
+              className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed space-y-2 ${msg.role === 'user'
+                ? 'bg-violet-600 text-white rounded-br-sm'
+                : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
+                }`}
             >
               <p className="whitespace-pre-line">{msg.content}</p>
 
@@ -815,11 +813,10 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
         <button
           type="button"
           onClick={toggleListening}
-          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative ${
-            isListening
-              ? 'bg-rose-600 border-rose-500 text-white animate-pulse shadow-lg shadow-rose-600/40 ring-2 ring-rose-400/50'
-              : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
-          }`}
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative ${isListening
+            ? 'bg-rose-600 border-rose-500 text-white animate-pulse shadow-lg shadow-rose-600/40 ring-2 ring-rose-400/50'
+            : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
+            }`}
           title={isListening ? 'Arrêter la dictée vocale' : 'Parler à PulseAI au micro (Vocal fr-FR)'}
         >
           {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4" />}
@@ -833,9 +830,8 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={isListening ? 'Écoute active en français (parlez)...' : 'Écrivez ou dictez au micro à PulseAI...'}
-          className={`flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border text-xs text-white placeholder-slate-500 focus:outline-none transition-colors ${
-            isListening ? 'border-rose-500/60 ring-1 ring-rose-500/30' : 'border-slate-800 focus:border-violet-500'
-          }`}
+          className={`flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border text-xs text-white placeholder-slate-500 focus:outline-none transition-colors ${isListening ? 'border-rose-500/60 ring-1 ring-rose-500/30' : 'border-slate-800 focus:border-violet-500'
+            }`}
         />
 
         <button
