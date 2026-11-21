@@ -89,3 +89,84 @@ body {
   background-color: #ff0000;
   color: white;
 }
+
+/* 3D Claymorphism & Soft Tactile Design System */
+.clay-canvas {
+  background-color: #f7f5f0;
+  color: #1e293b;
+}
+
+.clay-card {
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 16px 36px -12px rgba(118, 97, 163, 0.12),
+              0 2px 8px -2px rgba(118, 97, 163, 0.05),
+              inset 0 2px 4px rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.clay-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 45px -14px rgba(118, 97, 163, 0.18),
+              0 4px 12px -2px rgba(118, 97, 163, 0.08),
+              inset 0 2px 4px rgba(255, 255, 255, 0.95);
+}
+
+.clay-pill-active {
+  background: #6366f1;
+  color: #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.4),
+              inset 0 2px 3px rgba(255, 255, 255, 0.35);
+}
+
+.clay-input {
+  border-radius: 9999px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.clay-input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.clay-btn-gradient {
+  background: linear-gradient(90deg, #f472b6 0%, #a855f7 50%, #6366f1 100%);
+  color: #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 12px 28px -6px rgba(168, 85, 247, 0.45),
+              inset 0 2px 3px rgba(255, 255, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.clay-btn-gradient:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px -6px rgba(168, 85, 247, 0.55),
+              inset 0 2px 3px rgba(255, 255, 255, 0.4);
+}
+
+.clay-btn-gradient:active {
+  transform: translateY(1px);
+  box-shadow: 0 6px 16px -4px rgba(168, 85, 247, 0.4);
+}
+
+.clay-social-btn {
+  background: #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 8px 20px -4px rgba(100, 116, 139, 0.18),
+              0 2px 6px -1px rgba(100, 116, 139, 0.08),
+              inset 0 2px 3px rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+}
+
+.clay-social-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -4px rgba(100, 116, 139, 0.24);
+}

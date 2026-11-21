@@ -13,6 +13,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+export function getBrowserSupabase() {
+  return supabase;
+}
+
 // Admin Supabase Client (Server-side privileged operations)
 export function getAdminSupabase() {
   const key = supabaseServiceRoleKey || supabaseAnonKey;

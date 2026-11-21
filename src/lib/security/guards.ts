@@ -9,7 +9,21 @@ export class ApiError extends Error {
   status: number;
   code: string;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(statusOrCode: number | string, codeOrMessage: string, messageOrStatus?: string | number) {
+    let status = 500;
+    let code = 'INTERNAL_ERROR';
+    let message = 'Une erreur est survenue';
+
+    if (typeof statusOrCode === 'number') {
+      status = statusOrCode;
+      code = codeOrMessage;
+      message = typeof messageOrStatus === 'string' ? messageOrStatus : message;
+    } else {
+      code = statusOrCode;
+      message = codeOrMessage;
+      status = typeof messageOrStatus === 'number' ? messageOrStatus : 500;
+    }
+
     super(message);
     this.name = 'ApiError';
     this.status = status;

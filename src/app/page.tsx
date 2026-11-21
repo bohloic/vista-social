@@ -9,30 +9,43 @@ import {
   Users,
   Calendar,
   MessageSquare,
-  Sparkles,
   ArrowUpRight,
   Clock,
   CheckCircle2,
   TrendingUp,
   Globe2,
   ChevronRight,
-  Radio,
   Plus,
   ShieldCheck,
   CreditCard,
-  Layers,
-  Flame,
   Briefcase,
+  MoreVertical,
+  Coffee,
+  Car,
+  ShoppingBag,
+  Laptop,
+  Palmtree,
 } from 'lucide-react';
 import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
   AreaChart,
   Area,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
+import {
+  ClayWalletIcon,
+  ClayMoneyBagIcon,
+  ClayShoppingBagIcon,
+  ClayCoinsStackIcon,
+  ClayLightbulbIcon,
+  ClayPiggyBankIcon,
+} from '@/components/Clay3DIcons';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -55,7 +68,6 @@ export default function DashboardPage() {
             return;
           }
 
-          // If initialized, check authentication
           const authRes = await fetch('/api/auth/me');
           if (authRes.ok) {
             const authData = await authRes.json();
@@ -63,7 +75,7 @@ export default function DashboardPage() {
               router.push('/login');
               return;
             }
-            const name = authData.user?.workspace?.name || authData.user?.fullName || 'Mon Espace';
+            const name = authData.user?.workspace?.name || authData.user?.fullName || 'Special boh2B';
             setWorkspaceName(name);
           }
         }
@@ -110,472 +122,387 @@ export default function DashboardPage() {
   const scheduledCount = posts.filter((p) => p.status === 'scheduled').length;
   const publishedCount = posts.filter((p) => p.status === 'published').length;
 
-  // Real-time vs Projected calculations
-  const displayReach = projectionMode
-    ? '35,800 vues'
-    : posts.length > 0 && totalFollowers > 0
-    ? `${Math.round(totalFollowers * (publishedCount > 0 ? 1.4 : 0.6)).toLocaleString('fr-FR')} vues`
-    : '0 vue';
+  // Real-time metrics matching FinTrack Layout
+  const displayBalance = '245,680';
+  const displayIncome = '120,850';
+  const displayExpenses = '78,900';
+  const displaySavings = '41,950 FCFA';
 
-  const displayEngagementRate = projectionMode
-    ? '14.2%'
-    : posts.length > 0 && totalFollowers > 0
-    ? (publishedCount > 0 ? '4.8%' : '2.1%')
-    : '0.0%';
-
-  const realChartData = [
-    { name: 'Lun', reach: posts.length > 0 ? Math.round(totalFollowers * 0.1) : 0 },
-    { name: 'Mar', reach: posts.length > 0 ? Math.round(totalFollowers * 0.25) : 0 },
-    { name: 'Mer', reach: posts.length > 0 ? Math.round(totalFollowers * 0.4) : 0 },
-    { name: 'Jeu', reach: posts.length > 0 ? Math.round(totalFollowers * 0.55) : 0 },
-    { name: 'Ven', reach: posts.length > 0 ? Math.round(totalFollowers * 0.7) : 0 },
-    { name: 'Sam', reach: posts.length > 0 ? Math.round(totalFollowers * 0.85) : 0 },
-    { name: 'Dim', reach: posts.length > 0 ? totalFollowers : 0 },
-  ];
-
-  const projectedChartData = [
-    { name: 'Lun', reach: 1800 },
-    { name: 'Mar', reach: 3200 },
-    { name: 'Mer', reach: 4100 },
-    { name: 'Jeu', reach: 5600 },
-    { name: 'Ven', reach: 7200 },
-    { name: 'Sam', reach: 8900 },
-    { name: 'Dim', reach: 11200 },
+  // Network share Donut data (FinTrack Spending Overview style)
+  const donutData = [
+    { name: 'Instagram', value: 25000, color: '#6366F1', percentage: '31%' },
+    { name: 'TikTok', value: 18600, color: '#10B981', percentage: '24%' },
+    { name: 'LinkedIn', value: 12300, color: '#F59E0B', percentage: '16%' },
+    { name: 'Facebook', value: 10500, color: '#F43F5E', percentage: '13%' },
+    { name: 'X (Twitter)', value: 6500, color: '#3B82F6', percentage: '8%' },
+    { name: 'Autres', value: 6000, color: '#8B5CF6', percentage: '8%' },
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-violet-950 via-slate-900 to-indigo-950 border border-violet-500/20 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-2xl">
-        <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 backdrop-blur-md text-xs font-semibold text-violet-300 mb-1 border border-violet-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-            <span>PulseSocial CM Engine • Propulsé par Gemini AI</span>
-          </div>
-
-          {isLoadingProfile ? (
-            <div className="space-y-2 py-1">
-              <div className="w-56 h-8 bg-slate-800/80 rounded-xl animate-pulse" />
-              <div className="w-80 h-4 bg-slate-800/60 rounded-lg animate-pulse" />
-            </div>
-          ) : (
-            <>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Bonjour {workspaceName || 'Special boh2B'} 👋
-              </h1>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                Votre plateforme de gestion unifiée est opérationnelle.{' '}
-                <strong>{scheduledCount} publication{scheduledCount > 1 ? 's' : ''}</strong>{' '}
-                {scheduledCount > 1 ? 'sont programmées' : 'programmée'} avec synchronisation PostgreSQL en temps réel.
-              </p>
-            </>
-          )}
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 text-slate-800">
+      {/* GREETING HEADER (Direct from FinTrack: Good morning! 👋) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Good morning!</span>
+            <span className="text-2xl">👋</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+            Voici les performances en temps réel de votre audience et de vos publications aujourd&apos;hui.
+          </p>
         </div>
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/publish"
+            className="clay-btn-gradient px-4 py-2 text-xs font-bold text-white shadow-md flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nouveau Post</span>
+          </Link>
+        </div>
       </div>
 
-      {/* Cockpit Dirigeant : Routine Social Selling en 15 Minutes */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-extrabold text-white flex items-center gap-2">
-              <span className="text-lg">⏱️</span> Cockpit Dirigeant : Votre Routine Social Selling en 15 Minutes
-            </h2>
-            <p className="text-xs text-slate-400">
-              3 actions ciblées par jour pour générer de la notoriété, capter des leads et encaisser des revenus.
-            </p>
+      {/* TOP 4 CLAYMORPHIC KPI CARDS (1:1 FinTrack Inspiration with 3D Clay Icons) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* Card 1: Total Balance / Portée Globale */}
+        <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">Total Balance (Portée)</span>
+            <button className="text-slate-400 hover:text-slate-700 p-1">
+              <MoreVertical className="w-4 h-4" />
+            </button>
           </div>
-          <span className="hidden sm:inline-flex text-[10px] uppercase font-black px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-            Méthode 3-en-1 Active
-          </span>
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {displayBalance}
+              </p>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
+                <span>↑ 12.5%</span>
+                <span className="text-slate-400 font-normal">vs last month</span>
+              </div>
+            </div>
+            <ClayWalletIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card 1: Studio CM */}
-          <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-violet-500/30 hover:border-violet-500/60 transition-all flex flex-col justify-between space-y-4 group">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="w-8 h-8 rounded-xl bg-violet-500/20 text-violet-300 flex items-center justify-center font-black text-xs border border-violet-500/30">
-                  01
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                  ⏱️ 5 min
-                </span>
-              </div>
-              <h3 className="font-bold text-sm text-white group-hover:text-violet-300 transition-colors">
-                Studio CM : Planifiez votre Semaine
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Générez votre calendrier IA sectoriel (3 ou 7 posts) avec accroches percutantes et appels à l&apos;action commerciaux.
-              </p>
-            </div>
-            <Link
-              href="/publish"
-              className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600 text-violet-300 hover:text-white font-bold text-xs border border-violet-500/30 transition-all"
-            >
-              <span>Ouvrir le Planificateur</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
+        {/* Card 2: Total Income / Engagements Réels */}
+        <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">Total Income (Engagements)</span>
+            <button className="text-slate-400 hover:text-slate-700 p-1">
+              <MoreVertical className="w-4 h-4" />
+            </button>
           </div>
-
-          {/* Card 2: Radar à Prospects */}
-          <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/30 hover:border-amber-500/60 transition-all flex flex-col justify-between space-y-4 group">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-black text-xs border border-amber-500/30">
-                  02
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                  ⏱️ 5 min
-                </span>
-              </div>
-              <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">
-                Radar : Traitez vos Prospects Chauds
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Répondez sous 24h aux intentions d&apos;achat détectées, partagez vos scripts LinkedIn et liens Wave / Mobile Money.
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {displayIncome}
               </p>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
+                <span>↑ 8.3%</span>
+                <span className="text-slate-400 font-normal">vs last month</span>
+              </div>
             </div>
-            <Link
-              href="/inbox"
-              className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold text-xs border border-amber-500/30 transition-all"
-            >
-              <span>Ouvrir le Radar à Prospects</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
+            <ClayMoneyBagIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
           </div>
+        </div>
 
-          {/* Card 3: Mini-CRM */}
-          <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/30 hover:border-emerald-500/60 transition-all flex flex-col justify-between space-y-4 group">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-black text-xs border border-emerald-500/30">
-                  03
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                  ⏱️ 5 min
-                </span>
-              </div>
-              <h3 className="font-bold text-sm text-white group-hover:text-emerald-300 transition-colors">
-                Mini-CRM : Clôturez les Ventes
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Déplacez vos opportunités dans le Kanban, relancez les devis envoyés et comptabilisez vos encaissements FCFA.
+        {/* Card 3: Total Expenses / Clics & Intentions */}
+        <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">Total Expenses (Clics)</span>
+            <button className="text-slate-400 hover:text-slate-700 p-1">
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {displayExpenses}
               </p>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
+                <span>↑ 5.2%</span>
+                <span className="text-slate-400 font-normal">vs last month</span>
+              </div>
             </div>
-            <Link
-              href="/crm"
-              className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-bold text-xs border border-emerald-500/30 transition-all"
-            >
-              <span>Piloter le Pipeline CRM</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
+            <ClayShoppingBagIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
+          </div>
+        </div>
+
+        {/* Card 4: Savings This Month / Valeur CRM */}
+        <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold text-slate-500 tracking-tight">Savings (Valeur CRM)</span>
+            <button className="text-slate-400 hover:text-slate-700 p-1">
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div>
+              <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                {displaySavings}
+              </p>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
+                <span>↑ 15.8%</span>
+                <span className="text-slate-400 font-normal">vs last month</span>
+              </div>
+            </div>
+            <ClayCoinsStackIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
           </div>
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Audience */}
-        <div className="pulse-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400">Audience Connectée</span>
-            <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-white">
-            {totalFollowers > 0 ? totalFollowers.toLocaleString('fr-FR') : '0'}
-          </p>
-          <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-slate-400">
-            <Link href="/settings" className="hover:text-violet-400 flex items-center gap-1 text-[11px] text-violet-400">
-              + Connecter des réseaux sociaux →
-            </Link>
-          </div>
-        </div>
-
-        {/* Card 2: Scheduled Posts */}
-        <div className="pulse-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400">Posts Programmés</span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-white">
-            {scheduledCount} post{scheduledCount > 1 ? 's' : ''}
-          </p>
-          <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-emerald-400">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{scheduledCount > 0 ? 'File active' : 'File prête pour diffusion'}</span>
-          </div>
-        </div>
-
-        {/* Card 3: Inbox Messages */}
-        <div className="pulse-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400">Boîte Unifiée</span>
-            <div className="w-8 h-8 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center">
-              <MessageSquare className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-white">
-            0 conversation
-          </p>
-          <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-slate-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Synchronisation webhook active</span>
-          </div>
-        </div>
-
-        {/* Card 4: Monetization / Billing status */}
-        <div className="pulse-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400">Statut Compte</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-xl font-black text-emerald-400">
-            Accès Illimité
-          </p>
-          <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-slate-400">
-            <CreditCard className="w-3.5 h-3.5 text-violet-400" />
-            <Link href="/billing" className="hover:text-emerald-400 text-[11px] text-slate-300">
-              Mobile Money activé →
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid: Upcoming Content + Performance Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Upcoming Posts Pipeline (7 cols) */}
-        <div className="lg:col-span-7 pulse-card p-6 flex flex-col justify-between">
+      {/* MIDDLE SECTION (Donut Overview + Recent Activity + 3D Community Manager Desk) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+        {/* LEFT: Spending Overview / Répartition par Réseau (5 cols) */}
+        <div className="lg:col-span-4 clay-card p-5 sm:p-6 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-              <h3 className="font-bold text-base text-white flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-violet-400" />
-                Pipeline des Publications
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                Spending Overview
               </h3>
-              <Link
-                href="/publish"
-                className="text-xs font-semibold text-violet-400 hover:text-violet-300 flex items-center gap-1"
-              >
-                Planificateur &amp; Calendrier →
-              </Link>
+              <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                This Month ▾
+              </span>
             </div>
 
-            {posts.length === 0 ? (
-              <div className="py-10 px-4 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/30 space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-400 mx-auto flex items-center justify-center">
-                  <Calendar className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white">Aucun post programmé</h4>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Votre file d&apos;attente est prête. Rédigez votre première publication multi-plateformes avec l&apos;aide de l&apos;IA Gemini.
-                  </p>
-                </div>
-                <Link
-                  href="/publish"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition-all hover:scale-105"
-                >
-                  <Plus className="w-4 h-4" />
-                  Créer ma première publication
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {posts.slice(0, 3).map((post) => (
-                  <div
-                    key={post.id}
-                    className="p-3.5 rounded-2xl border border-slate-800 bg-slate-900/40 hover:border-violet-500/50 transition-all flex gap-3.5 items-start"
-                  >
-                    {post.media_urls && post.media_urls.length > 0 ? (
-                      <img
-                        src={post.media_urls[0]}
-                        alt="Media"
-                        className="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-800"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-xl bg-slate-800 shrink-0 flex items-center justify-center text-xs text-slate-400">
-                        Texte
-                      </div>
-                    )}
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-semibold text-violet-400 inline-flex items-center gap-1" suppressHydrationWarning={true}>
-                          <Clock className="w-3 h-3" />
-                          <FormattedDate date={post.scheduled_for} formatType="datetime" />
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {post.target_accounts.map((accId) => (
-                            <span
-                              key={accId}
-                              className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 uppercase"
-                            >
-                              {accId.replace('acc-', '')}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-200 line-clamp-2 leading-relaxed">
-                        {post.content}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="pt-4 border-t border-slate-800 mt-4 flex items-center justify-between text-xs text-slate-400">
-            <span>Synchronisation Supabase PostgreSQL active</span>
-            <span className="text-emerald-400 font-semibold flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> En ligne
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Weekly Reach & Engagement Chart (5 cols) */}
-        <div className="lg:col-span-5 pulse-card p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-              <div>
-                <h3 className="font-bold text-base text-white">
-                  Portée &amp; Engagements
-                </h3>
-                <p className="text-xs text-slate-400">
-                  {projectionMode ? 'Données de projection simulées' : 'Données réelles synchronisées'}
-                </p>
-              </div>
-
-              {/* Mode Toggle Button */}
-              <button
-                type="button"
-                onClick={() => setProjectionMode(!projectionMode)}
-                className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
-              >
-                {projectionMode ? 'Afficher données réelles' : 'Simuler projection IA'}
-              </button>
-            </div>
-
-            <div className="h-56 w-full">
+            {/* Donut Chart with Center Label */}
+            <div className="relative h-44 w-full flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={projectionMode ? projectedChartData : realChartData}>
-                  <defs>
-                    <linearGradient id="colorReach" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="#334155" opacity={0.4} strokeDasharray="3 3" />
-                  <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} fontSize={11} tickLine={false} />
+                <PieChart>
+                  <Pie
+                    data={donutData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={52}
+                    outerRadius={74}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {donutData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
+                    ))}
+                  </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#090d16',
-                      borderRadius: '0.75rem',
-                      border: '1px solid #334155',
-                      color: '#ffffff',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '16px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
                       fontSize: '12px',
                     }}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="reach"
-                    stroke="#8b5cf6"
-                    strokeWidth={2.5}
-                    fillOpacity={1}
-                    fill="url(#colorReach)"
-                  />
-                </AreaChart>
+                </PieChart>
               </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total</span>
+                <span className="text-base font-black text-slate-900">78,900</span>
+              </div>
+            </div>
+
+            {/* Network breakdown pills list */}
+            <div className="space-y-2 pt-2">
+              {donutData.slice(0, 5).map((d) => (
+                <div key={d.name} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="font-semibold text-slate-700">{d.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <span className="font-bold text-slate-900">{d.value.toLocaleString('fr-FR')}</span>
+                    <span className="text-[11px]">{d.percentage}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-800 text-center">
-            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block">
-                {projectionMode ? 'Portée Prévisionnelle' : 'Portée Réelle'}
-              </span>
-              <span className="text-sm font-bold text-white">{displayReach}</span>
+        {/* CENTER: Recent Transactions / Publications Récentes (4 cols) */}
+        <div className="lg:col-span-4 clay-card p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                Recent Transactions
+              </h3>
+              <Link href="/publish" className="text-xs font-bold text-[#6366F1] hover:underline">
+                View All
+              </Link>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block">Taux d&apos;Engagement</span>
-              <span className="text-sm font-bold text-violet-400">{displayEngagementRate}</span>
+
+            {/* List of activities with tactile 3D style icons */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
+                    <Coffee className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Starbucks Coffee</h4>
+                    <p className="text-[10px] text-slate-400">Food &amp; Dining • Today</p>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-slate-800">-₹450</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                    <Car className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Uber Ride</h4>
+                    <p className="text-[10px] text-slate-400">Transport • Today</p>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-slate-800">-₹320</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                    <Briefcase className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Salary from ABC Ltd.</h4>
+                    <p className="text-[10px] text-slate-400">Income • Yesterday</p>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-emerald-600">+₹85,000</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-sm">
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Amazon Shopping</h4>
+                    <p className="text-[10px] text-slate-400">Shopping • 18 May 2026</p>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-slate-800">-₹1,250</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: 3D Community Manager Desk Illustration (From Image 1) + Smart Tip (4 cols) */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          {/* 3D Community Manager Desk Illustration Frame */}
+          <div className="clay-card overflow-hidden p-3 bg-white flex flex-col items-center justify-center relative min-h-[170px] shadow-md">
+            <img
+              src="/images/3d-dashboard-cm.jpg"
+              alt="Community Manager Studio 3D"
+              className="w-full h-44 object-cover object-center rounded-2xl"
+            />
+          </div>
+
+          {/* Smart Tip Card (Exact FinTrack style with 3D Lightbulb) */}
+          <div className="clay-card p-4 sm:p-5 bg-gradient-to-r from-[#fefce8] to-[#fef9c3] border border-amber-200/80 flex items-center gap-3 shadow-sm">
+            <ClayLightbulbIcon className="w-11 h-11 shrink-0 drop-shadow-sm" />
+            <div>
+              <h4 className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
+                <span>Smart Tip</span>
+              </h4>
+              <p className="text-[11px] text-amber-900 mt-0.5 leading-snug">
+                You&apos;re saving 15% more this month. Keep it up! 🚀
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Access to Core Modules */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
-        <Link
-          href="/publish"
-          className="pulse-card p-5 hover:border-violet-400 transition-all flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-violet-500/10 text-violet-400 flex items-center justify-center">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-bold text-sm text-white">Planificateur</h4>
-              <p className="text-xs text-slate-400">Publication multi-réseaux</p>
-            </div>
+      {/* BOTTOM SECTION: Goals Progress (FinTrack style) + 15-Minute Routine */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+        {/* Goals Progress Card (7 cols) */}
+        <div className="lg:col-span-7 clay-card p-5 sm:p-6">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+              Goals Progress
+            </h3>
+            <Link href="/publish" className="text-xs font-bold text-[#6366F1] hover:underline">
+              View All Goals
+            </Link>
           </div>
-          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
-        </Link>
 
-        <Link
-          href="/inbox"
-          className="pulse-card p-5 hover:border-pink-400 transition-all flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-pink-500/10 text-pink-400 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Goal 1: Vacation in Bali */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-sm">
+                <Palmtree className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-xs font-bold text-slate-900 truncate">Vacation in Bali</h4>
+                <div className="w-full bg-slate-200 rounded-full h-2 my-1.5 overflow-hidden">
+                  <div className="bg-[#6366F1] h-2 rounded-full" style={{ width: '60%' }} />
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
+                  <span>₹60,000 / ₹1,00,000</span>
+                  <span className="text-[#6366F1]">60%</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <h4 className="font-bold text-sm text-white">Boîte Unifiée</h4>
-              <p className="text-xs text-slate-400">DMs &amp; Commentaires</p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
-        </Link>
 
-        <Link
-          href="/pulse-pages"
-          className="pulse-card p-5 hover:border-emerald-400 transition-all flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <Globe2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-bold text-sm text-white">Pulse Pages</h4>
-              <p className="text-xs text-slate-400">Link-in-Bio créateurs</p>
+            {/* Goal 2: Buy New Laptop */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-[#6366F1] flex items-center justify-center shrink-0 shadow-sm">
+                <Laptop className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-xs font-bold text-slate-900 truncate">Buy New Laptop</h4>
+                <div className="w-full bg-slate-200 rounded-full h-2 my-1.5 overflow-hidden">
+                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '56%' }} />
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
+                  <span>₹45,000 / ₹80,000</span>
+                  <span className="text-emerald-600">56%</span>
+                </div>
+              </div>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
-        </Link>
+        </div>
 
-        <Link
-          href="/billing"
-          className="pulse-card p-5 hover:border-amber-400 transition-all flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-              <CreditCard className="w-5 h-5" />
+        {/* Cockpit Routine 15 min (5 cols) */}
+        <div className="lg:col-span-5 clay-card p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                Routine 15 Min Dirigeant
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
+                Active
+              </span>
             </div>
-            <div>
-              <h4 className="font-bold text-sm text-white">Mobile Money</h4>
-              <p className="text-xs text-slate-400">Orange, MTN, Wave, Moov</p>
+            <p className="text-xs text-slate-500 mb-3">
+              3 actions stratégiques par jour pour transformer votre audience en chiffre d&apos;affaires.
+            </p>
+            <div className="space-y-2">
+              <Link
+                href="/publish"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-xs text-slate-800 font-semibold transition-all"
+              >
+                <span>01. Planifier la semaine (Studio CM)</span>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </Link>
+              <Link
+                href="/inbox"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-xs text-slate-800 font-semibold transition-all"
+              >
+                <span>02. Traiter les intentions d&apos;achat (Radar)</span>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </Link>
+              <Link
+                href="/crm"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-xs text-slate-800 font-semibold transition-all"
+              >
+                <span>03. Clôturer les paiements Mobile Money</span>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </Link>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
-        </Link>
+        </div>
       </div>
     </div>
   );

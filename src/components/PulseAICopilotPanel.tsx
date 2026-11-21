@@ -519,17 +519,17 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
       {/* Top Bar with Memory & Voice Badges */}
       <div className="px-4 py-3 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-violet-600/30">
-            <Sparkles className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#6366F1] to-[#8B5CF6] flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/25">
+            <Mic className="w-4 h-4 text-white" />
           </div>
           <div className="min-w-0">
             <h3 className="text-xs font-black text-white truncate flex items-center gap-1.5">
-              PulseAI Copilot
+              Assistant Exécutif Pulse
               <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                 <Radio className="w-2.5 h-2.5 animate-pulse" />
-                Vocal &amp; CRUD Actif
+                Vocal &amp; Actions CRUD
               </span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 hidden sm:inline-flex items-center gap-1">
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hidden sm:inline-flex items-center gap-1">
                 <Brain className="w-2.5 h-2.5" />
                 Mémoire Continue
               </span>

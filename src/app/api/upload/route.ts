@@ -7,7 +7,7 @@ import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 export async function POST(req: NextRequest) {
   try {
     // Require authentication to prevent anonymous file upload DoS
-    const user = await requireUser(req);
+    const { user } = await requireUser(req);
     const ip = getClientIp(req);
     const rateLimit = checkRateLimit(`upload:${user.id}:${ip}`, { maxTokens: 20, refillRate: 2 });
     if (!rateLimit.allowed) {

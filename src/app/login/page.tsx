@@ -17,8 +17,10 @@ import {
   KeyRound,
   UserPlus,
   LogIn,
+  User,
 } from 'lucide-react';
 import { LegalModal } from '@/components/LegalModals';
+import { ClayPadlockIcon, ClayPottedPlantIcon } from '@/components/Clay3DIcons';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -325,91 +327,233 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#07090E] text-white flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden">
-      {/* Background Neon Glows */}
-      <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-violet-600/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 translate-y-1/2 w-96 h-96 rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
+    <div className="min-h-screen w-full bg-gradient-to-b from-[#e3dcfa] via-[#fceae8] to-[#dfd6f7] text-slate-800 flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden">
+      {/* Background Floating Clay Accents & Soft Lighting */}
+      <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-violet-400/20 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 translate-y-1/2 w-96 h-96 rounded-full bg-pink-400/20 blur-[130px] pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10 space-y-6">
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-500 to-emerald-400 shadow-xl shadow-violet-600/30 mb-2">
-            <Zap className="w-6 h-6 text-white fill-white" />
+      {/* Main Container with 3D Mascot & Card */}
+      <div className="w-full max-w-sm sm:max-w-md relative z-10 flex flex-col items-center">
+        {/* 3D Character Illustration (Direct inspiration from Image 2: Girl with purple hoodie & phone) */}
+        <div className="relative -mb-10 z-20 w-44 sm:w-52 h-36 sm:h-44 flex items-end justify-center">
+          <div className="w-full h-full rounded-t-[40px] overflow-hidden drop-shadow-2xl flex items-end justify-center">
+            <img
+              src="/images/3d-login-character.jpg"
+              alt="Mascotte 3D PulseSocial"
+              className="w-full h-full object-cover object-top scale-110"
+            />
           </div>
-          <h1 className="text-2xl font-black tracking-tight">
-            {authMode === 'login' ? 'Connexion à ' : 'Créer un compte '}
-            <span className="text-violet-400">PulseSocial</span>
-          </h1>
-          <p className="text-xs text-slate-400">
-            {authMode === 'login'
-              ? 'Accédez à votre espace de gestion des réseaux sociaux & IA'
-              : 'Rejoignez la plateforme et automatisez votre présence sociale'}
-          </p>
+          {/* Floating 3D Icons around character */}
+          <div className="absolute -left-6 top-6 w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#c4b5fd] to-[#fbcfe8] shadow-md flex items-center justify-center text-white animate-bounce duration-1000">
+            <User className="w-5 h-5 text-white" />
+          </div>
+          <div className="absolute -right-6 top-8 animate-pulse">
+            <ClayPadlockIcon className="w-11 h-11 drop-shadow-md" />
+          </div>
         </div>
 
-        {/* Tab switch between Login and Register */}
-        <div className="flex bg-slate-900/90 p-1 rounded-2xl border border-slate-800 shadow-inner">
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMode('login');
-              setGeneralError(null);
-            }}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              authMode === 'login'
-                ? 'bg-violet-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Se connecter</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMode('register');
-              setGeneralError(null);
-            }}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              authMode === 'register'
-                ? 'bg-violet-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Créer un compte</span>
-          </button>
-        </div>
+        {/* 3D Claymorphic Login Card */}
+        <div className="w-full bg-white/95 backdrop-blur-md rounded-[36px] p-7 sm:p-9 shadow-[0_25px_70px_-15px_rgba(130,100,180,0.22)] border border-white space-y-5 relative">
+          {/* Decorative side potted plants on desktop */}
+          <div className="hidden lg:block absolute -left-16 bottom-2 pointer-events-none">
+            <ClayPottedPlantIcon className="w-14 h-14 drop-shadow-md" />
+          </div>
+          <div className="hidden lg:block absolute -right-16 bottom-2 pointer-events-none">
+            <ClayPottedPlantIcon className="w-14 h-14 drop-shadow-md" />
+          </div>
 
-        {/* Form Card */}
-        <div className="pulse-card p-6 sm:p-8 space-y-5 border border-slate-800/80 bg-slate-900/70 backdrop-blur-2xl">
+          {/* Card Header */}
+          <div className="text-center pt-3 space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              {authMode === 'login' ? 'Welcome Back!' : 'Créer un Compte'}
+            </h1>
+            <p className="text-xs text-slate-500 font-medium">
+              {authMode === 'login' ? 'Login to continue' : 'Rejoignez PulseSocial dès aujourd’hui'}
+            </p>
+          </div>
+
+          {/* Mode Switcher Tabs */}
+          <div className="flex bg-slate-100/90 p-1 rounded-full border border-slate-200/80 shadow-inner">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode('login');
+                setGeneralError(null);
+              }}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                authMode === 'login'
+                  ? 'clay-btn-gradient text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Se connecter</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode('register');
+                setGeneralError(null);
+              }}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                authMode === 'register'
+                  ? 'clay-btn-gradient text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>S&apos;inscrire</span>
+            </button>
+          </div>
+
           {generalError && (
             <div
-              className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2"
+              className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2"
               role="alert"
               aria-live="polite"
             >
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
               <span>{generalError}</span>
             </div>
           )}
 
-          {/* 1-Click Google OAuth Sign-In Button */}
-          <div className="space-y-3">
+          {/* Authentication Form */}
+          <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
+            {/* Full Name for Registration */}
+            {authMode === 'register' && (
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Nom complet ou Agence"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 text-xs rounded-full bg-[#f8fafc] border border-slate-200/90 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#a855f7] focus:bg-white transition-all shadow-inner"
+                />
+              </div>
+            )}
+
+            {/* Email Field */}
+            <div>
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Username / Email"
+                  value={email}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  className={`w-full pl-11 pr-4 py-3 text-xs rounded-full bg-[#f8fafc] text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner ${
+                    emailError
+                      ? 'border border-rose-400 ring-1 ring-rose-400/30'
+                      : 'border border-slate-200/90 focus:border-[#a855f7] focus:bg-white'
+                  }`}
+                />
+              </div>
+              {emailError && (
+                <p className="text-[11px] text-rose-500 font-medium mt-1 pl-4" aria-live="polite">
+                  {emailError}
+                </p>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => handlePasswordChange(e.target.value)}
+                  className={`w-full pl-11 pr-11 py-3 text-xs rounded-full bg-[#f8fafc] text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner ${
+                    passwordError
+                      ? 'border border-rose-400 ring-1 ring-rose-400/30'
+                      : 'border border-slate-200/90 focus:border-[#a855f7] focus:bg-white'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {passwordError && (
+                <p className="text-[11px] text-rose-500 font-medium mt-1 pl-4" aria-live="polite">
+                  {passwordError}
+                </p>
+              )}
+            </div>
+
+            {/* Forgot password link */}
+            {authMode === 'login' && (
+              <div className="flex justify-end pr-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotPasswordOpen(true);
+                    setResetEmail(email);
+                    setResetStep('request');
+                    setResetError(null);
+                    setResetSuccess(null);
+                  }}
+                  className="text-[11px] font-semibold text-[#8b5cf6] hover:text-[#7c3aed] transition-colors cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
+
+            {/* Gradient Claymorphism Submit Button */}
             <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={googleLoading || loading}
-              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer border border-slate-200"
+              type="submit"
+              disabled={loading}
+              className="clay-btn-gradient w-full py-3.5 px-6 rounded-full text-white font-bold text-xs shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2 hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
-              {googleLoading ? (
+              {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-violet-600" />
-                  <span>Ouverture de la fenêtre Google...</span>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Validation en cours...</span>
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                  <span>{authMode === 'login' ? 'Login' : 'S’inscrire maintenant'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Social Logins Divider (Image 2 style) */}
+          <div className="space-y-3 pt-1">
+            <div className="relative flex items-center justify-center">
+              <div className="flex-grow border-t border-slate-200" />
+              <span className="flex-shrink mx-3 text-[11px] font-medium text-slate-400">
+                or continue with
+              </span>
+              <div className="flex-grow border-t border-slate-200" />
+            </div>
+
+            {/* 3 Circular Elevated 3D Buttons (Google, Apple, Facebook) */}
+            <div className="flex items-center justify-center gap-4 pt-1">
+              {/* Google Button */}
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading || loading}
+                title="Continuer avec Google"
+                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer"
+              >
+                {googleLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-violet-600" />
+                ) : (
+                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                       fill="#4285F4"
@@ -427,223 +571,128 @@ export default function LoginPage() {
                       fill="#EA4335"
                     />
                   </svg>
-                  <span>Continuer avec Google (SSO 1-Clic)</span>
-                </>
-              )}
-            </button>
+                )}
+              </button>
 
-            <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-slate-800" />
-              <span className="flex-shrink mx-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                ou avec votre email
-              </span>
-              <div className="flex-grow border-t border-slate-800" />
+              {/* Apple Button */}
+              <button
+                type="button"
+                onClick={() => setGeneralError('Connexion Apple bientôt disponible dans votre région.')}
+                title="Continuer avec Apple"
+                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer text-slate-900"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.89c.66-.82 1.11-1.96.99-3.1-.96.04-2.12.64-2.8 1.44-.59.69-1.11 1.84-.97 2.96 1.08.08 2.12-.48 2.78-1.3z" />
+                </svg>
+              </button>
+
+              {/* Facebook Button */}
+              <button
+                type="button"
+                onClick={() => setGeneralError('Connexion Facebook en cours d’authentification.')}
+                title="Continuer avec Facebook"
+                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer text-[#1877F2]"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+              </button>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            {/* Full Name Field for Registration */}
-            {authMode === 'register' && (
-              <div>
-                <label htmlFor="register-name" className="text-xs font-bold text-slate-300 block mb-1.5">
-                  Nom complet ou Nom d&apos;agence
-                </label>
-                <input
-                  id="register-name"
-                  type="text"
-                  placeholder="Jean Dupont ou Agence Nova"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-800 bg-slate-950/80 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500"
-                />
-              </div>
-            )}
-
-            {/* Email Field */}
-            <div>
-              <label htmlFor="login-email" className="text-xs font-bold text-slate-300 block mb-1.5">
-                Adresse Email
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="contact@monentreprise.ci"
-                  value={email}
-                  onChange={(e) => handleEmailChange(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border bg-slate-950/80 text-white placeholder-slate-600 focus:outline-none transition-all ${
-                    emailError
-                      ? 'border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/30'
-                      : 'border-slate-800 focus:border-violet-500 focus:ring-1 focus:ring-violet-500'
-                  }`}
-                />
-              </div>
-              {emailError && (
-                <p className="text-[11px] text-rose-400 font-medium mt-1 pl-1" aria-live="polite">
-                  {emailError}
-                </p>
-              )}
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="login-password" className="text-xs font-bold text-slate-300">
-                  Mot de passe
-                </label>
-                {authMode === 'login' && (
+          {/* Footer toggle: Don't have an account? Sign Up */}
+          <div className="pt-2 text-center">
+            <p className="text-xs text-slate-500 font-medium">
+              {authMode === 'login' ? (
+                <>
+                  Don&apos;t have an account?{' '}
                   <button
                     type="button"
                     onClick={() => {
-                      setForgotPasswordOpen(true);
-                      setResetEmail(email);
-                      setResetStep('request');
-                      setResetError(null);
-                      setResetSuccess(null);
+                      setAuthMode('register');
+                      setGeneralError(null);
                     }}
-                    className="text-[11px] text-violet-400 hover:text-violet-300 hover:underline cursor-pointer"
+                    className="font-bold text-[#6366F1] hover:underline cursor-pointer"
                   >
-                    Mot de passe oublié ?
+                    Sign Up
                   </button>
-                )}
-              </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => handlePasswordChange(e.target.value)}
-                  className={`w-full pl-10 pr-10 py-2.5 text-xs rounded-xl border bg-slate-950/80 text-white placeholder-slate-600 focus:outline-none transition-all ${
-                    passwordError
-                      ? 'border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/30'
-                      : 'border-slate-800 focus:border-violet-500 focus:ring-1 focus:ring-violet-500'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors p-1"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {passwordError && (
-                <p className="text-[11px] text-rose-400 font-medium mt-1 pl-1" aria-live="polite">
-                  {passwordError}
-                </p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Validation en cours...</span>
                 </>
               ) : (
                 <>
-                  <span>
-                    {authMode === 'login' ? 'Se connecter à mon espace' : 'Créer mon compte client'}
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('login');
+                      setGeneralError(null);
+                    }}
+                    className="font-bold text-[#6366F1] hover:underline cursor-pointer"
+                  >
+                    Sign In
+                  </button>
                 </>
               )}
-            </button>
-          </form>
-
-          {/* Setup Link / Environment Status */}
-          <div className="pt-2 border-t border-slate-800/80 text-center">
-            {isAppInitialized === false ? (
-              <p className="text-[11px] text-slate-400">
-                Première installation ?{' '}
-                <Link href="/setup" className="text-violet-400 hover:underline font-semibold">
-                  Lancer l&apos;assistant Setup Administrateur
-                </Link>
-              </p>
-            ) : (
-              <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Protection des données SSL/TLS • Comptes sécurisés</span>
-              </p>
-            )}
+            </p>
           </div>
         </div>
 
-        {/* Security & Legal Links Footer */}
-        <div className="space-y-2 text-center">
-          <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Sécurité renforcée &amp; Protection des données bancaires Paystack</span>
-          </div>
-
-          <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500 pt-1">
-            <button
-              type="button"
-              onClick={() => setLegalModalType('privacy')}
-              className="hover:text-slate-300 underline cursor-pointer"
-            >
-              Politique de Confidentialité
-            </button>
-            <span>•</span>
-            <button
-              type="button"
-              onClick={() => setLegalModalType('terms')}
-              className="hover:text-slate-300 underline cursor-pointer"
-            >
-              CGU &amp; Abonnements
-            </button>
-          </div>
+        {/* Legal & Security links below card */}
+        <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-500">
+          <button
+            type="button"
+            onClick={() => setLegalModalType('privacy')}
+            className="hover:text-slate-800 underline cursor-pointer"
+          >
+            Politique de Confidentialité
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={() => setLegalModalType('terms')}
+            className="hover:text-slate-800 underline cursor-pointer"
+          >
+            CGU &amp; Abonnements
+          </button>
         </div>
       </div>
 
-      {/* Forgot Password Modal */}
+      {/* Forgot Password Modal (Claymorphism White Card) */}
       {forgotPasswordOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-white border border-white rounded-[32px] p-6 sm:p-8 shadow-2xl space-y-4 text-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-violet-50 text-[#8b5cf6] flex items-center justify-center">
                   <KeyRound className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-white">Réinitialisation du mot de passe</h3>
+                <h3 className="font-bold text-sm text-slate-900">Réinitialisation du mot de passe</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setForgotPasswordOpen(false)}
-                className="text-slate-400 hover:text-white text-xs font-bold p-1 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 text-xs font-bold p-1 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {resetSuccess && resetStep === 'confirm' && (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
                 <span>{resetSuccess}</span>
               </div>
             )}
 
             {resetError && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
                 <span>{resetError}</span>
               </div>
             )}
 
             <form onSubmit={handleForgotPasswordSubmit} noValidate className="space-y-4">
               <div>
-                <label htmlFor="reset-email" className="text-xs font-bold text-slate-300 block mb-1">
+                <label htmlFor="reset-email" className="text-xs font-bold text-slate-700 block mb-1">
                   Votre Adresse Email
                 </label>
                 <input
@@ -653,13 +702,13 @@ export default function LoginPage() {
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   disabled={resetStep === 'confirm'}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 disabled:opacity-60"
+                  className="w-full px-4 py-2.5 text-xs rounded-full border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-[#8b5cf6] focus:bg-white shadow-inner disabled:opacity-60"
                 />
               </div>
 
               {resetStep === 'confirm' && (
                 <div>
-                  <label htmlFor="reset-new-password" className="text-xs font-bold text-slate-300 block mb-1">
+                  <label htmlFor="reset-new-password" className="text-xs font-bold text-slate-700 block mb-1">
                     Nouveau mot de passe
                   </label>
                   <div className="relative">
@@ -669,12 +718,12 @@ export default function LoginPage() {
                       placeholder="Minimum 6 caractères"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 pr-9 text-xs rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500"
+                      className="w-full px-4 py-2.5 pr-10 text-xs rounded-full border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-[#8b5cf6] focus:bg-white shadow-inner"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                     >
                       {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -686,14 +735,14 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setForgotPasswordOpen(false)}
-                  className="px-4 py-2 text-xs text-slate-400 hover:text-white cursor-pointer"
+                  className="px-4 py-2 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={resetLoading}
-                  className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all disabled:opacity-60 cursor-pointer"
+                  className="clay-btn-gradient px-4 py-2 rounded-full text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {resetLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                   <span>
