@@ -66,14 +66,18 @@ export async function GET(req: NextRequest) {
     );
 
     if (!supabase) {
-      return NextResponse.json({ posts: [] });
+      return NextResponse.json({ posts: [], pagination: { total: 0, limit: 50, offset: 0 } });
     }
 
-    const { data: posts, error } = await supabase
+    const limit = Math.min(Number(searchParams.get('limit') || 50), 100);
+    const offset = Math.max(Number(searchParams.get('offset') || 0), 0);
+
+    const { data: posts, error, count } = await supabase
       .from('posts')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('workspace_id', workspaceId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw new ApiError(500, 'DATABASE_ERROR', 'Impossible de récupérer les posts');
@@ -95,7 +99,10 @@ export async function GET(req: NextRequest) {
       created_at: p.created_at,
     }));
 
-    return NextResponse.json({ posts: formattedPosts });
+    return NextResponse.json({
+      posts: formattedPosts,
+      pagination: { total: count ?? formattedPosts.length, limit, offset },
+    });
   } catch (err) {
     return handleApiError(err);
   }

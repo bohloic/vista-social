@@ -1,24 +1,23 @@
 import { getAdminSupabase, checkAppInitialized } from '@/lib/supabase';
 import { hashPassword, createSignedSession } from '@/lib/auth-crypto';
+import { encryptToken } from '@/lib/security/encryption';
 import { z } from 'zod';
 
 const setupSchema = z.object({
-  fullName: z.string().min(2, 'Le nom complet doit comporter au moins 2 caractères'),
-  email: z.string().email('Format email invalide'),
-  password: z.string().min(6, 'Le mot de passe doit comporter au moins 6 caractères'),
-  workspaceName: z.string().min(2, 'Le nom de l\'espace doit comporter au moins 2 caractères'),
+  fullName: z.string().min(2, 'Le nom complet doit comporter au moins 2 caractères').max(100),
+  email: z.string().email('Format email invalide').max(255),
+  password: z.string().min(12, 'Le mot de passe doit comporter au moins 12 caractères pour le Super-Admin').max(128),
+  workspaceName: z.string().min(2, 'Le nom de l\'espace doit comporter au moins 2 caractères').max(100),
   timezone: z.string().default('Africa/Abidjan'),
-  metaAccessToken: z.string().optional(),
-  metaAccountName: z.string().optional(),
+  metaAccessToken: z.string().max(2048).optional(),
+  metaAccountName: z.string().max(120).optional(),
 });
 
-// GET: Check if the application has already been set up with an admin account
+// GET: Check if the application has already been set up (SEC-04: zero secret/email leakage)
 export async function GET() {
   const status = await checkAppInitialized();
   return Response.json({
     initialized: status.initialized,
-    workspace: status.workspace,
-    adminEmail: status.adminProfile ? status.adminProfile.email : null,
   });
 }
 
@@ -103,8 +102,9 @@ export async function POST(req: Request) {
       value: { initialized: true, configured_at: new Date().toISOString() },
     });
 
-    // 6. Optionally connect Meta account if token provided
+    // 6. Optionally connect Meta account if token provided (Encrypted at rest: SEC-04/C4)
     if (metaAccessToken && metaAccessToken.trim().length > 10) {
+      const encryptedMetaToken = encryptToken(metaAccessToken.trim());
       await adminClient.from('social_accounts').insert({
         workspace_id: wsData.id,
         platform: 'instagram',
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         account_name: metaAccountName || `${fullName} (Meta)`,
         username: `@${workspaceSlug}`,
         avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
-        access_token: metaAccessToken.trim(),
+        access_token: encryptedMetaToken,
         is_connected: true,
         status: 'active',
         followers_count: 0,

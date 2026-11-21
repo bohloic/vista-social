@@ -31,11 +31,11 @@ test('2. Database RLS Contract: Cross-Tenant Isolation (Workspace A vs Workspace
     { workspace_id: workspaceA, user_id: userA, role: 'editor' },
   ];
 
-  function isWorkspaceMember(wsId, uId) {
+  function isWorkspaceMember(wsId: string, uId: string) {
     return mockMembership.some((m) => m.workspace_id === wsId && m.user_id === uId);
   }
 
-  function hasWorkspaceRole(wsId, roles, uId) {
+  function hasWorkspaceRole(wsId: string, roles: string[], uId: string) {
     return mockMembership.some(
       (m) => m.workspace_id === wsId && m.user_id === uId && roles.includes(m.role)
     );

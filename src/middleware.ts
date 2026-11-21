@@ -37,7 +37,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/api/social/oauth/') ||
     pathname.startsWith('/api/billing/paystack/') ||
-    pathname.startsWith('/api/ai/') ||
+    pathname.startsWith('/api/webhooks/') ||
     pathname === '/api/setup' ||
     pathname === '/api/health' ||
     pathname.startsWith('/_next') ||

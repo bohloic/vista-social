@@ -59,6 +59,7 @@ export function ComposerModal({
   const [aiTone, setAiTone] = useState<'b2b_expert' | 'b2c_engaging' | 'conversational_direct'>('b2c_engaging');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -154,9 +155,23 @@ export function ComposerModal({
   };
 
   const handleAddMedia = () => {
-    if (mediaInput.trim()) {
-      setMediaUrls([...mediaUrls, mediaInput.trim()]);
-      setMediaInput('');
+    const trimmed = mediaInput.trim();
+    if (!trimmed) return;
+
+    // Validate safe URL or local upload path (SEC-09)
+    if (trimmed.startsWith('/') || trimmed.startsWith('https://') || trimmed.startsWith('http://')) {
+      try {
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          new URL(trimmed);
+        }
+        setMediaUrls([...mediaUrls, trimmed]);
+        setMediaInput('');
+        setAiError(null);
+      } catch {
+        setAiError('URL média invalide. Veuillez entrer une URL valide commençant par https://');
+      }
+    } else {
+      setAiError('URL média non autorisée. Utilisez un lien HTTPS ou un fichier uploadé.');
     }
   };
 
@@ -256,6 +271,7 @@ export function ComposerModal({
   const handleGenerateAi = async () => {
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
+    setAiError(null);
 
     try {
       const res = await fetch('/api/ai/generate-caption', {
@@ -263,7 +279,7 @@ export function ComposerModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           topic: aiPrompt,
-          tone: aiTone,
+          tone: aiTone === 'b2b_expert' ? 'professional' : aiTone === 'b2c_engaging' ? 'engaging' : 'storytelling',
           platforms: [activePreviewPlatform],
           includeHashtags: true,
           includeEmojis: true,
@@ -279,11 +295,17 @@ export function ComposerModal({
           }
           setAiLoading(false);
           setAiDrawerOpen(false);
+          setAiError(null);
           return;
         }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setAiError(errData.error || 'Génération indisponible. Veuillez réessayer.');
       }
     } catch {
-      // fallback
+      setAiError('Erreur de connexion avec le serveur IA.');
+    } finally {
+      setAiLoading(false);
     }
 
     // Structured multi-paragraph Social Selling generation
@@ -333,8 +355,13 @@ export function ComposerModal({
       return;
     }
 
+    const resolvedWorkspaceId =
+      availableAccounts[0]?.workspace_id ||
+      editingPost?.workspace_id ||
+      '00000000-0000-0000-0000-000000000000';
+
     onSavePost({
-      workspace_id: 'ws-default',
+      workspace_id: resolvedWorkspaceId,
       author_name: 'Lead Community Manager',
       content,
       post_type: postType,
@@ -506,6 +533,12 @@ export function ComposerModal({
                       )}
                     </button>
                   </div>
+                  {aiError && (
+                    <div className="flex items-center gap-1.5 text-xs text-rose-400 bg-rose-950/40 border border-rose-800/40 p-2 rounded-xl">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{aiError}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -695,7 +728,17 @@ export function ComposerModal({
                         <CheckCircle2 className="w-3.5 h-3.5" /> Visuel généré avec succès !
                       </p>
                       <div className="w-full max-h-48 rounded-xl overflow-hidden border border-violet-500/40 bg-black flex items-center justify-center">
-                        <img src={generatedVisualPreview} alt="Aperçu IA" className="max-h-48 w-auto object-contain" />
+                        <img
+                          src={generatedVisualPreview}
+                          alt="Aperçu IA"
+                          className="max-h-48 w-auto object-contain"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (!target.src.includes('images.unsplash.com')) {
+                              target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&auto=format&fit=crop&q=85';
+                            }
+                          }}
+                        />
                       </div>
                       <button
                         type="button"

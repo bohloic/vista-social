@@ -211,3 +211,27 @@ En cas d'incident opérationnel imprévu :
    ALTER TABLE public.<table_name> DISABLE ROW LEVEL SECURITY;
    ```
    *(À réserver exclusivement au traitement d'incidents critiques avec réactivation immédiate après diagnostic).*
+
+---
+
+## 6. Audit 360° Complémentaire (SEC-01 à SEC-15) — Matrice de Comparaison & Remédiation
+
+À la demande de l'utilisateur, l'audit 360° a été scrupuleusement analysé et comparé au code existant. Les correctifs spécifiques suivants ont été appliqués sans casser la logique métier :
+
+| ID Audit 360° | Faille Décrite | Statut & Actions Réalisées | Fichiers Modifiés |
+| :--- | :--- | :--- | :--- |
+| **SEC-01** | Absence de RLS sur 13 tables | ✅ **Déjà Corrigé** en Phase 1 via migration SQL complète avec politiques strictes. | `supabase/migrations/20261120230500_security_hardening.sql` |
+| **SEC-02** | Application ouverte sans auth / absence de middleware | ✅ **Déjà Corrigé** via `src/middleware.ts` avec redirection automatique des visiteurs vers `/login`. | `src/middleware.ts` |
+| **SEC-03** | BOLA / IDOR sur `/api/posts` et `/api/pulse-pages` | ✅ **Déjà Corrigé** via `requireUser` et `requireWorkspaceRole`. | `src/app/api/posts/route.ts`, `src/app/api/pulse-pages/route.ts` |
+| **SEC-04** | `GET /api/setup` expose `adminEmail` ; mot de passe sans validation forte | ✅ **Corrigé** : `adminEmail` retiré du JSON de retour de `GET /api/setup`. Mot de passe super-admin porté à 12 caractères minimum, chiffrement des tokens Meta à l'initialisation. | `src/app/api/setup/route.ts` |
+| **SEC-05** | Activation frauduleuse d'abonnement sans paiement | ✅ **Déjà Corrigé** : `checkout` enregistre désormais la transaction en statut `pending` (aucune activation immédiate non vérifiée). | `src/app/api/billing/mobile-money/checkout/route.ts` |
+| **SEC-06** | Exposition clé Gemini en query string (`?key=...`) et fallback clé Supabase | ✅ **Corrigé** : Clé Google Gemini désormais transmise via l'en-tête HTTP sécurisé `x-goog-api-key` (zéro fuite dans l'URL / logs proxy). Suppression définitive de `NEXT_PUBLIC_GEMINI_API_KEY`. | `src/lib/gemini.ts` |
+| **SEC-07** | Prompt Injection indirecte & abus quota IA | ✅ **Déjà Corrigé** : `sanitizePromptForLLM`, rate limiting par utilisateur, schémas Zod stricts avec `.max()`. | `src/lib/security/guards.ts`, `/api/ai/*` |
+| **SEC-08** | Absence de webhook entrant vérifié cryptographiquement | ✅ **Corrigé** : Création de `src/app/api/webhooks/mobile-money/route.ts` avec vérification HMAC SHA-256 (`crypto.timingSafeEqual`) et traitement idempotent. | `src/app/api/webhooks/mobile-money/route.ts` |
+| **SEC-09** | Validation média URL (XSS/SSRF) & slug | ✅ **Corrigé** : `handleAddMedia` dans `ComposerModal` valide le protocole HTTP(S) et chemins upload locaux. `workspace_id` résolu dynamiquement au lieu de `ws-default`. | `src/components/ComposerModal.tsx` |
+| **SEC-10** | Tokens manuels perdus au rechargement | ✅ **Déjà Corrigé** : Rechargement automatique de `pulsesocial_manual_tokens` depuis le stockage local au montage de la page paramètres. | `src/app/settings/page.tsx` |
+| **SEC-11** | En-tête `Content-Security-Policy` (CSP) absent | ✅ **Corrigé** : Ajout de la directive complète `Content-Security-Policy` dans `next.config.ts`. | `next.config.ts` |
+| **SEC-12** | Fermeture silencieuse du tiroir IA en cas d'erreur API | ✅ **Corrigé** : Ajout de l'état `aiError` et affichage du message d'erreur avec bouton Retry sans fermeture intempestive du formulaire. | `src/components/ComposerModal.tsx` |
+| **SEC-13** | Collisions visuelles PulseAI Vocal & sélection d'inbox sur filtre vide | ✅ **Corrigé** : Bouton PulseAI Vocal repositionné (`bottom-20 sm:bottom-6`) pour éviter le chevauchement du champ d'envoi. Panneau droit inbox affichant un état vide propre quand 0 prospect ne correspond au filtre. | `src/components/GlobalAICopilot.tsx`, `src/app/inbox/page.tsx` |
+| **SEC-14** | Absence de pagination sur `GET /api/posts` | ✅ **Corrigé** : Ajout des paramètres `limit` et `offset` avec comptage exact et métadonnées de pagination. | `src/app/api/posts/route.ts` |
+| **SEC-15** | Couverture de tests multiplateformes & RLS | ✅ **Déjà Corrigé** : Suites automatisées `tests/db/rls.spec.ts`, `tests/api/security.spec.ts` (16 tests) et `tests/e2e/security.spec.ts`. | `tests/**/*.spec.ts` |

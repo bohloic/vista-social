@@ -217,9 +217,6 @@ export default function InboxPage() {
     }
   }, []);
 
-  const activeConv = conversations.find((c) => c.id === activeConvId) || conversations[0] || null;
-  const activeMessages = activeConv ? messages[activeConv.id] || [] : [];
-
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
@@ -415,6 +412,12 @@ export default function InboxPage() {
 
     return true;
   });
+
+  // Derive active conversation strictly from filtered conversations (SEC-13)
+  const activeConv =
+    filteredConversations.find((c) => c.id === activeConvId) ||
+    (filteredConversations.length > 0 ? filteredConversations[0] : null);
+  const activeMessages = activeConv ? messages[activeConv.id] || [] : [];
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
@@ -817,7 +820,15 @@ export default function InboxPage() {
               </div>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="md:col-span-7 lg:col-span-8 flex flex-col items-center justify-center h-full p-8 text-center text-slate-500 bg-slate-950/20 border border-slate-800/40 rounded-2xl">
+            <Inbox className="w-12 h-12 text-slate-600 mb-3" />
+            <h4 className="font-bold text-slate-300 text-sm">Aucun prospect correspondant</h4>
+            <p className="text-xs text-slate-500 max-w-sm mt-1">
+              Modifiez vos filtres ou réinitialisez la recherche pour afficher d&apos;autres conversations.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Payment Link Generator Modal */}

@@ -19,7 +19,7 @@ export function GlobalAICopilot() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-emerald-500 text-white text-xs font-black shadow-2xl shadow-violet-600/40 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/10"
+          className="fixed bottom-20 sm:bottom-6 right-5 sm:right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-emerald-500 text-white text-xs font-black shadow-2xl shadow-violet-600/40 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/10"
           aria-label="Ouvrir l'assistant vocal PulseAI"
         >
           <Sparkles className="w-4 h-4 animate-pulse" />

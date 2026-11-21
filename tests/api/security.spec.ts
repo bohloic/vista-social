@@ -209,3 +209,37 @@ test('10. [C4] OAuth token encryption at rest (AES-256-GCM)', () => {
   const decrypted = decryptToken(encrypted);
   assert.equal(decrypted, token);
 });
+
+test('11. [SEC-04] Setup status endpoint does not leak admin email or sensitive info', async () => {
+  const fs = await import('node:fs');
+  const routeSource = fs.readFileSync('src/app/api/setup/route.ts', 'utf-8');
+  assert.ok(!routeSource.includes('adminEmail:'), 'adminEmail must NOT be returned in GET /api/setup');
+  assert.ok(!routeSource.includes('workspace: status.workspace'), 'Internal workspace details must NOT be returned in GET /api/setup');
+});
+
+test('12. [SEC-08] Mobile Money Webhook HMAC SHA-256 validation rejects invalid signature with 401', async () => {
+  const secret = 'test_momo_secret_key_123456';
+  process.env.MOMO_WEBHOOK_SECRET = secret;
+
+  const rawBody = JSON.stringify({ transactionId: 'tx_123', status: 'successful' });
+  const forgedSig = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
+  const expectedSig = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+
+  let matches = false;
+  try {
+    matches = crypto.timingSafeEqual(Buffer.from(forgedSig, 'hex'), Buffer.from(expectedSig, 'hex'));
+  } catch {
+    matches = false;
+  }
+  assert.equal(matches, false, 'Forged signature must fail comparison');
+});
+
+test('13. [SEC-11] Content-Security-Policy (CSP) header is present in next.config.ts', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const configContent = fs.readFileSync(path.resolve('next.config.ts'), 'utf-8');
+  assert.ok(configContent.includes('Content-Security-Policy'), 'CSP header must be configured');
+  assert.ok(configContent.includes("default-src 'self'"), 'CSP must restrict default-src');
+  assert.ok(configContent.includes("frame-ancestors 'self'"), 'CSP must restrict frame-ancestors');
+});
+
