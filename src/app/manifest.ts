@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'PulseSocial - Community Management & Monétisation',
+    name: 'PulseSocial',
     short_name: 'PulseSocial',
     description: 'Plateforme Intelligente de Community Management, Social Selling et Facturation Mobile Money.',
     start_url: '/',
