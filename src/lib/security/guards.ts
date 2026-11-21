@@ -36,29 +36,43 @@ export interface AuthenticatedUser {
   email: string;
   role: WorkspaceRole;
   workspaceId?: string;
+  workspace_id?: string;
   isLifetimeFree?: boolean;
 }
 
-export async function requireUser(req: NextRequest): Promise<{
+export type RequireUserResult = {
   user: AuthenticatedUser;
   supabase: ReturnType<typeof getAdminSupabase>;
-}> {
+} & AuthenticatedUser;
+
+export async function requireUser(req: NextRequest): Promise<RequireUserResult> {
   const adminSupabase = getAdminSupabase();
+
+  function buildUserResult(userData: AuthenticatedUser): RequireUserResult {
+    const wsId = userData.workspace_id || userData.workspaceId;
+    const userCopy: AuthenticatedUser = {
+      ...userData,
+      workspaceId: wsId,
+      workspace_id: wsId,
+    };
+    return Object.assign(userCopy, {
+      user: userCopy,
+      supabase: adminSupabase,
+    });
+  }
 
   // 1. Try cryptographic session cookie verification (HMAC SHA-256)
   const sessionCookie = req.cookies.get('pulsesocial_session')?.value;
   if (sessionCookie) {
     const verified = verifySignedSession(sessionCookie);
     if (verified && verified.userId && verified.email) {
-      return {
-        user: {
-          id: verified.userId,
-          email: verified.email,
-          role: (verified.role as WorkspaceRole) || 'client',
-          workspaceId: verified.workspaceId,
-        },
-        supabase: adminSupabase,
-      };
+      return buildUserResult({
+        id: verified.userId,
+        email: verified.email,
+        role: (verified.role as WorkspaceRole) || 'client',
+        workspaceId: verified.workspaceId,
+        workspace_id: verified.workspaceId,
+      });
     }
   }
 
@@ -69,29 +83,24 @@ export async function requireUser(req: NextRequest): Promise<{
     // Check if signed session token
     const verified = verifySignedSession(token);
     if (verified && verified.userId && verified.email) {
-      return {
-        user: {
-          id: verified.userId,
-          email: verified.email,
-          role: (verified.role as WorkspaceRole) || 'client',
-          workspaceId: verified.workspaceId,
-        },
-        supabase: adminSupabase,
-      };
+      return buildUserResult({
+        id: verified.userId,
+        email: verified.email,
+        role: (verified.role as WorkspaceRole) || 'client',
+        workspaceId: verified.workspaceId,
+        workspace_id: verified.workspaceId,
+      });
     }
 
     // Check with Supabase Auth
     if (adminSupabase) {
       const { data: authData, error } = await adminSupabase.auth.getUser(token);
       if (!error && authData?.user) {
-        return {
-          user: {
-            id: authData.user.id,
-            email: authData.user.email || '',
-            role: 'client',
-          },
-          supabase: adminSupabase,
-        };
+        return buildUserResult({
+          id: authData.user.id,
+          email: authData.user.email || '',
+          role: 'client',
+        });
       }
     }
   }
@@ -100,12 +109,34 @@ export async function requireUser(req: NextRequest): Promise<{
 }
 
 export async function requireWorkspaceRole(
-  supabase: ReturnType<typeof getAdminSupabase>,
-  userId: string,
-  workspaceId: string,
-  allowedRoles: WorkspaceRole[],
-  currentUserRole?: WorkspaceRole
+  arg1: any,
+  arg2: any,
+  arg3: any,
+  arg4?: any,
+  arg5?: any
 ): Promise<WorkspaceRole> {
+  let supabase: ReturnType<typeof getAdminSupabase>;
+  let userId: string;
+  let workspaceId: string;
+  let allowedRoles: WorkspaceRole[];
+  let currentUserRole: WorkspaceRole | undefined;
+
+  if (typeof arg1 === 'string') {
+    // Called as: requireWorkspaceRole(userId, workspaceId, allowedRoles, currentUserRole?)
+    supabase = getAdminSupabase();
+    userId = arg1;
+    workspaceId = arg2;
+    allowedRoles = arg3;
+    currentUserRole = arg4;
+  } else {
+    // Called as: requireWorkspaceRole(supabase, userId, workspaceId, allowedRoles, currentUserRole?)
+    supabase = arg1 || getAdminSupabase();
+    userId = arg2;
+    workspaceId = arg3;
+    allowedRoles = arg4;
+    currentUserRole = arg5;
+  }
+
   // Validate workspaceId is a strictly valid UUID v4
   const parsed = z.string().uuid().safeParse(workspaceId);
   if (!parsed.success) {
