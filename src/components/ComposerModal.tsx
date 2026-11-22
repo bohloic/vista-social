@@ -4,6 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SocialAccount, Post, SocialPlatform, PostType } from '@/lib/types';
 import { PlatformPreview } from './PlatformPreview';
 import {
+  CURATED_FLYER_PRESETS,
+  renderFlyerCompositeToDataUrl,
+  CuratedFlyerPreset,
+} from '@/lib/flyer-studio';
+import {
   X,
   Sparkles,
   Calendar,
@@ -20,6 +25,13 @@ import {
   Film,
   CheckCircle2,
   ImagePlus,
+  Type,
+  Download,
+  Layers,
+  Tag,
+  Phone,
+  Palette,
+  Eye,
 } from 'lucide-react';
 
 interface ComposerModalProps {
@@ -66,13 +78,26 @@ export function ComposerModal({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // AI Visuals Generator States
+  // AI Visuals & Hybrid Flyer Studio States (Architecture 2026 : Fond IA + Typo Dynamique)
   const [aiVisualOpen, setAiVisualOpen] = useState(false);
+  const [aiVisualTab, setAiVisualTab] = useState<'generate' | 'presets'>('generate');
   const [aiVisualPrompt, setAiVisualPrompt] = useState('');
-  const [aiVisualRatio, setAiVisualRatio] = useState<'1:1' | '16:9' | '9:16' | '4:5'>('1:1');
-  const [aiVisualStyle, setAiVisualStyle] = useState<'photorealistic' | 'cinematic' | 'vibrant' | 'luxury' | 'corporate' | 'minimalist'>('photorealistic');
+  const [aiVisualRatio, setAiVisualRatio] = useState<'1:1' | '16:9' | '9:16' | '4:5' | 'a4'>('1:1');
+  const [aiVisualStyle, setAiVisualStyle] = useState<
+    'photorealistic' | 'cinematic' | 'vibrant' | 'luxury' | 'corporate' | 'minimalist' | 'flyer_promo' | '3d_clay'
+  >('photorealistic');
   const [aiVisualLoading, setAiVisualLoading] = useState(false);
   const [generatedVisualPreview, setGeneratedVisualPreview] = useState<string | null>(null);
+
+  // Dynamic Typography Overlay States (Cost = $0, real-time client side)
+  const [overlayEnabled, setOverlayEnabled] = useState(true);
+  const [overlayHeadline, setOverlayHeadline] = useState('');
+  const [overlaySubtitle, setOverlaySubtitle] = useState('');
+  const [overlayBadge, setOverlayBadge] = useState('');
+  const [overlayCta, setOverlayCta] = useState('');
+  const [overlayPosition, setOverlayPosition] = useState<'bottom' | 'top' | 'glass'>('bottom');
+  const [overlayAccentColor, setOverlayAccentColor] = useState('#F59E0B');
+  const [isExportingFlyer, setIsExportingFlyer] = useState(false);
 
   // Populate state when editingPost changes
   useEffect(() => {
@@ -236,6 +261,7 @@ export function ComposerModal({
           aspectRatio: aiVisualRatio,
           style: aiVisualStyle,
           platform: activePreviewPlatform,
+          optimizeWithLLM: true,
         }),
       });
 
@@ -244,6 +270,18 @@ export function ComposerModal({
         const outputUrl = data.imageUrl || data.url;
         if (outputUrl) {
           setGeneratedVisualPreview(outputUrl);
+          if (data.overlayData) {
+            setOverlayHeadline(data.overlayData.headline || '');
+            setOverlaySubtitle(data.overlayData.subtitle || '');
+            setOverlayBadge(data.overlayData.badge || '');
+            setOverlayCta(data.overlayData.cta || '');
+            if (data.overlayData.suggestedLayout) {
+              setOverlayPosition(data.overlayData.suggestedLayout);
+            }
+            if (data.overlayData.accentColor) {
+              setOverlayAccentColor(data.overlayData.accentColor);
+            }
+          }
           setAiVisualLoading(false);
           return;
         }
@@ -258,12 +296,72 @@ export function ComposerModal({
     setAiVisualLoading(false);
   };
 
-  const handleApplyAiVisual = () => {
-    if (generatedVisualPreview) {
-      setMediaUrls((prev) => [...prev, generatedVisualPreview]);
+  const handleSelectPreset = (preset: CuratedFlyerPreset) => {
+    setGeneratedVisualPreview(preset.imageUrl);
+    setOverlayHeadline(preset.headline);
+    setOverlaySubtitle(preset.subtitle);
+    setOverlayBadge(preset.badge);
+    setOverlayCta(preset.cta);
+    setOverlayAccentColor(preset.accentColor);
+    setAiVisualRatio(preset.ratio);
+    setOverlayEnabled(true);
+  };
+
+  const handleApplyAiVisual = async () => {
+    if (!generatedVisualPreview) return;
+    setIsExportingFlyer(true);
+
+    try {
+      if (overlayEnabled && (overlayHeadline || overlayBadge || overlaySubtitle || overlayCta)) {
+        const compositeUrl = await renderFlyerCompositeToDataUrl({
+          imageUrl: generatedVisualPreview,
+          headline: overlayHeadline,
+          subtitle: overlaySubtitle,
+          badge: overlayBadge,
+          cta: overlayCta,
+          ratio: aiVisualRatio,
+          position: overlayPosition,
+          accentColor: overlayAccentColor,
+        });
+        setMediaUrls((prev) => [...prev, compositeUrl]);
+      } else {
+        setMediaUrls((prev) => [...prev, generatedVisualPreview]);
+      }
       setGeneratedVisualPreview(null);
       setAiVisualOpen(false);
       setAiVisualPrompt('');
+    } catch {
+      setMediaUrls((prev) => [...prev, generatedVisualPreview]);
+      setGeneratedVisualPreview(null);
+      setAiVisualOpen(false);
+    } finally {
+      setIsExportingFlyer(false);
+    }
+  };
+
+  const handleDownloadFlyerHD = async () => {
+    if (!generatedVisualPreview) return;
+    setIsExportingFlyer(true);
+    try {
+      const dataUrl = await renderFlyerCompositeToDataUrl({
+        imageUrl: generatedVisualPreview,
+        headline: overlayHeadline,
+        subtitle: overlaySubtitle,
+        badge: overlayBadge,
+        cta: overlayCta,
+        ratio: aiVisualRatio,
+        position: overlayPosition,
+        accentColor: overlayAccentColor,
+      });
+
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `pulsesocial-flyer-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      setIsExportingFlyer(false);
     }
   };
 
@@ -641,112 +739,376 @@ export function ComposerModal({
                 </div>
               )}
 
-              {/* AI VISUAL GENERATION DRAWER */}
+              {/* AI VISUAL & HYBRID FLYER GENERATION DRAWER */}
               {aiVisualOpen && (
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-950/60 via-slate-900 to-pink-950/40 border border-violet-500/30 space-y-3 animate-in fade-in">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <ImagePlus className="w-4 h-4 text-pink-400" />
-                      Studio de Création Visuelle IA (HD)
-                    </span>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950/70 to-purple-950/50 border border-indigo-500/30 space-y-3.5 animate-in fade-in shadow-2xl text-white">
+                  {/* Studio Header */}
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-pink-500 to-indigo-500 flex items-center justify-center shadow-md">
+                        <Sparkles className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                          Studio d&apos;Affiches &amp; Flyers Hybride HD
+                          <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Économie -80% API
+                          </span>
+                        </h4>
+                        <p className="text-[10px] text-slate-400">Fond IA (FLUX/Nano) + Typographie vectorielle modifiable sans frais</p>
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setAiVisualOpen(false)}
-                      className="text-slate-400 hover:text-white text-xs"
+                      className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
                     >
                       Fermer
                     </button>
                   </div>
 
-                  <input
-                    type="text"
-                    value={aiVisualPrompt}
-                    onChange={(e) => setAiVisualPrompt(e.target.value)}
-                    placeholder="Décrivez votre image idéale (ex: Un studio d'enregistrement moderne avec éclairage néon violet et microphone pro)..."
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-violet-800 bg-slate-950 text-white placeholder-slate-500 focus:outline-none focus:border-violet-400"
-                  />
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-slate-400 mb-1">
-                        Ratio d&apos;aspect :
-                      </label>
-                      <select
-                        value={aiVisualRatio}
-                        onChange={(e) => setAiVisualRatio(e.target.value as any)}
-                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-800 bg-slate-900 text-slate-200"
-                      >
-                        <option value="1:1">1:1 - Carré (Instagram Feed)</option>
-                        <option value="16:9">16:9 - Paysage (LinkedIn / X)</option>
-                        <option value="9:16">9:16 - Vertical (Story / Reel / TikTok)</option>
-                        <option value="4:5">4:5 - Portrait (Instagram Portrait)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-semibold text-slate-400 mb-1">
-                        Style artistique :
-                      </label>
-                      <select
-                        value={aiVisualStyle}
-                        onChange={(e) => setAiVisualStyle(e.target.value as any)}
-                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-800 bg-slate-900 text-slate-200"
-                      >
-                        <option value="photorealistic">Photo Réaliste 8K</option>
-                        <option value="cinematic">Cinématique & Lumineux</option>
-                        <option value="luxury">Luxe & Épuré</option>
-                        <option value="vibrant">Vibrant & Pop</option>
-                        <option value="corporate">Corporate & Tech</option>
-                        <option value="minimalist">Minimaliste Studio</option>
-                      </select>
-                    </div>
+                  {/* Mode Tabs: AI Generation vs Curated Presets ($0) */}
+                  <div className="flex items-center gap-1 p-1 rounded-xl bg-black/40 border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setAiVisualTab('generate')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                        aiVisualTab === 'generate'
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      <span>Génération IA (Prompt + Negative Space)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiVisualTab('presets')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                        aiVisualTab === 'presets'
+                          ? 'bg-purple-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Modèles Prêts &amp; Gratuits (0$)</span>
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleGenerateAiVisual}
-                    disabled={aiVisualLoading || !aiVisualPrompt.trim()}
-                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg cursor-pointer"
-                  >
-                    {aiVisualLoading ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Génération Haute Résolution en cours...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="w-3.5 h-3.5" />
-                        <span>Générer le Visuel IA</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Tab 1: AI Prompt Input */}
+                  {aiVisualTab === 'generate' && (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={aiVisualPrompt}
+                        onChange={(e) => setAiVisualPrompt(e.target.value)}
+                        placeholder="Décrivez votre visuel (ex: Burger gourmet royal avec frites maison pour restaurant à Abidjan)..."
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-indigo-500/40 bg-slate-950 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+                      />
 
-                  {/* Generated Visual Preview Card */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-1">
+                            Format &amp; Ratio :
+                          </label>
+                          <select
+                            value={aiVisualRatio}
+                            onChange={(e) => setAiVisualRatio(e.target.value as any)}
+                            className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-white/10 bg-slate-900 text-slate-200"
+                          >
+                            <option value="1:1">1:1 - Carré (Feed Instagram / Facebook)</option>
+                            <option value="4:5">4:5 - Portrait (Optimal Feed Instagram)</option>
+                            <option value="9:16">9:16 - Vertical (Story / TikTok / Reels)</option>
+                            <option value="16:9">16:9 - Paysage (LinkedIn / X / Bannière)</option>
+                            <option value="a4">A4 - Affiche &amp; Flyer Print / HD</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-1">
+                            Style artistique :
+                          </label>
+                          <select
+                            value={aiVisualStyle}
+                            onChange={(e) => setAiVisualStyle(e.target.value as any)}
+                            className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-white/10 bg-slate-900 text-slate-200"
+                          >
+                            <option value="photorealistic">Photo Réaliste Publicitaire 8K</option>
+                            <option value="cinematic">Cinématique &amp; Lumineux</option>
+                            <option value="luxury">Luxe &amp; Épuré</option>
+                            <option value="vibrant">Vibrant &amp; Coloré</option>
+                            <option value="corporate">Corporate &amp; B2B</option>
+                            <option value="flyer_promo">Affiche Promo &amp; Social Selling</option>
+                            <option value="3d_clay">3D Claymorphism Stylisé</option>
+                            <option value="minimalist">Minimaliste Studio</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleGenerateAiVisual}
+                        disabled={aiVisualLoading || !aiVisualPrompt.trim()}
+                        className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer"
+                      >
+                        {aiVisualLoading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Optimisation Gemini &amp; Génération du Fond HD...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-3.5 h-3.5" />
+                            <span>Générer le Fond IA avec Espace Typographique</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Tab 2: Curated Zero-Cost Presets */}
+                  {aiVisualTab === 'presets' && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
+                      {CURATED_FLYER_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleSelectPreset(preset)}
+                          className="group text-left p-2 rounded-xl bg-slate-950/80 border border-white/10 hover:border-indigo-400 transition-all cursor-pointer relative overflow-hidden"
+                        >
+                          <div className="w-full h-16 rounded-lg overflow-hidden mb-1.5 relative">
+                            <img
+                              src={preset.imageUrl}
+                              alt={preset.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                            <span
+                              className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold text-white shadow"
+                              style={{ backgroundColor: preset.accentColor }}
+                            >
+                              {preset.badge}
+                            </span>
+                          </div>
+                          <p className="text-[10px] font-bold text-white truncate">{preset.title}</p>
+                          <p className="text-[9px] text-slate-400 truncate">{preset.category}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Generated Visual + Dynamic Typography Overlay Live Studio */}
                   {generatedVisualPreview && (
-                    <div className="pt-2 border-t border-slate-800 space-y-2">
-                      <p className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Visuel généré avec succès !
-                      </p>
-                      <div className="w-full max-h-48 rounded-xl overflow-hidden border border-violet-500/40 bg-black flex items-center justify-center">
+                    <div className="pt-3 border-t border-white/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Visuel prêt pour habillage typographique
+                        </span>
+                        <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={overlayEnabled}
+                            onChange={(e) => setOverlayEnabled(e.target.checked)}
+                            className="rounded border-slate-700 text-indigo-600 focus:ring-0"
+                          />
+                          <span>Superposer le texte (Flyer)</span>
+                        </label>
+                      </div>
+
+                      {/* Interactive Live Composite Preview */}
+                      <div className="relative w-full rounded-2xl overflow-hidden border border-indigo-500/40 bg-black flex items-center justify-center shadow-inner group">
                         <img
                           src={generatedVisualPreview}
-                          alt="Aperçu IA"
-                          className="max-h-48 w-auto object-contain"
+                          alt="Fond IA"
+                          className="w-full max-h-56 object-cover"
                           onError={(e) => {
                             const target = e.currentTarget;
                             if (!target.src.includes('images.unsplash.com')) {
-                              target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&auto=format&fit=crop&q=85';
+                              target.src = 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=1200&auto=format&fit=crop&q=85';
                             }
                           }}
                         />
+
+                        {/* Live CSS Typography Overlay (Matches Canvas Render exactly) */}
+                        {overlayEnabled && (overlayHeadline || overlayBadge || overlaySubtitle || overlayCta) && (
+                          <div
+                            className={`absolute inset-0 flex flex-col justify-end p-4 transition-all pointer-events-none ${
+                              overlayPosition === 'top'
+                                ? 'bg-gradient-to-b from-black/90 via-black/50 to-transparent justify-start'
+                                : overlayPosition === 'glass'
+                                ? 'bg-black/30 items-center justify-center p-3'
+                                : 'bg-gradient-to-t from-black/95 via-black/60 to-transparent justify-end'
+                            }`}
+                          >
+                            <div
+                              className={
+                                overlayPosition === 'glass'
+                                  ? 'p-3 rounded-2xl bg-slate-900/85 backdrop-blur-md border border-white/20 w-full space-y-1 text-center'
+                                  : 'space-y-1'
+                              }
+                            >
+                              {overlayBadge && (
+                                <span
+                                  className="inline-block px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase text-white shadow-sm"
+                                  style={{ backgroundColor: overlayAccentColor }}
+                                >
+                                  {overlayBadge}
+                                </span>
+                              )}
+                              {overlayHeadline && (
+                                <h3 className="text-xs sm:text-sm font-black text-white tracking-tight leading-tight drop-shadow-md">
+                                  {overlayHeadline}
+                                </h3>
+                              )}
+                              {overlaySubtitle && (
+                                <p className="text-[10px] text-slate-200 font-medium drop-shadow-sm">
+                                  {overlaySubtitle}
+                                </p>
+                              )}
+                              {overlayCta && (
+                                <p
+                                  className="text-[10px] font-bold drop-shadow-sm pt-0.5"
+                                  style={{ color: overlayAccentColor }}
+                                >
+                                  👉 {overlayCta}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleApplyAiVisual}
-                        className="w-full py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors cursor-pointer"
-                      >
-                        Ajouter ce visuel à mon post
-                      </button>
+
+                      {/* Real-time Typography Overlay Editor (0$ API cost) */}
+                      {overlayEnabled && (
+                        <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-2 text-xs">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <Type className="w-3.5 h-3.5 text-indigo-400" />
+                            Personnalisation instantanée des textes (0$ par retouche)
+                          </p>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] font-semibold text-slate-400 mb-0.5">
+                                Badge Prix / Promo :
+                              </label>
+                              <input
+                                type="text"
+                                value={overlayBadge}
+                                onChange={(e) => setOverlayBadge(e.target.value)}
+                                placeholder="Ex: 6 500 FCFA, -20%"
+                                className="w-full px-2 py-1 text-xs rounded-lg border border-white/10 bg-slate-900 text-white focus:outline-none focus:border-indigo-400"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] font-semibold text-slate-400 mb-0.5">
+                                Contact / Action :
+                              </label>
+                              <input
+                                type="text"
+                                value={overlayCta}
+                                onChange={(e) => setOverlayCta(e.target.value)}
+                                placeholder="Ex: WhatsApp: +225 07 00 00 00"
+                                className="w-full px-2 py-1 text-xs rounded-lg border border-white/10 bg-slate-900 text-white focus:outline-none focus:border-indigo-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-semibold text-slate-400 mb-0.5">
+                              Titre d&apos;Accroche (Headline) :
+                            </label>
+                            <input
+                              type="text"
+                              value={overlayHeadline}
+                              onChange={(e) => setOverlayHeadline(e.target.value)}
+                              placeholder="Ex: Menu Royal & Frites Maison"
+                              className="w-full px-2 py-1 text-xs rounded-lg border border-white/10 bg-slate-900 text-white focus:outline-none focus:border-indigo-400"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-semibold text-slate-400 mb-0.5">
+                              Sous-titre / Détails de l&apos;offre :
+                            </label>
+                            <input
+                              type="text"
+                              value={overlaySubtitle}
+                              onChange={(e) => setOverlaySubtitle(e.target.value)}
+                              placeholder="Ex: Saveurs authentiques • Ingrédients frais du jour"
+                              className="w-full px-2 py-1 text-xs rounded-lg border border-white/10 bg-slate-900 text-white focus:outline-none focus:border-indigo-400"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                              <label className="block text-[9px] font-semibold text-slate-400 mb-0.5">
+                                Style d&apos;habillage :
+                              </label>
+                              <select
+                                value={overlayPosition}
+                                onChange={(e) => setOverlayPosition(e.target.value as any)}
+                                className="w-full px-2 py-1 text-xs rounded-lg border border-white/10 bg-slate-900 text-slate-200"
+                              >
+                                <option value="bottom">Bandeau Bas (Dégradé Sombre)</option>
+                                <option value="top">Bandeau Haut (En-tête)</option>
+                                <option value="glass">Cartouche Flottant (Glassmorphism)</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] font-semibold text-slate-400 mb-0.5">
+                                Couleur d&apos;accent :
+                              </label>
+                              <div className="flex items-center gap-1.5 pt-1">
+                                {['#F59E0B', '#EC4899', '#6366F1', '#10B981', '#EF4444'].map((col) => (
+                                  <button
+                                    key={col}
+                                    type="button"
+                                    onClick={() => setOverlayAccentColor(col)}
+                                    className={`w-5 h-5 rounded-full border transition-transform ${
+                                      overlayAccentColor === col ? 'scale-125 border-white ring-2 ring-indigo-500' : 'border-transparent'
+                                    }`}
+                                    style={{ backgroundColor: col }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Final Action Buttons */}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleApplyAiVisual}
+                          disabled={isExportingFlyer}
+                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/30 cursor-pointer"
+                        >
+                          {isExportingFlyer ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Fusion Canvas HD...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Ajouter ce Flyer au Post</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDownloadFlyerHD}
+                          disabled={isExportingFlyer}
+                          className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                          title="Télécharger l'affiche haute résolution prête pour impression ou WhatsApp"
+                        >
+                          <Download className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Télécharger HD</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

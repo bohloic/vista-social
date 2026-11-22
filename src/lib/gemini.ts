@@ -580,3 +580,122 @@ Message: ${params.message}`,
     reply: `Absolument, je suis à votre disposition. Je peux concevoir une publication percutante pour vos réseaux, analyser un visuel, ajouter ou mettre à jour un prospect dans votre CRM ou générer un lien d'encaissement Paystack. Que préférez-vous lancer ?`,
   };
 }
+
+export interface OptimizedVisualDesign {
+  englishPrompt: string;
+  headline: string;
+  subtitle: string;
+  badge: string;
+  cta: string;
+  suggestedOverlayLayout: 'bottom' | 'top' | 'split' | 'glassmorphism';
+  accentColor: string;
+}
+
+function fallbackVisualOptimization(userIdea: string, style: string, ratio: string): OptimizedVisualDesign {
+  const p = userIdea.toLowerCase();
+  let subject = 'professional commercial product presentation';
+  let headline = userIdea.slice(0, 36);
+  let subtitle = 'Offre exclusive • Stock limité';
+  let badge = 'PROMO EXCLUSIVE';
+  let cta = 'Contactez-nous sur WhatsApp';
+  let accentColor = '#6366F1';
+
+  if (/burger|restau|food|repas|plat|pizza|grillade|cuisine/i.test(p)) {
+    subject = 'delicious gourmet burger and fries on a dark rustic wooden table, cinematic commercial food photography';
+    headline = 'Saveurs Gourmandes & Authentiques';
+    subtitle = 'Ingrédients frais du jour • Livraison rapide';
+    badge = 'MENU DU JOUR';
+    cta = 'Commandez au +225 07 00 00 00';
+    accentColor = '#F59E0B';
+  } else if (/mode|robe|vetement|fashion|couture|tissu|wax|style/i.test(p)) {
+    subject = 'elegant modern African haute couture fashion model posing in minimal studio setting, high-end editorial fashion photography';
+    headline = 'Nouvelle Collection Exclusive';
+    subtitle = 'Créations sur-mesure & finitions haut de gamme';
+    badge = '-20% CETTE SEMAINE';
+    cta = 'Dispo en boutique & expédition partout';
+    accentColor = '#EC4899';
+  } else if (/event|soiree|concert|show|afrobeat|party|festival/i.test(p)) {
+    subject = 'vibrant atmospheric music event stage with neon lighting, dramatic backlight, crowd silhouette, atmospheric fog';
+    headline = 'Soirée Spéciale En Live';
+    subtitle = 'Ambiance 100% garantie avec les meilleurs DJ';
+    badge = 'ENTRÉE LIBRE';
+    cta = 'Infoline & Réservation tables';
+    accentColor = '#8B5CF6';
+  } else if (/promo|solde|vente|reduction|black|deal/i.test(p)) {
+    subject = 'luxury shopping bags and glowing gift boxes on sleek pedestal, sleek minimalist commercial advertisement';
+    headline = 'Grande Vente Flash';
+    subtitle = 'Remises exceptionnelles sur tous vos articles préférés';
+    badge = "JUSQU'À -50%";
+    cta = "Offre valable jusqu'à épuisement";
+    accentColor = '#EF4444';
+  }
+
+  const negativeSpaceDesc = 'clean empty negative space at top or bottom reserved for advertising typography, no text, no watermark, Hasselblad 8k';
+  const englishPrompt = `${subject}, ${style} style, ${negativeSpaceDesc}, commercial advertising shot`;
+
+  return {
+    englishPrompt,
+    headline,
+    subtitle,
+    badge,
+    cta,
+    suggestedOverlayLayout: 'bottom',
+    accentColor,
+  };
+}
+
+export async function optimizeVisualPromptForFlyer(
+  userIdea: string,
+  style: string = 'photorealistic',
+  ratio: string = '1:1'
+): Promise<OptimizedVisualDesign> {
+  const systemInstruction = `Tu es un Directeur Artistique et Designer Publicitaire Senior.
+Ta mission est d'analyser l'idée de visuel/affiche/flyer d'un utilisateur et de la transformer en :
+1. Un prompt visuel en anglais pour les moteurs d'images IA (FLUX.1, Nano Banana 2, Recraft V4.1).
+   - Décris UNIQUEMENT le sujet, l'ambiance et la composition avec un ESPACE NÉGATIF DÉGAGÉ (empty copy space) pour la typographie.
+   - Interdiction formelle d'ajouter du texte dans l'image ("no text, no letters, no baked-in fonts, clean empty negative space").
+2. Les textes publicitaires en français à superposer par-dessus (Titre d'accroche court, Sous-titre ou offre, Badge de prix/promo, CTA contact).
+Réponds STRICTEMENT sous format JSON :
+{"englishPrompt": "...", "headline": "...", "subtitle": "...", "badge": "...", "cta": "...", "suggestedOverlayLayout": "bottom", "accentColor": "#6366F1"}`;
+
+  try {
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `Idée : "${userIdea}". Style : ${style}. Format : ${ratio}. Génère le prompt anglais avec negative space et les textes du flyer.`,
+            },
+          ],
+        },
+      ],
+      systemInstruction: {
+        parts: [{ text: systemInstruction }],
+      },
+      generationConfig: {
+        temperature: 0.3,
+        responseMimeType: 'application/json',
+      },
+    };
+
+    const text = await callGeminiAPI(payload);
+    if (text) {
+      const parsed = JSON.parse(text);
+      if (parsed.englishPrompt) {
+        return {
+          englishPrompt: parsed.englishPrompt,
+          headline: parsed.headline || userIdea.slice(0, 36),
+          subtitle: parsed.subtitle || 'Offre limitée • Qualité premium',
+          badge: parsed.badge || 'PROMO EXCLUSIVE',
+          cta: parsed.cta || 'Contactez-nous sur WhatsApp',
+          suggestedOverlayLayout: parsed.suggestedOverlayLayout || 'bottom',
+          accentColor: parsed.accentColor || '#6366F1',
+        };
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  return fallbackVisualOptimization(userIdea, style, ratio);
+}
