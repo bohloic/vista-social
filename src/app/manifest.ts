@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Plateforme Intelligente de Community Management, Social Selling et Facturation Mobile Money.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#F7F5F0',
-    theme_color: '#6366F1',
+    background_color: '#F5F3FF',
+    theme_color: '#7C3AED',
     orientation: 'portrait-primary',
     scope: '/',
     icons: [

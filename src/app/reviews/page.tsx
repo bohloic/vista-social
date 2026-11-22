@@ -214,11 +214,11 @@ export default function ReviewsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-2">
-            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-            Gestion des Avis & Réputation Locale
+          <h1 className="text-2xl font-black font-fredoka text-[#1E1B4B] flex items-center gap-2">
+            <Star className="w-6 h-6 text-[#FACC15] fill-[#FACC15]" />
+            Gestion des Avis &amp; Réputation Locale
           </h1>
-          <p className="text-xs text-slate-600 font-medium">
+          <p className="text-xs text-slate-600 font-medium font-jakarta">
             Centralisez et répondez aux avis Google Business, Yelp, Trustpilot et Facebook pour {workspaceName}.
           </p>
         </div>
@@ -228,7 +228,7 @@ export default function ReviewsPage() {
           <button
             type="button"
             onClick={() => setProjectionMode(!projectionMode)}
-            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold font-jakarta rounded-xl bg-white border border-violet-100 text-[#1E1B4B] hover:bg-violet-50 transition-colors cursor-pointer shadow-sm"
           >
             {projectionMode ? 'Afficher données réelles' : 'Simuler projection IA'}
           </button>
@@ -236,16 +236,16 @@ export default function ReviewsPage() {
           {!projectionMode && (
             <button
               onClick={handleSimulateReview}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-600/25 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-jakarta bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-md shadow-violet-600/25 transition-all cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>+ Simuler / Importer un avis client (Google / Facebook)</span>
             </button>
           )}
 
-          <div className="flex items-center gap-3 p-3 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-3 p-3 bg-white border border-violet-100 rounded-2xl shadow-sm">
             <div className="text-center">
-              <span className="text-2xl font-black text-white leading-none block">
+              <span className="text-2xl font-black font-fredoka text-[#1E1B4B] leading-none block">
                 {avgRating}
               </span>
               <div className="flex items-center gap-0.5 justify-center mt-1">
@@ -253,15 +253,15 @@ export default function ReviewsPage() {
                   <Star
                     key={i}
                     className={`w-3 h-3 ${Number(avgRating) > i
-                      ? 'text-yellow-400 fill-yellow-400'
-                      : 'text-slate-700'
+                      ? 'text-[#FACC15] fill-[#FACC15]'
+                      : 'text-slate-200'
                       }`}
                   />
                 ))}
               </div>
             </div>
-            <div className="text-xs text-slate-400 border-l border-slate-800 pl-3">
-              <strong className="text-slate-100 block">
+            <div className="text-xs text-slate-500 font-jakarta border-l border-violet-100 pl-3">
+              <strong className="text-[#1E1B4B] block font-jakarta">
                 {projectionMode ? '142 avis au total' : `${totalReviews} avis au total`}
               </strong>
               <span>{responseRate}% de taux de réponse</span>
@@ -271,34 +271,34 @@ export default function ReviewsPage() {
       </div>
 
       {/* Connected Channels Hub Bar */}
-      <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+      <div className="p-3.5 rounded-2xl bg-white border border-violet-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm font-jakarta">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-slate-400 font-semibold flex items-center gap-1.5">
-            <Share2 className="w-3.5 h-3.5 text-violet-400" />
+          <span className="text-slate-500 font-semibold flex items-center gap-1.5">
+            <Share2 className="w-3.5 h-3.5 text-[#7C3AED]" />
             Canaux surveillés :
           </span>
           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
             hasGoogle
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-slate-800 text-slate-400 border border-slate-700'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-slate-100 text-slate-500 border border-slate-200'
           }`}>
-            <CheckCircle2 className="w-3 h-3" /> Google Business ({hasGoogle ? 'Connecté' : 'Non lié'})
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Google Business ({hasGoogle ? 'Connecté' : 'Non lié'})
           </span>
           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
             hasFacebook
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-slate-800 text-slate-400 border border-slate-700'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-slate-100 text-slate-500 border border-slate-200'
           }`}>
-            <CheckCircle2 className="w-3 h-3" /> Facebook Pages ({hasFacebook ? 'Connecté' : 'Non lié'})
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Facebook Pages ({hasFacebook ? 'Connecté' : 'Non lié'})
           </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
             Trustpilot (Webhook)
           </span>
         </div>
 
         <Link
           href="/settings"
-          className="text-violet-400 hover:text-violet-300 font-semibold text-[11px] flex items-center gap-1 shrink-0"
+          className="text-[#7C3AED] hover:text-[#6D28D9] font-bold text-[11px] flex items-center gap-1 shrink-0"
         >
           <span>Gérer les comptes sociaux</span>
           <ArrowRight className="w-3.5 h-3.5" />
@@ -306,15 +306,15 @@ export default function ReviewsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-2 p-3 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-sm overflow-x-auto text-slate-100">
-        <span className="text-xs font-semibold text-slate-400 flex items-center gap-1 pl-2">
+      <div className="flex items-center gap-2 p-3 bg-white border border-violet-100 rounded-2xl shadow-sm overflow-x-auto text-[#1E1B4B] font-jakarta">
+        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 pl-2">
           <Filter className="w-3.5 h-3.5" /> Note :
         </span>
         <button
           onClick={() => setRatingFilter('all')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${ratingFilter === 'all'
-            ? 'bg-violet-600 text-white shadow-sm'
-            : 'text-slate-300 hover:bg-slate-800'
+          className={`px-3 py-1.5 rounded-xl text-xs font-semibold font-jakarta transition-all cursor-pointer ${ratingFilter === 'all'
+            ? 'bg-[#7C3AED] text-white shadow-sm'
+            : 'text-slate-600 hover:bg-violet-50'
             }`}
         >
           Tous les avis ({totalReviews})
@@ -325,13 +325,13 @@ export default function ReviewsPage() {
             <button
               key={stars}
               onClick={() => setRatingFilter(stars)}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${ratingFilter === stars
-                ? 'bg-violet-600 text-white shadow-sm'
-                : 'text-slate-300 hover:bg-slate-800'
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold font-jakarta transition-all cursor-pointer ${ratingFilter === stars
+                ? 'bg-[#7C3AED] text-white shadow-sm'
+                : 'text-slate-600 hover:bg-violet-50'
                 }`}
             >
               <span>{stars}</span>
-              <Star className="w-3 h-3 fill-current text-yellow-400" />
+              <Star className="w-3 h-3 fill-current text-[#FACC15]" />
               <span className="text-[10px] opacity-70">({countForStar})</span>
             </button>
           );

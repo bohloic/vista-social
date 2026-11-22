@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -60,29 +61,34 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
         />
       )}
 
-      {/* Main Sidebar Container (Claymorphism Pure White) */}
+      {/* Main Sidebar Container (Brand Kit Pure White) */}
       <aside
-        className={`bg-white text-slate-700 min-h-screen flex flex-col border-r border-slate-200/90 shadow-[0_10px_35px_rgba(118,97,163,0.06)] shrink-0 select-none z-50 transition-transform duration-300 ease-in-out ${
+        className={`bg-white text-slate-700 min-h-screen flex flex-col border-r border-violet-100 shadow-[0_10px_35px_rgba(124,58,237,0.05)] shrink-0 select-none z-50 transition-transform duration-300 ease-in-out ${
           isOpen
             ? 'fixed inset-y-0 left-0 w-72 shadow-2xl translate-x-0'
             : 'hidden lg:flex lg:w-64 lg:static lg:translate-x-0'
         }`}
       >
         {/* Brand Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-5 border-b border-violet-100/70 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6366F1] via-[#7C3AED] to-[#A855F7] flex items-center justify-center font-black text-white shadow-md shadow-indigo-500/25">
-              <Zap className="w-5 h-5 fill-white" />
-            </div>
+            <Image
+              src="/logo.svg"
+              alt="Pulse Social Logo"
+              width={40}
+              height={40}
+              className="w-10 h-10 object-contain drop-shadow-sm"
+              priority
+            />
             <div>
-              <h1 className="font-extrabold text-base text-slate-900 tracking-tight flex items-center gap-1.5">
+              <h1 className="font-fredoka font-semibold text-lg text-[#1E1B4B] tracking-tight flex items-center gap-1.5">
                 <span>Pulse</span>
-                <span className="text-[#6366F1]">Social</span>
-                <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
+                <span className="text-[#7C3AED]">Social</span>
+                <span className="text-[9px] uppercase font-bold font-jakarta px-1.5 py-0.5 rounded-full bg-violet-50 text-[#7C3AED] border border-violet-200">
                   PRO
                 </span>
               </h1>
-              <p className="text-[11px] text-slate-500 font-medium">Community Management</p>
+              <p className="text-[11px] text-slate-500 font-medium font-jakarta">Community Management</p>
             </div>
           </div>
 
@@ -90,21 +96,21 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
           <button
             type="button"
             onClick={onClose}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 lg:hidden cursor-pointer"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-[#1E1B4B] hover:bg-violet-50 lg:hidden cursor-pointer"
             aria-label="Fermer le menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Primary Action Button (Smooth Claymorphism Gradient) */}
+        {/* Primary Action Button (Smooth Brand Kit Violet) */}
         <div className="p-4">
           <button
             onClick={() => {
               if (onOpenComposer) onOpenComposer();
               if (onClose) onClose();
             }}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-xs shadow-lg shadow-indigo-500/25 transition-all duration-300 active:scale-[0.98] cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs font-jakarta shadow-lg shadow-violet-500/25 transition-all duration-300 active:scale-[0.98] cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>Nouveau Post</span>
@@ -122,10 +128,10 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
                 key={item.href}
                 href={item.href}
                 onClick={handleLinkClick}
-                className={`min-h-[44px] flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 ${
+                className={`min-h-[44px] flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold font-jakarta transition-all duration-200 ${
                   isActive
-                    ? 'bg-[#6366F1] text-white shadow-md shadow-indigo-500/25'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                    ? 'bg-[#7C3AED] text-white shadow-md shadow-violet-500/25'
+                    : 'text-slate-600 hover:text-[#1E1B4B] hover:bg-violet-50/70'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -134,7 +140,7 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
                 </div>
                 {item.badge && (
                   <span
-                    className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                    className={`text-[9px] font-bold font-jakarta px-2 py-0.5 rounded-full ${
                       isActive
                         ? 'bg-white/20 text-white'
                         : item.badge === 'Smart'
@@ -143,7 +149,7 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
                         ? 'bg-purple-50 text-purple-600 border border-purple-200'
                         : item.badge === 'FCFA'
                         ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                        : 'bg-violet-50 text-[#7C3AED] border border-violet-200'
                     }`}
                   >
                     {item.badge}
@@ -154,13 +160,13 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
           })}
         </nav>
 
-        {/* 3D Goal Card (Direct inspiration from FinTrack: Save more, Achieve more!) */}
-        <div className="p-4 mx-3 mb-3 rounded-2xl bg-gradient-to-br from-[#7C3AED] via-[#6366F1] to-[#4F46E5] text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden">
+        {/* 3D Goal Card */}
+        <div className="p-4 mx-3 mb-3 rounded-2xl bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#1E1B4B] text-white shadow-lg shadow-violet-500/20 relative overflow-hidden">
           <div className="flex items-start justify-between">
             <div className="space-y-1 max-w-[130px]">
-              <p className="text-[11px] font-bold text-indigo-100 uppercase tracking-wider">Objectif Mensuel</p>
-              <h4 className="text-xs font-extrabold leading-tight">Augmentez votre portée</h4>
-              <p className="text-[10px] text-indigo-200 leading-tight">Campagnes multi-réseaux</p>
+              <p className="text-[11px] font-bold text-violet-200 uppercase tracking-wider font-jakarta">Objectif Mensuel</p>
+              <h4 className="text-xs font-black font-fredoka leading-tight">Augmentez votre portée</h4>
+              <p className="text-[10px] text-violet-200/90 leading-tight font-jakarta">Campagnes multi-réseaux</p>
             </div>
             <ClayPiggyBankIcon className="w-12 h-12 shrink-0 drop-shadow-md" />
           </div>
@@ -168,7 +174,7 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
             onClick={() => {
               if (onOpenComposer) onOpenComposer();
             }}
-            className="mt-3 w-full py-1.5 px-3 rounded-xl bg-white text-[#6366F1] hover:bg-indigo-50 text-[11px] font-bold shadow-sm transition-colors text-center cursor-pointer"
+            className="mt-3 w-full py-1.5 px-3 rounded-xl bg-white text-[#7C3AED] hover:bg-violet-50 text-[11px] font-bold font-jakarta shadow-sm transition-colors text-center cursor-pointer"
           >
             Créer un Post
           </button>

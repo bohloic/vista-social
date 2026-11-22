@@ -124,17 +124,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Cryptographic session & Supabase session verification
+  // 2. Cryptographic session verification
   const sessionCookie = request.cookies.get('pulsesocial_session');
   const isValidSession = await isSessionValid(sessionCookie?.value);
 
   const authHeader = request.headers.get('authorization');
   const hasBearerToken = !!(authHeader && authHeader.startsWith('Bearer '));
-  const hasSupabaseCookie = request.cookies.getAll().some(
-    (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
-  );
 
-  const isAuthenticated = isValidSession || hasBearerToken || hasSupabaseCookie;
+  // Only consider authenticated if a verified cryptographic session or Bearer token is present
+  const isAuthenticated = isValidSession || hasBearerToken;
 
   // 3. Authenticated user visiting /login -> redirect to dashboard /
   if (pathname === '/login') {

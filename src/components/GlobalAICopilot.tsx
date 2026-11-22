@@ -21,8 +21,8 @@ export function GlobalAICopilot() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Hide floating button when already on dedicated /chat page
-  if (pathname === '/chat') return null;
+  // Hide floating button on /chat and /inbox to prevent covering action/send buttons
+  if (pathname === '/chat' || pathname?.startsWith('/inbox')) return null;
 
   return (
     <>

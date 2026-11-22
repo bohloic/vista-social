@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-const AUTH_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || 'pulsesocial-auth-secure-secret-key-2026';
+const AUTH_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 /**
  * Hash a password securely using scrypt with random salt.

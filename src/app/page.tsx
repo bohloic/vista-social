@@ -64,13 +64,13 @@ export default function DashboardPage() {
           if (authRes.ok) {
             const authData = await authRes.json();
             if (!authData.authenticated) {
-              router.push('/login');
+              window.location.href = '/login';
               return;
             }
             const name = authData.user?.workspace?.name || authData.user?.fullName || 'Pulse Social Studio';
             setWorkspaceName(name);
           } else {
-            router.push('/login');
+            window.location.href = '/login';
             return;
           }
         }
@@ -130,6 +130,15 @@ export default function DashboardPage() {
     { name: 'WhatsApp', value: 6500, color: '#22C55E', percentage: '8%' },
     { name: 'X (Twitter)', value: 6000, color: '#3B82F6', percentage: '8%' },
   ];
+
+  if (isLoadingProfile) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <div className="w-9 h-9 rounded-full border-3 border-[#7C3AED] border-t-transparent animate-spin" />
+        <p className="text-xs font-bold text-slate-500 font-jakarta">Chargement de votre espace sécurisé...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 text-slate-800">
@@ -383,32 +392,32 @@ export default function DashboardPage() {
 
         {/* RIGHT: PulseSocial Studio Visual in FCFA + Smart Tip (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-4">
-          {/* PulseSocial Studio Live Performance Card (West Africa FCFA) */}
-          <div className="clay-card overflow-hidden p-4 sm:p-5 bg-gradient-to-br from-[#6366F1] via-[#7C3AED] to-[#4F46E5] text-white flex flex-col justify-between relative min-h-[176px] shadow-lg shadow-indigo-500/20 rounded-3xl">
+          {/* PulseSocial Studio Live Performance Card (West Africa FCFA) with high-contrast dark theme */}
+          <div className="clay-card overflow-hidden p-5 sm:p-6 bg-slate-900 border border-slate-800 text-white flex flex-col justify-between relative min-h-[180px] shadow-2xl rounded-3xl">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-md text-[10px] font-extrabold tracking-wide uppercase border border-white/20">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-white text-[10px] font-extrabold tracking-wide uppercase border border-slate-700">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   PulseSocial Studio
                 </span>
-                <p className="text-[11px] text-indigo-100 font-medium mt-2">Revenus Social Selling (UEMOA)</p>
-                <p className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-0.5">
-                  1 485 000 <span className="text-xs font-bold text-amber-300">FCFA</span>
+                <p className="text-xs text-slate-400 font-semibold font-jakarta mt-2">Revenus Social Selling (UEMOA)</p>
+                <p className="text-2xl sm:text-3xl font-black font-fredoka tracking-tight text-white mt-0.5">
+                  1 485 000 <span className="text-sm font-black text-[#FACC15]">FCFA</span>
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-sm border border-white/30 shadow-inner">
-                <Zap className="w-5 h-5 fill-white" />
+              <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[#7C3AED] font-black text-sm shadow-inner">
+                <Zap className="w-5 h-5 fill-[#7C3AED]" />
               </div>
             </div>
 
-            <div className="pt-3 border-t border-white/15 mt-3 flex items-center justify-between text-[11px]">
-              <span className="text-emerald-300 font-bold flex items-center gap-1">
-                ↗ +24.8% <span className="text-white/70 font-normal">vs mois précédent</span>
+            <div className="pt-3 border-t border-slate-800 mt-4 flex items-center justify-between text-xs font-jakarta">
+              <span className="text-emerald-400 font-black flex items-center gap-1">
+                ↗ +24.8% <span className="text-slate-400 font-medium text-[11px]">vs mois précédent</span>
               </span>
               <div className="flex items-center gap-1.5">
-                <span className="px-1.5 py-0.5 rounded bg-white/15 text-[9px] font-bold">Wave</span>
-                <span className="px-1.5 py-0.5 rounded bg-white/15 text-[9px] font-bold">MoMo</span>
-                <span className="px-1.5 py-0.5 rounded bg-white/15 text-[9px] font-bold">Orange</span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300">Wave</span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300">MoMo</span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300">Orange</span>
               </div>
             </div>
           </div>

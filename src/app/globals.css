@@ -1,21 +1,38 @@
 @import "tailwindcss";
 
+@theme {
+  --font-fredoka: var(--font-fredoka), "Fredoka", sans-serif;
+  --font-jakarta: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+
+  --color-primary: #7C3AED;
+  --color-primary-hover: #6D28D9;
+  --color-accent: #FF4D6D;
+  --color-spark: #FACC15;
+  --color-night: #1E1B4B;
+  --color-soft: #F5F3FF;
+}
+
 :root {
-  --background: #07090e;
-  --foreground: #f8fafc;
-  --card: rgba(15, 23, 42, 0.65);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --primary: #8b5cf6;
-  --primary-hover: #7c3aed;
+  --background: #F5F3FF;
+  --foreground: #1E1B4B;
+  --card: #ffffff;
+  --card-border: rgba(124, 58, 237, 0.08);
+  --primary: #7C3AED;
+  --primary-hover: #6D28D9;
   --primary-foreground: #ffffff;
-  --muted: #94a3b8;
-  --muted-bg: rgba(30, 41, 59, 0.5);
+  --accent: #FF4D6D;
+  --spark: #FACC15;
+  --night: #1E1B4B;
+  --soft: #F5F3FF;
+  --muted: #64748b;
+  --muted-bg: rgba(245, 243, 255, 0.8);
 }
 
 body {
-  background-color: #07090e;
-  color: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+  background-color: #F5F3FF;
+  color: #1E1B4B;
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -29,33 +46,32 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
+  background: rgba(124, 58, 237, 0.2);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.4);
+  background: rgba(124, 58, 237, 0.45);
 }
 
-/* High-Tech Card & Glassmorphism */
+/* Brand Card System (Pure White on Soft Lilac with gentle violet border & shadow) */
 .pulse-card,
 .vista-card {
-  background: rgba(15, 23, 42, 0.65);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid rgba(124, 58, 237, 0.08);
   border-radius: 1.25rem;
+  box-shadow: 0 4px 20px -2px rgba(30, 27, 75, 0.05);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pulse-card:hover,
 .vista-card:hover {
-  border-color: rgba(139, 92, 246, 0.35);
-  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.5), 0 0 24px -4px rgba(139, 92, 246, 0.12);
+  border-color: rgba(124, 58, 237, 0.25);
+  box-shadow: 0 12px 30px -4px rgba(124, 58, 237, 0.12);
 }
 
 /* Neon Glows & Accents */
 .glow-violet {
-  box-shadow: 0 0 25px -4px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 25px -4px rgba(124, 58, 237, 0.4);
 }
 
 .glow-emerald {
@@ -92,55 +108,55 @@ body {
 
 /* 3D Claymorphism & Soft Tactile Design System */
 .clay-canvas {
-  background-color: #f7f5f0;
-  color: #1e293b;
+  background-color: #F5F3FF;
+  color: #1E1B4B;
 }
 
 .clay-card {
   background: #ffffff;
   border-radius: 28px;
-  box-shadow: 0 16px 36px -12px rgba(118, 97, 163, 0.12),
-              0 2px 8px -2px rgba(118, 97, 163, 0.05),
+  box-shadow: 0 16px 36px -12px rgba(124, 58, 237, 0.10),
+              0 2px 8px -2px rgba(124, 58, 237, 0.04),
               inset 0 2px 4px rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(124, 58, 237, 0.08);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .clay-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 22px 45px -14px rgba(118, 97, 163, 0.18),
-              0 4px 12px -2px rgba(118, 97, 163, 0.08),
+  box-shadow: 0 22px 45px -14px rgba(124, 58, 237, 0.16),
+              0 4px 12px -2px rgba(124, 58, 237, 0.08),
               inset 0 2px 4px rgba(255, 255, 255, 0.95);
 }
 
 .clay-pill-active {
-  background: #6366f1;
+  background: #7C3AED;
   color: #ffffff;
   border-radius: 9999px;
-  box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.4),
+  box-shadow: 0 8px 20px -4px rgba(124, 58, 237, 0.4),
               inset 0 2px 3px rgba(255, 255, 255, 0.35);
 }
 
 .clay-input {
   border-radius: 9999px;
-  background: #f8fafc;
-  border: 1.5px solid #e2e8f0;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+  border: 1.5px solid rgba(124, 58, 237, 0.15);
+  box-shadow: inset 0 2px 4px rgba(30, 27, 75, 0.02);
   transition: all 0.2s ease;
 }
 
 .clay-input:focus {
   outline: none;
-  border-color: #8b5cf6;
+  border-color: #7C3AED;
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .clay-btn-gradient {
-  background: linear-gradient(90deg, #f472b6 0%, #a855f7 50%, #6366f1 100%);
+  background: linear-gradient(90deg, #FF4D6D 0%, #7C3AED 100%);
   color: #ffffff;
   border-radius: 9999px;
-  box-shadow: 0 12px 28px -6px rgba(168, 85, 247, 0.45),
+  box-shadow: 0 12px 28px -6px rgba(124, 58, 237, 0.45),
               inset 0 2px 3px rgba(255, 255, 255, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -148,25 +164,25 @@ body {
 .clay-btn-gradient:hover {
   opacity: 0.95;
   transform: translateY(-1px);
-  box-shadow: 0 16px 32px -6px rgba(168, 85, 247, 0.55),
+  box-shadow: 0 16px 32px -6px rgba(124, 58, 237, 0.55),
               inset 0 2px 3px rgba(255, 255, 255, 0.4);
 }
 
 .clay-btn-gradient:active {
   transform: translateY(1px);
-  box-shadow: 0 6px 16px -4px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 6px 16px -4px rgba(124, 58, 237, 0.4);
 }
 
 .clay-social-btn {
   background: #ffffff;
   border-radius: 9999px;
-  box-shadow: 0 8px 20px -4px rgba(100, 116, 139, 0.18),
-              0 2px 6px -1px rgba(100, 116, 139, 0.08),
+  box-shadow: 0 8px 20px -4px rgba(30, 27, 75, 0.08),
+              0 2px 6px -1px rgba(30, 27, 75, 0.04),
               inset 0 2px 3px rgba(255, 255, 255, 0.9);
   transition: all 0.2s ease;
 }
 
 .clay-social-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px -4px rgba(100, 116, 139, 0.24);
+  box-shadow: 0 12px 24px -4px rgba(124, 58, 237, 0.18);
 }

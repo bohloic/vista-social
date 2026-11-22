@@ -364,11 +364,11 @@ export default function CRMPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-2">
-            <Briefcase className="w-6 h-6 text-violet-400" />
+          <h1 className="text-2xl font-black font-fredoka text-[#1E1B4B] flex items-center gap-2">
+            <Briefcase className="w-6 h-6 text-[#7C3AED]" />
             Pipeline de Vente &amp; Mini-CRM (Social Selling)
           </h1>
-          <p className="text-xs text-slate-600 font-medium">
+          <p className="text-xs text-slate-600 font-medium font-jakarta">
             Suivez vos opportunités commerciales issues des réseaux, générez des liens de paiement et suivez vos clôtures en Francs CFA.
           </p>
         </div>
@@ -376,14 +376,14 @@ export default function CRMPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/inbox"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-violet-100 text-[#1E1B4B] hover:bg-violet-50 text-xs font-bold font-jakarta transition-colors cursor-pointer shadow-sm"
           >
             <span>← Ouvrir le Radar à Prospects</span>
           </Link>
           <button
             type="button"
             onClick={() => setNewModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold font-jakarta shadow-lg shadow-violet-600/25 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>+ Nouveau Prospect</span>
@@ -393,45 +393,45 @@ export default function CRMPage() {
 
       {/* 4 Financial KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="pulse-card p-4 space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+        <div className="bg-white border border-violet-100/80 rounded-2xl p-4 space-y-1 shadow-sm">
+          <span className="text-[11px] font-bold text-slate-500 font-jakarta flex items-center justify-between">
             Prospects Actifs
-            <Users className="w-4 h-4 text-sky-400" />
+            <Users className="w-4 h-4 text-sky-500" />
           </span>
-          <p className="text-2xl font-black text-white">{activeCount}</p>
-          <p className="text-[10px] text-slate-500">En cours de qualification &amp; négociation</p>
+          <p className="text-2xl font-black font-fredoka text-[#1E1B4B]">{activeCount}</p>
+          <p className="text-[10px] text-slate-500 font-jakarta">En cours de qualification &amp; négociation</p>
         </div>
 
-        <div className="pulse-card p-4 space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+        <div className="bg-white border border-violet-100/80 rounded-2xl p-4 space-y-1 shadow-sm">
+          <span className="text-[11px] font-bold text-slate-500 font-jakarta flex items-center justify-between">
             Valeur du Pipeline
-            <TrendingUp className="w-4 h-4 text-violet-400" />
+            <TrendingUp className="w-4 h-4 text-[#7C3AED]" />
           </span>
-          <p className="text-2xl font-black text-violet-300">{pipelineValue.toLocaleString()} FCFA</p>
-          <p className="text-[10px] text-slate-500">Opportunités potentielles pondérées</p>
+          <p className="text-2xl font-black font-fredoka text-[#7C3AED]">{pipelineValue.toLocaleString()} FCFA</p>
+          <p className="text-[10px] text-slate-500 font-jakarta">Opportunités potentielles pondérées</p>
         </div>
 
-        <div className="pulse-card p-4 space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+        <div className="bg-white border border-violet-100/80 rounded-2xl p-4 space-y-1 shadow-sm">
+          <span className="text-[11px] font-bold text-slate-500 font-jakarta flex items-center justify-between">
             Devis &amp; Liens Envoyés
-            <CreditCard className="w-4 h-4 text-amber-400" />
+            <CreditCard className="w-4 h-4 text-amber-500" />
           </span>
-          <p className="text-2xl font-black text-amber-300">{proposalsCount}</p>
-          <p className="text-[10px] text-slate-500">En attente de règlement client</p>
+          <p className="text-2xl font-black font-fredoka text-amber-600">{proposalsCount}</p>
+          <p className="text-[10px] text-slate-500 font-jakarta">En attente de règlement client</p>
         </div>
 
-        <div className="pulse-card p-4 space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+        <div className="bg-white border border-violet-100/80 rounded-2xl p-4 space-y-1 shadow-sm">
+          <span className="text-[11px] font-bold text-slate-500 font-jakarta flex items-center justify-between">
             CA Clôturé (Payé ✅)
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+            <DollarSign className="w-4 h-4 text-emerald-500" />
           </span>
-          <p className="text-2xl font-black text-emerald-400">{wonRevenue.toLocaleString()} FCFA</p>
-          <p className="text-[10px] text-emerald-500/80">Encaissé par Wave / Mobile Money / Virement</p>
+          <p className="text-2xl font-black font-fredoka text-emerald-600">{wonRevenue.toLocaleString()} FCFA</p>
+          <p className="text-[10px] text-emerald-600/90 font-jakarta">Encaissé par Wave / Mobile Money / Virement</p>
         </div>
       </div>
 
       {/* Search & Quick Filter */}
-      <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-between gap-3 text-xs">
+      <div className="p-3 bg-white border border-violet-100/80 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-sm">
         <div className="relative flex-1 max-w-md">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -439,10 +439,10 @@ export default function CRMPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filtrer un prospect ou une note dans le pipeline..."
-            className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white focus:outline-none focus:border-violet-500"
+            className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-violet-50/50 border border-violet-100 text-[#1E1B4B] placeholder-slate-400 focus:outline-none focus:border-[#7C3AED] font-jakarta"
           />
         </div>
-        <div className="text-[11px] text-slate-400">
+        <div className="text-[11px] text-slate-500 font-jakarta font-medium">
           <span>{filteredProspects.length} opportunités affichées</span>
         </div>
       </div>
@@ -456,17 +456,17 @@ export default function CRMPage() {
           return (
             <div
               key={col.id}
-              className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 space-y-3 min-h-[500px] flex flex-col"
+              className="bg-white border border-violet-100/80 rounded-2xl p-3 space-y-3 min-h-[500px] flex flex-col shadow-sm"
             >
               {/* Column Header */}
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center justify-between pb-2 border-b border-violet-100/70">
                 <div className="flex items-center gap-2">
-                  <h3 className={`font-bold text-xs ${col.color}`}>{col.label}</h3>
-                  <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full border ${col.badgeBg}`}>
+                  <h3 className={`font-bold font-fredoka text-xs ${col.color}`}>{col.label}</h3>
+                  <span className={`text-[10px] font-black font-jakarta px-1.5 py-0.2 rounded-full border ${col.badgeBg}`}>
                     {colProspects.length}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400">
+                <span className="text-[10px] font-mono font-medium text-slate-500 font-jakarta">
                   {colTotal.toLocaleString()} F
                 </span>
               </div>
@@ -474,14 +474,14 @@ export default function CRMPage() {
               {/* Cards Stream */}
               <div className="flex-1 space-y-2.5 overflow-y-auto">
                 {colProspects.length === 0 ? (
-                  <div className="p-4 text-center text-[11px] text-slate-500 italic">
+                  <div className="p-4 text-center text-[11px] text-slate-500 italic font-jakarta">
                     Aucun prospect à cette étape.
                   </div>
                 ) : (
                   colProspects.map((p) => (
                     <div
                       key={p.id}
-                      className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 hover:border-violet-500/50 transition-all space-y-2.5 shadow-sm group"
+                      className="p-3.5 rounded-xl bg-violet-50/40 border border-violet-100/90 hover:border-[#7C3AED]/40 hover:bg-violet-50/70 transition-all space-y-2.5 shadow-sm group"
                     >
                       {/* Top Row: Avatar + Name + Platform Badge */}
                       <div className="flex items-start justify-between gap-2">
@@ -490,32 +490,32 @@ export default function CRMPage() {
                             src={p.avatar_url}
                             name={p.name}
                             size={28}
-                            className="ring-1 ring-slate-700"
+                            className="ring-1 ring-violet-200"
                           />
                           <div>
-                            <h4 className="font-bold text-xs text-white leading-tight">{p.name}</h4>
-                            <span className="text-[10px] text-slate-400">{p.handle}</span>
+                            <h4 className="font-bold font-fredoka text-xs text-[#1E1B4B] leading-tight">{p.name}</h4>
+                            <span className="text-[10px] text-slate-500 font-jakarta">{p.handle}</span>
                           </div>
                         </div>
 
-                        <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800">
+                        <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-white text-[#7C3AED] border border-violet-100">
                           {p.platform}
                         </span>
                       </div>
 
                       {/* Deal Value & Score */}
                       <div className="flex items-center justify-between text-xs pt-1">
-                        <span className="font-extrabold text-white">
+                        <span className="font-extrabold font-fredoka text-[#1E1B4B]">
                           {(p.deal_value || 0).toLocaleString()} FCFA
                         </span>
-                        <span className="text-[10px] font-bold text-amber-300 flex items-center gap-0.5 bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-800/40">
-                          <Flame className="w-2.5 h-2.5" /> {p.lead_score || 80}%
+                        <span className="text-[10px] font-bold text-amber-700 flex items-center gap-0.5 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          <Flame className="w-2.5 h-2.5 text-amber-500" /> {p.lead_score || 80}%
                         </span>
                       </div>
 
                       {/* Notes / Context */}
                       {p.notes && (
-                        <p className="text-[10px] text-slate-400 bg-slate-900/60 p-2 rounded-lg border border-slate-800/50 leading-relaxed line-clamp-2">
+                        <p className="text-[10px] text-slate-600 font-jakarta bg-white/90 p-2 rounded-lg border border-violet-100 leading-relaxed line-clamp-2">
                           {p.notes}
                         </p>
                       )}
@@ -585,32 +585,32 @@ export default function CRMPage() {
 
       {/* NEW PROSPECT MODAL */}
       {newModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-violet-500/40 rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-violet-400" />
+        <div className="fixed inset-0 z-50 bg-[#1E1B4B]/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-white border border-violet-100 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-violet-100">
+              <h3 className="font-bold font-fredoka text-sm text-[#1E1B4B] flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#7C3AED]" />
                 Ajouter une Nouvelle Opportunité Commerciale
               </h3>
               <button
                 type="button"
                 onClick={() => setNewModalOpen(false)}
-                className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                className="text-slate-400 hover:text-[#1E1B4B] text-xs cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateProspect} className="space-y-3 text-xs">
+            <form onSubmit={handleCreateProspect} className="space-y-3 text-xs font-jakarta">
               <div>
-                <label className="text-slate-300 font-bold block mb-1">Nom du Prospect / Entreprise :</label>
+                <label className="text-[#1E1B4B] font-bold block mb-1">Nom du Prospect / Entreprise :</label>
                 <input
                   type="text"
                   required
                   placeholder="Ex: Kouamé Koffi / Alpha SARL"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-violet-500"
+                  className="w-full p-2.5 rounded-xl bg-violet-50/50 border border-violet-100 text-[#1E1B4B] focus:outline-none focus:border-[#7C3AED]"
                 />
               </div>
 
@@ -701,17 +701,17 @@ export default function CRMPage() {
 
       {/* PAYMENT LINK MODAL */}
       {paymentModalOpen && selectedProspectForPayment && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-emerald-500/40 rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-emerald-400" />
+        <div className="fixed inset-0 z-50 bg-[#1E1B4B]/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-white border border-violet-100 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-violet-100">
+              <h3 className="font-bold font-fredoka text-sm text-[#1E1B4B] flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-[#7C3AED]" />
                 Lien de Paiement pour {selectedProspectForPayment.name}
               </h3>
               <button
                 type="button"
                 onClick={() => setPaymentModalOpen(false)}
-                className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                className="text-slate-400 hover:text-[#1E1B4B] text-xs cursor-pointer"
               >
                 ✕
               </button>

@@ -388,36 +388,36 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-2">
-          <Settings className="w-6 h-6 text-violet-400" />
-          Paramètres & Gestion des Réseaux PulseSocial
+        <h1 className="text-2xl font-black font-fredoka text-[#1E1B4B] flex items-center gap-2">
+          <Settings className="w-6 h-6 text-[#7C3AED]" />
+          Paramètres &amp; Gestion des Réseaux PulseSocial
         </h1>
-        <p className="text-xs text-slate-600 font-medium">
+        <p className="text-xs text-slate-600 font-medium font-jakarta">
           Connectez vos profils sociaux en 1 clic (OAuth 2.0 interactif), gérez vos membres, clés APIs et base Supabase.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-800 pb-px overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800">
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-violet-100 pb-px overflow-x-auto scrollbar-thin scrollbar-thumb-violet-200">
         <button
           type="button"
           onClick={() => setActiveTab('oauth')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'oauth'
-              ? 'border-violet-500 text-violet-400 font-bold'
-              : 'border-transparent text-slate-400 hover:text-white'
+              ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+              : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
           }`}
         >
-          <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
+          <Zap className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>OAuth 1-Clic</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('accounts')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'accounts'
-              ? 'border-violet-500 text-violet-400 font-bold'
-              : 'border-transparent text-slate-400 hover:text-white'
+              ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+              : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
           }`}
         >
           <Share2 className="w-4 h-4 shrink-0" />
@@ -426,10 +426,10 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('team')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'team'
-              ? 'border-violet-500 text-violet-400 font-bold'
-              : 'border-transparent text-slate-400 hover:text-white'
+              ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+              : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
           }`}
         >
           <Users className="w-4 h-4 shrink-0" />
@@ -438,10 +438,10 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('tokens')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'tokens'
-              ? 'border-violet-500 text-violet-400 font-bold'
-              : 'border-transparent text-slate-400 hover:text-white'
+              ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+              : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
           }`}
         >
           <Lock className="w-4 h-4 shrink-0" />
@@ -450,28 +450,28 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('api')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'api'
-              ? 'border-violet-500 text-violet-400 font-bold'
-              : 'border-transparent text-slate-400 hover:text-white'
+              ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+              : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
           }`}
         >
           <Key className="w-4 h-4 shrink-0" />
-          <span>Supabase & IA</span>
+          <span>Supabase &amp; IA</span>
         </button>
       </div>
 
       {/* Feedback Alert */}
       {connectMessage && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between animate-in fade-in font-jakarta">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{connectMessage}</span>
           </div>
           <button
             type="button"
             onClick={() => setConnectMessage(null)}
-            className="text-slate-400 hover:text-white text-xs cursor-pointer"
+            className="text-slate-400 hover:text-slate-700 text-xs cursor-pointer"
           >
             Fermer
           </button>
@@ -481,18 +481,18 @@ export default function SettingsPage() {
       {/* TAB 0: 1-CLIC OAUTH 2.0 CONNECT */}
       {activeTab === 'oauth' && (
         <div className="space-y-5">
-          <div className="pulse-card p-6 bg-gradient-to-r from-violet-950/40 via-slate-900 to-indigo-950/40 border border-violet-500/30 space-y-2">
+          <div className="p-6 bg-white border border-violet-100 rounded-3xl space-y-2 shadow-sm font-jakarta">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-xs font-bold">
-                <Zap className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-jakarta">
+                <Zap className="w-3.5 h-3.5 text-emerald-600" />
                 Passerelle OAuth 2.0 Unifiée (Composio • Nouvelle Fenêtre Officielle)
               </span>
-              <span className="text-[11px] text-slate-400">Fenêtre Pop-up Externe OAuth 2.0 • Tokens Chiffrés Supabase</span>
+              <span className="text-[11px] text-slate-400 font-jakarta">Fenêtre Pop-up Externe OAuth 2.0 • Tokens Chiffrés Supabase</span>
             </div>
-            <h3 className="text-lg font-bold text-white">
+            <h3 className="text-lg font-bold font-fredoka text-[#1E1B4B]">
               Connectez vos réseaux sociaux en 1 clic (Fenêtre OAuth Officielle)
             </h3>
-            <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+            <p className="text-xs text-slate-600 leading-relaxed max-w-2xl font-jakarta">
               Cliquez sur un réseau ci-dessous : une <strong>nouvelle fenêtre d&apos;authentification officielle (OAuth 2.0 via Composio)</strong> s&apos;ouvre pour vous permettre de saisir vos identifiants directement sur la plateforme et d&apos;autoriser PulseSocial en toute sécurité.
             </p>
           </div>
@@ -505,7 +505,7 @@ export default function SettingsPage() {
               return (
                 <div
                   key={prov.id}
-                  className="pulse-card p-5 flex flex-col justify-between space-y-4 hover:border-violet-500/40 transition-all"
+                  className="p-5 flex flex-col justify-between space-y-4 hover:border-[#7C3AED]/40 transition-all bg-white border border-violet-100 rounded-2xl shadow-sm font-jakarta"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -513,26 +513,26 @@ export default function SettingsPage() {
                         {prov.name.slice(0, 2).toUpperCase()}
                       </div>
                       {isConnected ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                          <Check className="w-3 h-3" /> Connecté
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Check className="w-3 h-3 text-emerald-600" /> Connecté
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-500">Prêt</span>
+                        <span className="text-[10px] text-slate-400">Prêt</span>
                       )}
                     </div>
 
-                    <h4 className="font-bold text-sm text-white">{prov.name}</h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">{prov.description}</p>
+                    <h4 className="font-bold font-fredoka text-sm text-[#1E1B4B]">{prov.name}</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed font-jakarta">{prov.description}</p>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => handleOpenOAuthModal(prov)}
                     disabled={isProcessing}
-                    className={`w-full py-2.5 px-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    className={`w-full py-2.5 px-3.5 rounded-xl font-bold font-jakarta text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       isConnected
-                        ? 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700'
-                        : 'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/30 active:scale-98'
+                        ? 'bg-violet-50 hover:bg-violet-100 text-[#7C3AED] border border-violet-200/60'
+                        : 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-lg shadow-violet-600/25 active:scale-98'
                     }`}
                   >
                     {isProcessing ? (

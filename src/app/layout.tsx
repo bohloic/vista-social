@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { Fredoka, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -9,6 +10,20 @@ import { ComposerModal } from '@/components/ComposerModal';
 import { LegalModal } from '@/components/LegalModals';
 import { GlobalAICopilot } from '@/components/GlobalAICopilot';
 import { Post } from '@/lib/types';
+
+const fredoka = Fredoka({
+  subsets: ['latin'],
+  variable: '--font-fredoka',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+});
 
 export default function RootLayout({
   children,
@@ -24,6 +39,27 @@ export default function RootLayout({
     pathname?.startsWith('/p/') ||
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/oauth-popup');
+
+  // Client-side authentication guard for protected routes
+  useEffect(() => {
+    if (isSetupOrPublic) return;
+    fetch('/api/auth/me')
+      .then((res) => {
+        if (!res.ok) {
+          window.location.href = '/login';
+          return null;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data && !data.authenticated) {
+          window.location.href = '/login';
+        }
+      })
+      .catch(() => {
+        // network or server offline
+      });
+  }, [pathname, isSetupOrPublic]);
 
   // Register PWA Service Worker & Global Alt+P shortcut
   useEffect(() => {
@@ -58,7 +94,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="fr" className={`${fredoka.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning>
       <head>
         <title>PulseSocial - Plateforme Intelligente de Community Management &amp; Monétisation</title>
         <meta
@@ -66,7 +102,7 @@ export default function RootLayout({
           content="PulseSocial : Planificateur multi-réseaux, Boîte de réception unifiée, Assistant IA Gemini 2.0, Pulse Pages et Abonnements Mobile Money."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
-        <meta name="theme-color" content="#F7F5F0" />
+        <meta name="theme-color" content="#F5F3FF" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -74,11 +110,11 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className="min-h-screen bg-[#F7F5F0] text-slate-800 antialiased font-sans selection:bg-violet-500 selection:text-white">
+      <body className={`${plusJakartaSans.className} min-h-screen bg-[#F5F3FF] text-[#1E1B4B] antialiased font-jakarta selection:bg-[#7C3AED] selection:text-white`}>
         {isSetupOrPublic ? (
           <main className="min-h-screen">{children}</main>
         ) : (
-          <div className="flex min-h-screen bg-[#F7F5F0]">
+          <div className="flex min-h-screen bg-[#F5F3FF]">
             {/* Main Navigation Sidebar with Mobile Drawer support */}
             <Sidebar
               isOpen={mobileMenuOpen}
@@ -94,8 +130,8 @@ export default function RootLayout({
               />
               <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 overflow-y-auto">{children}</main>
 
-              {/* Discrete Legal & Compliance Footer */}
-              <footer className="px-6 py-4 border-t border-slate-200/80 bg-white/70 text-[11px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+              {/* Discrete Legal & Compliance Footer with safe clearance for floating assistant */}
+              <footer className="px-6 sm:pr-28 pr-24 py-4 border-t border-slate-200/80 bg-white/70 text-[11px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div>
                   <span>© 2026 PulseSocial. Conforme ARTCI (Loi n° 2013-450) &amp; RGPD.</span>
                 </div>
