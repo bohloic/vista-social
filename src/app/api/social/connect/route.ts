@@ -45,13 +45,21 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const requestedWorkspaceId = searchParams.get('workspaceId');
-    const targetWsId = requestedWorkspaceId && isUuid(requestedWorkspaceId) ? requestedWorkspaceId : user.workspace_id;
+    let targetWsId = requestedWorkspaceId && isUuid(requestedWorkspaceId) ? requestedWorkspaceId : (user.workspace_id || user.workspaceId);
+
+    if (!targetWsId && user.role === 'super_admin') {
+      const supabaseAdmin = getAdminSupabase();
+      if (supabaseAdmin) {
+        const { data: firstWs } = await supabaseAdmin.from('workspaces').select('id').limit(1).maybeSingle();
+        if (firstWs?.id) targetWsId = firstWs.id;
+      }
+    }
 
     if (!targetWsId) {
       return NextResponse.json({ accounts: [] });
     }
 
-    await requireWorkspaceRole(user.id, targetWsId, ['super_admin', 'admin', 'manager', 'editor', 'client']);
+    await requireWorkspaceRole(user.id, targetWsId, ['super_admin', 'admin', 'manager', 'editor', 'client'], user.role);
 
     const supabase = getAdminSupabase();
     if (!supabase) return NextResponse.json({ accounts: [] });

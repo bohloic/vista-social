@@ -44,7 +44,14 @@ export async function GET(req: NextRequest) {
   try {
     const { user, supabase } = await requireUser(req);
     const { searchParams } = new URL(req.url);
-    const rawWorkspaceId = searchParams.get('workspace_id') || user.workspaceId;
+    let rawWorkspaceId = searchParams.get('workspace_id') || user.workspaceId || user.workspace_id;
+
+    if (!rawWorkspaceId && user.role === 'super_admin' && supabase) {
+      const { data: firstWs } = await supabase.from('workspaces').select('id').limit(1).maybeSingle();
+      if (firstWs?.id) {
+        rawWorkspaceId = firstWs.id;
+      }
+    }
 
     if (!rawWorkspaceId) {
       throw new ApiError(400, 'MISSING_WORKSPACE_ID', 'Le paramètre workspace_id est obligatoire');

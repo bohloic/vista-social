@@ -31,13 +31,21 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const queryWsId = searchParams.get('workspaceId');
-    const targetWsId = queryWsId || user.workspace_id;
+    let targetWsId = queryWsId || user.workspace_id || user.workspaceId;
+
+    if (!targetWsId && user.role === 'super_admin') {
+      const supabaseAdmin = getAdminSupabase();
+      if (supabaseAdmin) {
+        const { data: firstWs } = await supabaseAdmin.from('workspaces').select('id').limit(1).maybeSingle();
+        if (firstWs?.id) targetWsId = firstWs.id;
+      }
+    }
 
     if (!targetWsId) {
       return NextResponse.json({ members: [] });
     }
 
-    await requireWorkspaceRole(user.id, targetWsId, ['super_admin', 'admin', 'manager', 'editor', 'client']);
+    await requireWorkspaceRole(user.id, targetWsId, ['super_admin', 'admin', 'manager', 'editor', 'client'], user.role);
 
     const supabase = getAdminSupabase();
     if (!supabase) return NextResponse.json({ members: [] });
@@ -95,7 +103,7 @@ export async function POST(req: NextRequest) {
     const { fullName, email, role, workspaceId } = parsed.data;
 
     // RBAC: Only super_admin or admin can invite new members
-    await requireWorkspaceRole(user.id, workspaceId, ['super_admin', 'admin']);
+    await requireWorkspaceRole(user.id, workspaceId, ['super_admin', 'admin'], user.role);
 
     // Non-super_admin cannot grant super_admin role
     if (role === 'super_admin' && user.role !== 'super_admin') {

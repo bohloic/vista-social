@@ -44,13 +44,18 @@ export async function GET(req: NextRequest) {
 
     // Authenticated dashboard view
     const user = await requireUser(req);
-    const targetWsId = (queryWsId && UUID_REGEX.test(queryWsId)) ? queryWsId : user.workspace_id;
+    let targetWsId = (queryWsId && UUID_REGEX.test(queryWsId)) ? queryWsId : (user.workspace_id || user.workspaceId);
+
+    if (!targetWsId && user.role === 'super_admin') {
+      const { data: firstWs } = await supabase.from('workspaces').select('id').limit(1).maybeSingle();
+      if (firstWs?.id) targetWsId = firstWs.id;
+    }
 
     if (!targetWsId) {
       return NextResponse.json({ success: true, page: null });
     }
 
-    await requireWorkspaceRole(user.id, targetWsId, ['super_admin', 'admin', 'manager', 'editor', 'client']);
+    await requireWorkspaceRole(user.id, targetWsId, ['super_admin', 'admin', 'manager', 'editor', 'client'], user.role);
 
     const { data, error } = await supabase
       .from('pulse_pages')

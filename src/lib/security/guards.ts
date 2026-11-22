@@ -65,13 +65,50 @@ export async function requireUser(req: NextRequest): Promise<RequireUserResult> 
   const sessionCookie = req.cookies.get('pulsesocial_session')?.value;
   if (sessionCookie) {
     const verified = verifySignedSession(sessionCookie);
-    if (verified && verified.userId && verified.email) {
+    const userId = verified?.id || verified?.userId;
+    if (verified && userId && verified.email) {
+      let role = (verified.role as WorkspaceRole) || 'client';
+      let wsId = verified.workspaceId || verified.workspace_id;
+      let isLifetimeFree = verified.isLifetimeFree ?? verified.is_lifetime_free ?? false;
+
+      // If workspaceId is missing from cookie, try to resolve from user_profiles
+      if (!wsId && adminSupabase) {
+        try {
+          const { data: profile } = await adminSupabase
+            .from('user_profiles')
+            .select('workspace_id, role, is_lifetime_free')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (profile) {
+            wsId = profile.workspace_id;
+            role = (profile.role as WorkspaceRole) || role;
+            isLifetimeFree = profile.is_lifetime_free ?? isLifetimeFree;
+          }
+
+          if (!wsId) {
+            const { data: firstWs } = await adminSupabase
+              .from('workspaces')
+              .select('id')
+              .limit(1)
+              .maybeSingle();
+            if (firstWs?.id) {
+              wsId = firstWs.id;
+              await adminSupabase.from('user_profiles').update({ workspace_id: firstWs.id }).eq('id', userId);
+            }
+          }
+        } catch {
+          // ignore profile lookup errors
+        }
+      }
+
       return buildUserResult({
-        id: verified.userId,
+        id: userId,
         email: verified.email,
-        role: (verified.role as WorkspaceRole) || 'client',
-        workspaceId: verified.workspaceId,
-        workspace_id: verified.workspaceId,
+        role,
+        workspaceId: wsId,
+        workspace_id: wsId,
+        isLifetimeFree,
       });
     }
   }
@@ -82,13 +119,36 @@ export async function requireUser(req: NextRequest): Promise<RequireUserResult> 
     const token = authHeader.slice(7).trim();
     // Check if signed session token
     const verified = verifySignedSession(token);
-    if (verified && verified.userId && verified.email) {
+    const userId = verified?.id || verified?.userId;
+    if (verified && userId && verified.email) {
+      let role = (verified.role as WorkspaceRole) || 'client';
+      let wsId = verified.workspaceId || verified.workspace_id;
+      let isLifetimeFree = verified.isLifetimeFree ?? verified.is_lifetime_free ?? false;
+
+      if (!wsId && adminSupabase) {
+        try {
+          const { data: profile } = await adminSupabase
+            .from('user_profiles')
+            .select('workspace_id, role, is_lifetime_free')
+            .eq('id', userId)
+            .maybeSingle();
+          if (profile) {
+            wsId = profile.workspace_id;
+            role = (profile.role as WorkspaceRole) || role;
+            isLifetimeFree = profile.is_lifetime_free ?? isLifetimeFree;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       return buildUserResult({
-        id: verified.userId,
+        id: userId,
         email: verified.email,
-        role: (verified.role as WorkspaceRole) || 'client',
-        workspaceId: verified.workspaceId,
-        workspace_id: verified.workspaceId,
+        role,
+        workspaceId: wsId,
+        workspace_id: wsId,
+        isLifetimeFree,
       });
     }
 
@@ -96,11 +156,75 @@ export async function requireUser(req: NextRequest): Promise<RequireUserResult> 
     if (adminSupabase) {
       const { data: authData, error } = await adminSupabase.auth.getUser(token);
       if (!error && authData?.user) {
+        let role: WorkspaceRole = 'client';
+        let wsId: string | undefined;
+        let isLifetimeFree = false;
+
+        try {
+          const { data: profile } = await adminSupabase
+            .from('user_profiles')
+            .select('role, workspace_id, is_lifetime_free')
+            .eq('id', authData.user.id)
+            .maybeSingle();
+          if (profile) {
+            role = (profile.role as WorkspaceRole) || role;
+            wsId = profile.workspace_id;
+            isLifetimeFree = profile.is_lifetime_free ?? false;
+          }
+        } catch {
+          // ignore
+        }
+
         return buildUserResult({
           id: authData.user.id,
           email: authData.user.email || '',
-          role: 'client',
+          role,
+          workspaceId: wsId,
+          workspace_id: wsId,
+          isLifetimeFree,
         });
+      }
+    }
+  }
+
+  // 3. Try Supabase Auth cookies fallback (sb-*-auth-token)
+  if (adminSupabase) {
+    for (const cookie of req.cookies.getAll()) {
+      if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
+        try {
+          let val = cookie.value;
+          if (val.startsWith('base64-')) {
+            val = Buffer.from(val.slice(7), 'base64').toString('utf-8');
+          }
+          const parsed = JSON.parse(val);
+          const accessToken = typeof parsed === 'string'
+            ? parsed
+            : Array.isArray(parsed)
+            ? parsed[0]
+            : parsed?.access_token;
+
+          if (accessToken) {
+            const { data: authData, error } = await adminSupabase.auth.getUser(accessToken);
+            if (!error && authData?.user) {
+              const { data: profile } = await adminSupabase
+                .from('user_profiles')
+                .select('role, workspace_id, is_lifetime_free')
+                .eq('id', authData.user.id)
+                .maybeSingle();
+
+              return buildUserResult({
+                id: authData.user.id,
+                email: authData.user.email || '',
+                role: (profile?.role as WorkspaceRole) || 'client',
+                workspaceId: profile?.workspace_id,
+                workspace_id: profile?.workspace_id,
+                isLifetimeFree: profile?.is_lifetime_free ?? false,
+              });
+            }
+          }
+        } catch {
+          // continue
+        }
       }
     }
   }
@@ -186,6 +310,17 @@ export async function requireWorkspaceRole(
     if (profile.workspace_id === workspaceId && allowedRoles.includes(profile.role as WorkspaceRole)) {
       return profile.role as WorkspaceRole;
     }
+    if (!profile.workspace_id) {
+      await supabase.from('user_profiles').update({ workspace_id: workspaceId }).eq('id', userId);
+      if (allowedRoles.includes(profile.role as WorkspaceRole)) {
+        return profile.role as WorkspaceRole;
+      }
+    }
+  }
+
+  // 3. Fallback: if session currentUserRole is present and allowed
+  if (currentUserRole && allowedRoles.includes(currentUserRole)) {
+    return currentUserRole;
   }
 
   throw new ApiError(403, 'WORKSPACE_ACCESS_DENIED', 'Accès au workspace refusé ou rôle insuffisant');

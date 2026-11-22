@@ -250,7 +250,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await requireWorkspaceRole(user.id, parsed.data.workspaceId, ['super_admin', 'admin']);
+    await requireWorkspaceRole(user.id, parsed.data.workspaceId, ['super_admin', 'admin'], user.role);
 
     await recordPaystackPayment({
       reference: parsed.data.reference,

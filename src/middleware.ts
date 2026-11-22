@@ -75,13 +75,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Cryptographic session verification
+  // 2. Cryptographic session & Supabase session verification
   const sessionCookie = request.cookies.get('pulsesocial_session');
   const isValidSession = await isSessionValid(sessionCookie?.value);
 
+  const authHeader = request.headers.get('authorization');
+  const hasBearerToken = !!(authHeader && authHeader.startsWith('Bearer '));
+  const hasSupabaseCookie = request.cookies.getAll().some(
+    (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
+  );
+
+  const isAuthenticated = isValidSession || hasBearerToken || hasSupabaseCookie;
+
   // 3. Authenticated user visiting /login -> redirect to dashboard /
   if (pathname === '/login') {
-    if (isValidSession) {
+    if (isAuthenticated) {
       return NextResponse.redirect(new URL('/', request.url));
     }
     return NextResponse.next();
@@ -104,7 +112,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 5. Protected Routes: Rejection & Redirection
-  if (!isValidSession) {
+  if (!isAuthenticated) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { error: 'Authentification requise', code: 'UNAUTHENTICATED' },
