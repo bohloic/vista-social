@@ -236,7 +236,7 @@ export default function BillingPage() {
           </span>
         </h1>
 
-        <p className="text-sm text-slate-400 leading-relaxed">
+        <p className="text-sm text-slate-600 font-medium leading-relaxed">
           Activez votre abonnement en direct avec Orange Money, MTN MoMo, Wave ou Carte Bancaire. 
           Les devises s&apos;adaptent automatiquement à vos clients.
         </p>

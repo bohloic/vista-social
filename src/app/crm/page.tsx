@@ -368,7 +368,7 @@ export default function CRMPage() {
             <Briefcase className="w-6 h-6 text-violet-400" />
             Pipeline de Vente &amp; Mini-CRM (Social Selling)
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 font-medium">
             Suivez vos opportunités commerciales issues des réseaux, générez des liens de paiement et suivez vos clôtures en Francs CFA.
           </p>
         </div>
@@ -447,8 +447,8 @@ export default function CRMPage() {
         </div>
       </div>
 
-      {/* 4-COLUMN KANBAN BOARD */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+      {/* 4-COLUMN KANBAN BOARD with bottom clearance for Assistant Pulse */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start pb-28">
         {COLUMNS.map((col) => {
           const colProspects = filteredProspects.filter((p) => p.status === col.id);
           const colTotal = colProspects.reduce((sum, p) => sum + (p.deal_value || 0), 0);

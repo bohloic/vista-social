@@ -1,23 +1,22 @@
 /**
- * PulseSocial PWA Service Worker (v2.1)
- * Strict multi-tenant security:
- * 1. NetworkOnly for all non-GET, authenticated requests (Authorization header or session cookies), /api/*, and RSC data.
- * 2. NetworkFirst with /offline.html fallback for HTML navigation.
- * 3. CacheFirst only for immutable hashed static assets (/_next/static/*).
- * 4. Never cache responses carrying Set-Cookie or sensitive headers.
+ * PulseSocial PWA Service Worker (v4.0 Production)
+ * Strict Cache-Invalidation & Multi-Tenant Zero-Leak Strategy:
+ * 1. NetworkOnly for all non-GET, authenticated requests (Authorization or session cookies), /api/*, and RSC data.
+ * 2. NetworkFirst for ALL HTML navigations (request.mode === 'navigate') with /offline.html fallback.
+ *    (HTML pages are NEVER stored in cache to guarantee fresh state and immediate middleware redirections).
+ * 3. CacheFirst ONLY for immutable hashed static assets (/_next/static/*, /icons/*).
+ * 4. Immediate cache purge of all previous versions on activate.
  */
 
-const STATIC_CACHE_NAME = 'pulsesocial-static-v2.1';
+const STATIC_CACHE_NAME = 'pulsesocial-v4.0-prod';
 const OFFLINE_URL = '/offline.html';
 
+// Only immutable offline fallback assets are pre-cached. NEVER pre-cache '/' or HTML pages!
 const STATIC_ASSETS = [
-  '/',
   '/offline.html',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/images/3d-dashboard-cm.jpg',
-  '/images/3d-login-character.jpg',
 ];
 
 self.addEventListener('install', (event) => {
@@ -26,6 +25,7 @@ self.addEventListener('install', (event) => {
       return cache.addAll(STATIC_ASSETS);
     })
   );
+  // Force immediate activation
   self.skipWaiting();
 });
 
@@ -35,12 +35,14 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== STATIC_CACHE_NAME) {
+            console.log('[SW] Purging obsolete cache:', key);
             return caches.delete(key);
           }
         })
       );
     })
   );
+  // Claim all active client tabs immediately
   self.clients.claim();
 });
 
@@ -72,18 +74,20 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
       fetch(request)
-        .then((response) => response)
+        .then((response) => {
+          // Return fresh network response directly; NEVER cache HTML pages with user session
+          return response;
+        })
         .catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // 4. CacheFirst ONLY for immutable hashed static assets (_next/static, icons, images)
+  // 4. CacheFirst ONLY for immutable hashed static assets (_next/static, icons)
   if (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
-    url.pathname.startsWith('/images/') ||
-    /\.(png|jpg|jpeg|svg|webp|ico|woff|woff2)$/.test(url.pathname)
+    /\.(woff|woff2|ttf|ico)$/.test(url.pathname)
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {

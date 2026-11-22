@@ -392,7 +392,7 @@ export default function SettingsPage() {
           <Settings className="w-6 h-6 text-violet-400" />
           Paramètres & Gestion des Réseaux PulseSocial
         </h1>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-600 font-medium">
           Connectez vos profils sociaux en 1 clic (OAuth 2.0 interactif), gérez vos membres, clés APIs et base Supabase.
         </p>
       </div>

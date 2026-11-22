@@ -218,7 +218,7 @@ export default function ReviewsPage() {
             <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
             Gestion des Avis & Réputation Locale
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 font-medium">
             Centralisez et répondez aux avis Google Business, Yelp, Trustpilot et Facebook pour {workspaceName}.
           </p>
         </div>

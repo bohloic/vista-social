@@ -428,8 +428,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* BOTTOM SECTION: Objectifs & Progression + 15-Minute Routine */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+      {/* BOTTOM SECTION: Objectifs & Progression + 15-Minute Routine with clearance */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 pb-28">
         {/* Goals Progress Card (7 cols) */}
         <div className="lg:col-span-7 clay-card p-5 sm:p-6">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">

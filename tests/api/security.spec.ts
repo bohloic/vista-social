@@ -317,6 +317,8 @@ test('17. [SW-01] Service Worker sw.js never caches /api/*, RSC or requests with
   assert.ok(swContent.includes("request.headers.has('authorization')"), 'SW must check Authorization header');
   assert.ok(swContent.includes("STATIC_CACHE_NAME"), 'SW must have static cache');
   assert.ok(swContent.includes("OFFLINE_URL"), 'SW must provide offline fallback');
+  assert.ok(swContent.includes("pulsesocial-v4.0-prod"), 'SW must have updated v4.0 production cache name');
+  assert.ok(!swContent.includes("'/images/3d-dashboard-cm.jpg'"), 'SW must not pre-cache legacy dashboard image');
 });
 
 
