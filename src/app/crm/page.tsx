@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CRMProspect, CRMStage, SocialPlatform } from '@/lib/types';
+import { Avatar } from '@/components/Avatar';
 import {
   Briefcase,
   Plus,
@@ -363,7 +364,7 @@ export default function CRMPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-2">
             <Briefcase className="w-6 h-6 text-violet-400" />
             Pipeline de Vente &amp; Mini-CRM (Social Selling)
           </h1>
@@ -485,10 +486,11 @@ export default function CRMPage() {
                       {/* Top Row: Avatar + Name + Platform Badge */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <img
-                            src={p.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop'}
-                            alt={p.name}
-                            className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-700"
+                          <Avatar
+                            src={p.avatar_url}
+                            name={p.name}
+                            size={28}
+                            className="ring-1 ring-slate-700"
                           />
                           <div>
                             <h4 className="font-bold text-xs text-white leading-tight">{p.name}</h4>

@@ -381,15 +381,36 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* RIGHT: 3D Community Manager Desk Frame + Smart Tip (4 cols) */}
+        {/* RIGHT: PulseSocial Studio Visual in FCFA + Smart Tip (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-4">
-          {/* 3D Community Manager Desk Illustration Frame */}
-          <div className="clay-card overflow-hidden p-3 bg-white flex flex-col items-center justify-center relative min-h-[170px] shadow-md">
-            <img
-              src="/images/3d-dashboard-cm.jpg"
-              alt="Community Manager Studio 3D"
-              className="w-full h-44 object-cover object-center rounded-2xl"
-            />
+          {/* PulseSocial Studio Live Performance Card (West Africa FCFA) */}
+          <div className="clay-card overflow-hidden p-4 sm:p-5 bg-gradient-to-br from-[#6366F1] via-[#7C3AED] to-[#4F46E5] text-white flex flex-col justify-between relative min-h-[176px] shadow-lg shadow-indigo-500/20 rounded-3xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-md text-[10px] font-extrabold tracking-wide uppercase border border-white/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  PulseSocial Studio
+                </span>
+                <p className="text-[11px] text-indigo-100 font-medium mt-2">Revenus Social Selling (UEMOA)</p>
+                <p className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-0.5">
+                  1 485 000 <span className="text-xs font-bold text-amber-300">FCFA</span>
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-sm border border-white/30 shadow-inner">
+                <Zap className="w-5 h-5 fill-white" />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-white/15 mt-3 flex items-center justify-between text-[11px]">
+              <span className="text-emerald-300 font-bold flex items-center gap-1">
+                ↗ +24.8% <span className="text-white/70 font-normal">vs mois précédent</span>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="px-1.5 py-0.5 rounded bg-white/15 text-[9px] font-bold">Wave</span>
+                <span className="px-1.5 py-0.5 rounded bg-white/15 text-[9px] font-bold">MoMo</span>
+                <span className="px-1.5 py-0.5 rounded bg-white/15 text-[9px] font-bold">Orange</span>
+              </div>
+            </div>
           </div>
 
           {/* Smart Tip Card (Exact FinTrack style with 3D Lightbulb) */}

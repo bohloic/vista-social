@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { InboxConversation, InboxMessage, SocialPlatform, CRMProspect } from '@/lib/types';
+import { Avatar } from '@/components/Avatar';
 import { FormattedDate } from '@/components/FormattedDate';
 import {
   Inbox,
@@ -568,10 +569,11 @@ export default function InboxPage() {
                       }`}
                   >
                     <div className="relative shrink-0">
-                      <img
+                      <Avatar
                         src={conv.customer_avatar_url}
-                        alt={conv.customer_name}
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-800"
+                        name={conv.customer_name}
+                        size={40}
+                        className="ring-2 ring-slate-800"
                       />
                       <span className="absolute -bottom-1 -right-1 text-[10px] px-1 py-0.2 rounded-full bg-slate-900 border border-slate-700">
                         {conv.platform === 'whatsapp' ? '💬' : conv.platform === 'linkedin' ? '💼' : conv.platform === 'instagram' ? '📸' : '📱'}
@@ -626,10 +628,11 @@ export default function InboxPage() {
             {/* Prospector Header with Deal Value & CRM Dispatch */}
             <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <img
+                <Avatar
                   src={activeConv.customer_avatar_url}
-                  alt={activeConv.customer_name}
-                  className="w-10 h-10 rounded-full object-cover ring-2 ring-violet-500/30"
+                  name={activeConv.customer_name}
+                  size={40}
+                  className="ring-2 ring-violet-500/30"
                 />
                 <div>
                   <div className="flex items-center gap-2">
@@ -775,8 +778,8 @@ export default function InboxPage() {
               </div>
             </div>
 
-            {/* Reply Composer */}
-            <div className="p-3 bg-slate-900 border-t border-slate-800">
+            {/* Reply Composer with safe right padding for Assistant Pulse */}
+            <div className="p-3 bg-slate-900 border-t border-slate-800 pr-24 sm:pr-32">
               <div className="flex gap-2 items-end">
                 <textarea
                   value={replyText}

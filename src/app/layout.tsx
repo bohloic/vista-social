@@ -92,7 +92,7 @@ export default function RootLayout({
                 onOpenComposer={() => setComposerOpen(true)}
                 onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
               />
-              <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">{children}</main>
+              <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 overflow-y-auto">{children}</main>
 
               {/* Discrete Legal & Compliance Footer */}
               <footer className="px-6 py-4 border-t border-slate-200/80 bg-white/70 text-[11px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">

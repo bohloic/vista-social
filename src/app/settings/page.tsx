@@ -388,7 +388,7 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-white flex items-center gap-2">
+        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-2">
           <Settings className="w-6 h-6 text-violet-400" />
           Paramètres & Gestion des Réseaux PulseSocial
         </h1>

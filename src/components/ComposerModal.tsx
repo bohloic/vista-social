@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SocialAccount, Post, SocialPlatform, PostType } from '@/lib/types';
 import { PlatformPreview } from './PlatformPreview';
+import { Avatar } from './Avatar';
 import {
   CURATED_FLYER_PRESETS,
   renderFlyerCompositeToDataUrl,
@@ -547,7 +548,12 @@ export function ComposerModal({
                             : 'bg-slate-800/80 border-slate-700 text-slate-300 opacity-70 hover:opacity-100 hover:bg-slate-800'
                         }`}
                       >
-                        <img src={acc.avatar_url} alt={acc.account_name} className="w-4 h-4 rounded-full object-cover" />
+                        <Avatar
+                          src={acc.avatar_url}
+                          name={acc.username || acc.account_name}
+                          size={16}
+                          className="w-4 h-4 rounded-full object-cover shrink-0"
+                        />
                         <span>{acc.username}</span>
                         {isSelected && <Check className="w-3.5 h-3.5 text-violet-400" />}
                       </button>

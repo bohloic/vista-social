@@ -31,7 +31,7 @@ export function GlobalAICopilot() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-24 sm:bottom-6 right-5 sm:right-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white text-xs font-bold shadow-xl shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20 select-none group"
+          className="fixed bottom-4 right-4 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white text-xs font-bold shadow-xl shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20 select-none group"
           aria-label="Ouvrir l'Assistant Pulse Vocal (Raccourci Alt + M)"
           title="Assistant Pulse Vocal (Raccourci : Alt + M)"
         >

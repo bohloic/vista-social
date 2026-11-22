@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const AUTH_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || 'pulsesocial-auth-secure-secret-key-2026';
+const AUTH_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 /**
  * Origin validation for strict API CORS compliance [Action 6]
@@ -62,7 +62,7 @@ async function verifyHmacSha256(data: string, signatureHex: string, secret: stri
  * Validate session token cryptographically at the Edge.
  */
 async function isSessionValid(cookieValue: string | undefined): Promise<boolean> {
-  if (!cookieValue) return false;
+  if (!cookieValue || !AUTH_SECRET) return false;
 
   try {
     const raw = typeof atob === 'function'
@@ -195,12 +195,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
+    '/',
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

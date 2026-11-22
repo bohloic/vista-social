@@ -229,7 +229,7 @@ export default function BillingPage() {
           <span>Abonnements & Monétisation PulseSocial</span>
         </div>
 
-        <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+        <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
           Tarification Adaptée & Paiement{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-400">
             Mobile Money

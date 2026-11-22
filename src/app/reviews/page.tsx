@@ -214,7 +214,7 @@ export default function ReviewsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-2">
             <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
             Gestion des Avis & Réputation Locale
           </h1>
@@ -236,7 +236,7 @@ export default function ReviewsPage() {
           {!projectionMode && (
             <button
               onClick={handleSimulateReview}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/40 transition-all shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-600/25 transition-all cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>+ Simuler / Importer un avis client (Google / Facebook)</span>
