@@ -226,7 +226,7 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
         <button
           type="button"
           onClick={onToggleMobileMenu}
-          className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 lg:hidden cursor-pointer"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 lg:hidden cursor-pointer"
           aria-label="Ouvrir le menu de navigation"
         >
           <Menu className="w-5 h-5" />
@@ -313,7 +313,7 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
               setActiveDropdown(activeDropdown === 'notifications' ? null : 'notifications');
               if (unreadCount > 0) setUnreadCount(0);
             }}
-            className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${activeDropdown === 'notifications'
+            className={`relative min-w-[44px] min-h-[44px] w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${activeDropdown === 'notifications'
               ? 'bg-slate-200 text-slate-900'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
               }`}

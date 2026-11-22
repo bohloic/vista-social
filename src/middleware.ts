@@ -4,6 +4,36 @@ import type { NextRequest } from 'next/server';
 const AUTH_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || 'pulsesocial-auth-secure-secret-key-2026';
 
 /**
+ * Origin validation for strict API CORS compliance [Action 6]
+ * Strictly rejects wildcard '*' on authenticated endpoints.
+ */
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    const host = url.hostname;
+    // Production domain
+    if (host === 'vista-social-app.vercel.app') return true;
+    // Vercel Preview domains
+    if (host.endsWith('.vercel.app') && (host.startsWith('vista-social-') || host.includes('bohloic'))) return true;
+    // Local development (port 3000 only)
+    if (origin === 'http://localhost:3000' || origin === 'http://127.0.0.1:3000') return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function applyCorsHeaders(response: NextResponse, origin: string | null): NextResponse {
+  if (origin && isAllowedOrigin(origin)) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Vary', 'Origin');
+  }
+  return response;
+}
+
+/**
  * Verify HMAC-SHA256 signature using native Web Crypto API (Edge Runtime compliant).
  */
 async function verifyHmacSha256(data: string, signatureHex: string, secret: string): Promise<boolean> {
@@ -60,6 +90,25 @@ async function isSessionValid(cookieValue: string | undefined): Promise<boolean>
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const origin = request.headers.get('origin');
+
+  // Handle CORS preflight for /api/*
+  if (pathname.startsWith('/api/') && request.method === 'OPTIONS') {
+    if (origin && isAllowedOrigin(origin)) {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Max-Age': '86400',
+          'Vary': 'Origin',
+        },
+      });
+    }
+    return NextResponse.json({ error: 'Origin non autorisée', code: 'CORS_FORBIDDEN' }, { status: 403 });
+  }
 
   // 1. Static and PWA assets are always public
   if (
@@ -108,16 +157,21 @@ export async function middleware(request: NextRequest) {
     pathname === '/api/webhooks/mobile-money';
 
   if (isStrictPublicRoute) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    if (pathname.startsWith('/api/')) {
+      return applyCorsHeaders(res, origin);
+    }
+    return res;
   }
 
   // 5. Protected Routes: Rejection & Redirection
   if (!isAuthenticated) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
+      const errRes = NextResponse.json(
         { error: 'Authentification requise', code: 'UNAUTHENTICATED' },
         { status: 401 }
       );
+      return applyCorsHeaders(errRes, origin);
     }
 
     const loginUrl = new URL('/login', request.url);
@@ -132,7 +186,11 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  if (pathname.startsWith('/api/')) {
+    return applyCorsHeaders(res, origin);
+  }
+  return res;
 }
 
 export const config = {

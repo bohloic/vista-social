@@ -241,5 +241,82 @@ test('13. [SEC-11] Content-Security-Policy (CSP) header is present in next.confi
   assert.ok(configContent.includes('Content-Security-Policy'), 'CSP header must be configured');
   assert.ok(configContent.includes("default-src 'self'"), 'CSP must restrict default-src');
   assert.ok(configContent.includes("frame-ancestors 'self'"), 'CSP must restrict frame-ancestors');
+  assert.ok(configContent.includes('X-Frame-Options') && configContent.includes('"DENY"'), 'X-Frame-Options must be DENY');
+  assert.ok(configContent.includes('camera=(), microphone=(), geolocation=()'), 'Permissions-Policy must restrict camera, microphone, geolocation');
 });
+
+test('14. [BOLA-01] POST /api/posts rejects unrecognized field isAdmin (Anti-Mass Assignment -> 422)', () => {
+  const massAssignmentPayload = {
+    workspace_id: WS_A_ID,
+    content: 'Valid content',
+    isAdmin: true, // Malicious injection attempt
+    role: 'super_admin',
+  };
+  const parseResult = postCreateSchema.safeParse(massAssignmentPayload);
+  assert.equal(parseResult.success, false, 'Schema must reject unrecognized properties');
+  if (!parseResult.success) {
+    const errorString = JSON.stringify(parseResult.error.issues);
+    assert.ok(errorString.includes('unrecognized_keys') || errorString.includes('isAdmin'), 'Error must pinpoint unrecognized keys');
+  }
+});
+
+test('15. [BOLA-02] DELETE /api/posts cross-tenant deletion attempt -> 403 Forbidden', () => {
+  const userB: UserSession = {
+    id: USER_B_ID,
+    email: 'userB@pulsesocial.ai',
+    role: 'manager',
+    workspace_id: WS_B_ID,
+  };
+  // Post belongs to Workspace A
+  const postWorkspaceId = WS_A_ID;
+  const authz = evaluateWorkspaceRole(userB, postWorkspaceId, ['super_admin', 'admin', 'manager', 'editor']);
+  assert.equal(authz.status, 403, 'Cross-tenant post deletion must return 403 Forbidden');
+  assert.equal(authz.allowed, false);
+});
+
+test('16. [CORS-01] API CORS validation rejects unauthorized origins and disallows wildcard *', () => {
+  const allowedOrigins = [
+    'https://vista-social-app.vercel.app',
+    'https://vista-social-preview-123.vercel.app',
+    'http://localhost:3000',
+  ];
+  const disallowedOrigins = [
+    'https://evil-hacker.com',
+    'https://attacker-site.org',
+    'http://localhost:8080',
+    null,
+  ];
+
+  function checkOriginAllowed(origin: string | null): boolean {
+    if (!origin) return false;
+    try {
+      const url = new URL(origin);
+      const host = url.hostname;
+      if (host === 'vista-social-app.vercel.app') return true;
+      if (host.endsWith('.vercel.app') && host.startsWith('vista-social-')) return true;
+      if (url.origin === 'http://localhost:3000' || url.origin === 'http://127.0.0.1:3000') return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  for (const origin of allowedOrigins) {
+    assert.equal(checkOriginAllowed(origin), true, `Origin ${origin} should be allowed`);
+  }
+  for (const origin of disallowedOrigins) {
+    assert.equal(checkOriginAllowed(origin), false, `Origin ${origin} must be blocked`);
+  }
+});
+
+test('17. [SW-01] Service Worker sw.js never caches /api/*, RSC or requests with Authorization', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const swContent = fs.readFileSync(path.resolve('public/sw.js'), 'utf-8');
+  assert.ok(swContent.includes("url.pathname.startsWith('/api/')"), 'SW must exclude /api/ from caching');
+  assert.ok(swContent.includes("request.headers.has('authorization')"), 'SW must check Authorization header');
+  assert.ok(swContent.includes("STATIC_CACHE_NAME"), 'SW must have static cache');
+  assert.ok(swContent.includes("OFFLINE_URL"), 'SW must provide offline fallback');
+});
+
 

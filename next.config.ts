@@ -20,7 +20,7 @@ const securityHeaders = [
   },
   {
     key: "X-Frame-Options",
-    value: "SAMEORIGIN",
+    value: "DENY",
   },
   {
     key: "X-Content-Type-Options",
@@ -40,7 +40,7 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(self), microphone=(self), geolocation=()",
+    value: "camera=(), microphone=(), geolocation=()",
   },
 ];
 

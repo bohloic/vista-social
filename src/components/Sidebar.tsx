@@ -90,7 +90,7 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 lg:hidden cursor-pointer"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 lg:hidden cursor-pointer"
             aria-label="Fermer le menu"
           >
             <X className="w-5 h-5" />
@@ -122,7 +122,7 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
                 key={item.href}
                 href={item.href}
                 onClick={handleLinkClick}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 ${
+                className={`min-h-[44px] flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 ${
                   isActive
                     ? 'bg-[#6366F1] text-white shadow-md shadow-indigo-500/25'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
