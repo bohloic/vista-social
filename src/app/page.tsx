@@ -395,14 +395,14 @@ export default function DashboardPage() {
         {/* RIGHT: PulseSocial Studio Visual in FCFA + Smart Tip (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-4">
           {/* PulseSocial Studio Live Performance Card (West Africa FCFA) with high-contrast dark theme */}
-          <div className="clay-card overflow-hidden p-5 sm:p-6 bg-slate-900 border border-slate-800 text-white flex flex-col justify-between relative min-h-[180px] shadow-2xl rounded-3xl">
+          <div className="overflow-hidden p-5 sm:p-6 bg-slate-900 border border-slate-800 text-white flex flex-col justify-between relative min-h-[180px] shadow-2xl rounded-3xl">
             <div className="flex items-start justify-between">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-white text-[10px] font-extrabold tracking-wide uppercase border border-slate-700">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   PulseSocial Studio
                 </span>
-                <p className="text-xs text-slate-400 font-semibold font-jakarta mt-2">Revenus Social Selling (UEMOA)</p>
+                <p className="text-xs text-slate-300 font-semibold font-jakarta mt-2">Revenus Social Selling (UEMOA)</p>
                 <p className="text-2xl sm:text-3xl font-black font-fredoka tracking-tight text-white mt-0.5">
                   1 485 000 <span className="text-sm font-black text-[#FACC15]">FCFA</span>
                 </p>

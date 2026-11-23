@@ -397,14 +397,18 @@ export default function PublishPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPost),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setPosts((prev) => [data.post, ...prev]);
-        setActionMessage('✓ Publication créée et programmée avec succès !');
-        setTimeout(() => setActionMessage(null), 3500);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erreur lors de la programmation de la publication');
       }
+      const data = await res.json();
+      setPosts((prev) => [data.post, ...prev]);
+      setActionMessage('✓ Publication créée et programmée avec succès !');
+      setTimeout(() => setActionMessage(null), 3500);
+      return data.post;
     } catch (err) {
       console.error('Failed to save post', err);
+      throw err;
     }
   };
 
@@ -416,20 +420,25 @@ export default function PublishPage() {
         body: JSON.stringify(updatedPost),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const postResult = data.post || updatedPost;
-        setPosts((prev) => prev.map((p) => (p.id === updatedPost.id ? postResult : p)));
-        setEditingPost(null);
-        if (selectedPost?.id === updatedPost.id) {
-          setSelectedPost(postResult);
-        }
-        setActionMessage('✓ Publication modifiée avec succès dans Supabase !');
-        setTimeout(() => setActionMessage(null), 3500);
-        window.dispatchEvent(new Event('posts-updated'));
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erreur lors de la mise à jour de la publication');
       }
+
+      const data = await res.json();
+      const postResult = data.post || updatedPost;
+      setPosts((prev) => prev.map((p) => (p.id === updatedPost.id ? postResult : p)));
+      setEditingPost(null);
+      if (selectedPost?.id === updatedPost.id) {
+        setSelectedPost(postResult);
+      }
+      setActionMessage('✓ Publication modifiée avec succès dans Supabase !');
+      setTimeout(() => setActionMessage(null), 3500);
+      window.dispatchEvent(new Event('posts-updated'));
+      return postResult;
     } catch (err) {
       console.error('Failed to update post:', err);
+      throw err;
     }
   };
 

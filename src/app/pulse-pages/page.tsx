@@ -227,12 +227,12 @@ export default function PulsePagesBuilder() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Globe2 className="w-6 h-6 text-violet-400" />
+          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <Globe2 className="w-6 h-6 text-violet-600" />
             Pulse Pages (Constructeur Link-in-Bio)
           </h1>
-          <p className="text-xs text-slate-400">
-            Créez une micro-page d&apos;atterrissage personnalisée pour vos bios Instagram, TikTok & X avec suivi d&apos;audience en direct.
+          <p className="text-xs text-slate-600 font-medium">
+            Créez une micro-page d&apos;atterrissage personnalisée pour vos bios Instagram, TikTok &amp; X avec suivi d&apos;audience en direct.
           </p>
         </div>
 
@@ -240,11 +240,11 @@ export default function PulsePagesBuilder() {
           <Link
             href={`/p/${page.slug}`}
             target="_blank"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-800 bg-slate-900/60 text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-violet-200 bg-white text-xs font-bold text-violet-700 hover:bg-violet-50 hover:border-violet-300 shadow-xs transition-colors"
           >
-            <Eye className="w-4 h-4 text-violet-400" />
+            <Eye className="w-4 h-4 text-violet-600" />
             Aperçu Public
-            <ExternalLink className="w-3 h-3 text-slate-400" />
+            <ExternalLink className="w-3 h-3 text-violet-500" />
           </Link>
 
           <button
@@ -294,35 +294,35 @@ export default function PulsePagesBuilder() {
 
       {/* Analytics Summary for Pulse Page */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="pulse-card p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center">
+        <div className="pulse-card p-4 flex items-center gap-4 border border-slate-200 bg-white shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
             <Eye className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-semibold text-slate-400">Vues Totales</span>
-            <p className="text-xl font-bold text-white">{page.views_count || 0}</p>
+            <span className="text-[11px] font-bold text-slate-600">Vues Totales</span>
+            <p className="text-xl font-black text-slate-900">{page.views_count || 0}</p>
           </div>
         </div>
 
-        <div className="pulse-card p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+        <div className="pulse-card p-4 flex items-center gap-4 border border-slate-200 bg-white shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
             <MousePointerClick className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-semibold text-slate-400">Clics sur les Liens</span>
-            <p className="text-xl font-bold text-white">
+            <span className="text-[11px] font-bold text-slate-600">Clics sur les Liens</span>
+            <p className="text-xl font-black text-slate-900">
               {page.blocks.reduce((acc, curr) => acc + (curr.click_count || 0), 0)}
             </p>
           </div>
         </div>
 
-        <div className="pulse-card p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center">
+        <div className="pulse-card p-4 flex items-center gap-4 border border-slate-200 bg-white shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-semibold text-slate-400">Taux de Clic (CTR)</span>
-            <p className="text-xl font-bold text-white">
+            <span className="text-[11px] font-bold text-slate-600">Taux de Clic (CTR)</span>
+            <p className="text-xl font-black text-slate-900">
               {page.views_count && page.views_count > 0
                 ? `${Math.round((page.blocks.reduce((a, b) => a + (b.click_count || 0), 0) / page.views_count) * 100)}%`
                 : '0%'}
@@ -336,56 +336,56 @@ export default function PulsePagesBuilder() {
         {/* Left: Configuration & Blocks (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           {/* Identity & Bio */}
-          <div className="pulse-card p-6 space-y-4">
-            <h2 className="font-bold text-sm text-white">
+          <div className="pulse-card p-6 space-y-4 border border-slate-200 bg-white shadow-sm">
+            <h2 className="font-bold text-sm text-slate-900">
               Identité de votre Pulse Page
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                <label className="text-xs font-bold text-slate-700 block mb-1">
                   Titre de la Page
                 </label>
                 <input
                   type="text"
                   value={page.title}
                   onChange={(e) => updatePage({ ...page, title: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:outline-none focus:border-violet-500 font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                <label className="text-xs font-bold text-slate-700 block mb-1">
                   Identifiant URL (Slug)
                 </label>
-                <div className="flex items-center text-xs rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
-                  <span className="px-2.5 py-2 text-slate-500 bg-slate-800/40 border-r border-slate-800">
+                <div className="flex items-center text-xs rounded-xl border border-slate-300 bg-slate-50 overflow-hidden">
+                  <span className="px-2.5 py-2 text-slate-600 bg-slate-100 border-r border-slate-300 font-bold">
                     /p/
                   </span>
                   <input
                     type="text"
                     value={page.slug}
                     onChange={(e) => updatePage({ ...page, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                    className="flex-1 p-2 bg-transparent text-white focus:outline-none"
+                    className="flex-1 p-2 bg-transparent text-slate-900 font-medium focus:outline-none"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1">
                 Biographie / Description courte
               </label>
               <textarea
                 rows={2}
                 value={page.bio}
                 onChange={(e) => updatePage({ ...page, bio: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500"
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:outline-none focus:border-violet-500 font-medium"
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1">
                 Photo de Profil / Avatar
               </label>
               <div className="flex items-center gap-2">
@@ -394,9 +394,9 @@ export default function PulsePagesBuilder() {
                   value={page.avatar_url}
                   onChange={(e) => updatePage({ ...page, avatar_url: e.target.value })}
                   placeholder="https://... ou importer une photo"
-                  className="flex-1 text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-white focus:outline-none focus:border-violet-500 font-mono"
+                  className="flex-1 text-xs p-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:outline-none focus:border-violet-500 font-mono"
                 />
-                <label className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 text-xs font-semibold cursor-pointer transition-colors shrink-0">
+                <label className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-600 text-white border border-violet-700 text-xs font-bold cursor-pointer transition-colors shrink-0 shadow-xs">
                   <Upload className="w-3.5 h-3.5" />
                   <span>Importer photo</span>
                   <input
@@ -422,8 +422,8 @@ export default function PulsePagesBuilder() {
           </div>
 
           {/* Theme Presets */}
-          <div className="pulse-card p-6 space-y-4">
-            <h2 className="font-bold text-sm text-white">Thèmes & Ambiances Visuelles</h2>
+          <div className="pulse-card p-6 space-y-4 border border-slate-200 bg-white shadow-sm">
+            <h2 className="font-bold text-sm text-slate-900">Thèmes & Ambiances Visuelles</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {THEME_PRESETS.map((preset) => (
                 <button
@@ -441,14 +441,14 @@ export default function PulsePagesBuilder() {
                   }
                   className={`p-3 rounded-2xl border text-left transition-all ${
                     page.theme_config.bg_gradient === preset.gradient
-                      ? 'border-violet-500 ring-2 ring-violet-500/30'
-                      : 'border-slate-800 hover:border-slate-700'
+                      ? 'border-violet-600 ring-2 ring-violet-500/30'
+                      : 'border-slate-200 hover:border-slate-400 bg-slate-50/50'
                   }`}
                 >
                   <div
-                    className={`h-10 rounded-xl bg-gradient-to-br ${preset.gradient} mb-2 border border-white/10`}
+                    className={`h-10 rounded-xl bg-gradient-to-br ${preset.gradient} mb-2 border border-black/10`}
                   />
-                  <span className="text-[11px] font-bold text-slate-200 block truncate">
+                  <span className="text-[11px] font-bold text-slate-800 block truncate">
                     {preset.name}
                   </span>
                 </button>
@@ -457,9 +457,9 @@ export default function PulsePagesBuilder() {
           </div>
 
           {/* Links & Blocks List */}
-          <div className="pulse-card p-6 space-y-4">
+          <div className="pulse-card p-6 space-y-4 border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-sm text-white">
+              <h2 className="font-bold text-sm text-slate-900">
                 Liens & Boutons d&apos;Action ({page.blocks.length})
               </h2>
               <button

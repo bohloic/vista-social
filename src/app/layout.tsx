@@ -82,14 +82,20 @@ export default function RootLayout({
 
   const handleSavePost = async (newPost: Omit<Post, 'id' | 'created_at'>) => {
     try {
-      await fetch('/api/posts', {
+      const res = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPost),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Erreur lors de l’enregistrement de la publication');
+      }
       window.dispatchEvent(new Event('posts-updated'));
+      return true;
     } catch (err) {
       console.error('Error saving post', err);
+      throw err;
     }
   };
 
@@ -131,22 +137,22 @@ export default function RootLayout({
               <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 overflow-y-auto">{children}</main>
 
               {/* Discrete Legal & Compliance Footer with safe clearance for floating assistant */}
-              <footer className="px-6 sm:pr-28 pr-24 py-4 border-t border-slate-200/80 bg-white/70 text-[11px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <footer className="px-6 pr-24 sm:pr-60 pb-20 sm:pb-4 py-4 border-t border-slate-200/80 bg-white/95 text-[11px] text-slate-600 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div>
-                  <span>© 2026 PulseSocial. Conforme ARTCI (Loi n° 2013-450) &amp; RGPD.</span>
+                  <span className="font-medium">© 2026 PulseSocial. Conforme ARTCI (Loi n° 2013-450) &amp; RGPD.</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
                     onClick={() => setLegalModalType('privacy')}
-                    className="hover:text-slate-300 transition-colors cursor-pointer"
+                    className="hover:text-violet-700 font-semibold transition-colors cursor-pointer text-slate-600"
                   >
                     Politique de Confidentialité (ARTCI / RGPD)
                   </button>
                   <button
                     type="button"
                     onClick={() => setLegalModalType('terms')}
-                    className="hover:text-slate-300 transition-colors cursor-pointer"
+                    className="hover:text-violet-700 font-semibold transition-colors cursor-pointer text-slate-600"
                   >
                     CGU &amp; Fenêtre 24h WhatsApp
                   </button>

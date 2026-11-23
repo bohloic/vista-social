@@ -52,14 +52,14 @@ export function CalendarView({ posts, accounts, onNewPostWithDate, onSelectPost 
   const scheduledCount = posts.filter((p) => p.status === 'scheduled').length;
 
   return (
-    <div className="pulse-card p-6 shadow-sm border border-slate-800 bg-slate-900/60">
+    <div className="rounded-2xl p-6 shadow-xl border border-slate-800 bg-slate-900 text-slate-100">
       {/* Calendar Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-800 gap-4">
         <div className="flex items-center gap-3">
           <h3 className="text-xl font-black text-white capitalize tracking-tight" suppressHydrationWarning={true}>
             {format(currentDate, 'MMMM yyyy', { locale: fr })}
           </h3>
-          <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300 font-semibold border border-violet-500/30">
+          <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet-900/60 text-violet-200 font-bold border border-violet-500/50">
             {scheduledCount} en attente
           </span>
         </div>
@@ -67,7 +67,7 @@ export function CalendarView({ posts, accounts, onNewPostWithDate, onSelectPost 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCurrentDate(new Date())}
-            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-200 transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-white transition-colors cursor-pointer"
           >
             Aujourd&apos;hui
           </button>
@@ -114,9 +114,9 @@ export function CalendarView({ posts, accounts, onNewPostWithDate, onSelectPost 
               className={`min-h-[125px] p-2 rounded-2xl border transition-all flex flex-col group relative ${
                 isSelectedMonth
                   ? isToday
-                    ? 'border-violet-500 bg-violet-950/20 shadow-md shadow-violet-500/10'
+                    ? 'border-violet-500 bg-violet-950/40 shadow-md shadow-violet-500/20'
                     : 'border-slate-800/90 bg-slate-900/80 hover:border-violet-500/40 text-slate-100'
-                  : 'border-slate-900/50 bg-slate-950/40 opacity-40'
+                  : 'border-slate-800/80 bg-slate-950/80 text-slate-400 font-semibold opacity-75'
               }`}
             >
               {/* Day Header */}

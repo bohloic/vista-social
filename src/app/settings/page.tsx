@@ -564,12 +564,12 @@ export default function SettingsPage() {
       {/* TAB 1: ACCOUNTS LIST */}
       {activeTab === 'accounts' && (
         <div className="pulse-card p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <div>
-              <h3 className="font-bold text-sm text-white">
+              <h3 className="font-bold text-sm text-slate-900">
                 Comptes Réseaux Connectés ({accounts.length})
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 font-medium">
                 Profils synchronisés prêts pour la publication, le calendrier et les statistiques.
               </p>
             </div>
@@ -649,13 +649,13 @@ export default function SettingsPage() {
       {/* TAB 2: TEAM & ROLES (REAL DATABASE CRUD) */}
       {activeTab === 'team' && (
         <div className="pulse-card p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <div>
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <Users className="w-4 h-4 text-violet-400" />
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Users className="w-4 h-4 text-violet-600" />
                 Membres & Rôles de l&apos;Espace de Travail ({teamMembers.length})
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 font-medium">
                 Gérez les permissions de publication, les rôles (Admin, Manager, Éditeur, Client) et les accès à votre Supabase.
               </p>
             </div>
@@ -742,13 +742,13 @@ export default function SettingsPage() {
       {/* TAB 3: MANUAL TOKENS */}
       {activeTab === 'tokens' && (
         <form onSubmit={handleSaveTokens} className="pulse-card p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <div>
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <Lock className="w-4 h-4 text-violet-400" />
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-violet-600" />
                 Saisie Manuelle de Tokens Développeurs (Mode Avancé)
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 font-medium">
                 Optionnel : pour injecter directement vos jetons d&apos;accès personnalisés générés depuis Meta for Developers ou Twitter Developer Portal.
               </p>
             </div>
@@ -764,16 +764,16 @@ export default function SettingsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 p-4 rounded-2xl bg-violet-950/30 border border-violet-500/40">
+            <div className="space-y-1.5 p-4 rounded-2xl bg-violet-50/80 border border-violet-200">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-violet-300 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-violet-400" />
+                <label className="text-xs font-extrabold text-violet-950 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-violet-600" />
                   Clé API Composio (Passerelle OAuth 2.0 Unifiée 1-Clic)
                 </label>
                 <button
                   type="button"
                   onClick={() => toggleTokenVisibility('composio')}
-                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  className="text-slate-500 hover:text-slate-800 text-xs cursor-pointer font-medium"
                   title="Afficher/Masquer"
                 >
                   {showTokens['composio'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -784,20 +784,20 @@ export default function SettingsPage() {
                 placeholder="cmp_live_..."
                 value={tokens.composioApiKey}
                 onChange={(e) => setTokens({ ...tokens, composioApiKey: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 font-mono"
+                className="w-full text-xs p-2.5 rounded-xl border border-violet-200 bg-white text-slate-900 focus:outline-none focus:border-violet-500 font-mono shadow-xs"
               />
             </div>
 
-            <div className="space-y-1.5 p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/40">
+            <div className="space-y-1.5 p-4 rounded-2xl bg-cyan-50/80 border border-cyan-200">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-cyan-300 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <label className="text-xs font-extrabold text-cyan-950 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-600" />
                   Clé Secrète Paystack (Mobile Money &amp; Cartes XOF)
                 </label>
                 <button
                   type="button"
                   onClick={() => toggleTokenVisibility('paystack')}
-                  className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  className="text-slate-500 hover:text-slate-800 text-xs cursor-pointer font-medium"
                   title="Afficher/Masquer"
                 >
                   {showTokens['paystack'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -808,7 +808,7 @@ export default function SettingsPage() {
                 placeholder="sk_live_... ou sk_test_..."
                 value={tokens.paystackSecretKey}
                 onChange={(e) => setTokens({ ...tokens, paystackSecretKey: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-cyan-500 font-mono"
+                className="w-full text-xs p-2.5 rounded-xl border border-cyan-200 bg-white text-slate-900 focus:outline-none focus:border-cyan-500 font-mono shadow-xs"
               />
             </div>
 
@@ -976,12 +976,12 @@ export default function SettingsPage() {
       {/* TAB 4: API, GEMINI & SUPABASE */}
       {activeTab === 'api' && (
         <div className="pulse-card p-6 space-y-5">
-          <div className="pb-3 border-b border-slate-800">
-            <h3 className="font-bold text-sm text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
+          <div className="pb-3 border-b border-slate-200">
+            <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
               Moteur IA Gemini & Base de Données
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 font-medium">
               Génère automatiquement les légendes, réécritures multi-canaux et réponses intelligentes.
             </p>
           </div>

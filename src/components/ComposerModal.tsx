@@ -39,9 +39,9 @@ interface ComposerModalProps {
   isOpen: boolean;
   onClose: () => void;
   accounts: SocialAccount[];
-  onSavePost: (post: Omit<Post, 'id' | 'created_at'>) => void;
+  onSavePost: (post: Omit<Post, 'id' | 'created_at'>) => void | Promise<any>;
   editingPost?: Post | null;
-  onUpdatePost?: (updated: Post) => void;
+  onUpdatePost?: (updated: Post) => void | Promise<any>;
 }
 
 export function ComposerModal({
@@ -66,6 +66,8 @@ export function ComposerModal({
     return d.toISOString().slice(0, 16);
   });
   const [activePreviewPlatform, setActivePreviewPlatform] = useState<SocialPlatform>('instagram');
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // AI Assistant States (Text / Captions)
   const [aiPrompt, setAiPrompt] = useState('');
@@ -169,6 +171,7 @@ export function ComposerModal({
   if (!isOpen) return null;
 
   const toggleAccount = (id: string) => {
+    if (validationError) setValidationError(null);
     if (selectedAccounts.includes(id)) {
       if (selectedAccounts.length > 1) {
         setSelectedAccounts(selectedAccounts.filter((a) => a !== id));
@@ -435,45 +438,67 @@ export function ComposerModal({
     setAiDrawerOpen(false);
   };
 
-  const handlePublishOrSchedule = (isImmediate: boolean) => {
-    if (!content.trim() && mediaUrls.length === 0) return;
+  const handlePublishOrSchedule = async (isImmediate: boolean) => {
+    setValidationError(null);
 
-    if (editingPost && onUpdatePost) {
-      onUpdatePost({
-        ...editingPost,
-        content,
-        post_type: postType,
-        media_urls: mediaUrls,
-        status: isImmediate ? 'published' : editingPost.status || 'scheduled',
-        scheduled_for: isImmediate ? new Date().toISOString() : new Date(scheduledDate).toISOString(),
-        published_at: isImmediate ? new Date().toISOString() : editingPost.published_at,
-        first_comment: firstComment.trim() ? firstComment.trim() : undefined,
-        target_accounts: selectedAccounts,
-      });
-      onClose();
+    if (!content.trim()) {
+      setValidationError('La légende du post est obligatoire. Veuillez saisir un texte avant de programmer.');
       return;
     }
 
-    const resolvedWorkspaceId =
-      availableAccounts[0]?.workspace_id ||
-      editingPost?.workspace_id ||
-      '00000000-0000-0000-0000-000000000000';
+    if (selectedAccounts.length === 0) {
+      if (availableAccounts.length === 0) {
+        setValidationError('Aucun réseau social connecté. Veuillez connecter au moins un compte dans Paramètres avant de programmer.');
+      } else {
+        setValidationError('Veuillez sélectionner au moins un réseau social de destination.');
+      }
+      return;
+    }
 
-    onSavePost({
-      workspace_id: resolvedWorkspaceId,
-      author_name: 'Lead Community Manager',
-      content,
-      post_type: postType,
-      media_urls: mediaUrls,
-      status: isImmediate ? 'published' : 'scheduled',
-      scheduled_for: isImmediate ? new Date().toISOString() : new Date(scheduledDate).toISOString(),
-      published_at: isImmediate ? new Date().toISOString() : undefined,
-      first_comment: firstComment.trim() ? firstComment.trim() : undefined,
-      target_accounts: selectedAccounts,
-      tags: ['PulseSocial Sync'],
-    });
+    setIsSubmitting(true);
+    try {
+      if (editingPost && onUpdatePost) {
+        await onUpdatePost({
+          ...editingPost,
+          content,
+          post_type: postType,
+          media_urls: mediaUrls,
+          status: isImmediate ? 'published' : editingPost.status || 'scheduled',
+          scheduled_for: isImmediate ? new Date().toISOString() : new Date(scheduledDate).toISOString(),
+          published_at: isImmediate ? new Date().toISOString() : editingPost.published_at,
+          first_comment: firstComment.trim() ? firstComment.trim() : undefined,
+          target_accounts: selectedAccounts,
+        });
+        onClose();
+        return;
+      }
 
-    onClose();
+      const resolvedWorkspaceId =
+        availableAccounts[0]?.workspace_id ||
+        editingPost?.workspace_id ||
+        '00000000-0000-0000-0000-000000000000';
+
+      await onSavePost({
+        workspace_id: resolvedWorkspaceId,
+        author_name: 'Lead Community Manager',
+        content,
+        post_type: postType,
+        media_urls: mediaUrls,
+        status: isImmediate ? 'published' : 'scheduled',
+        scheduled_for: isImmediate ? new Date().toISOString() : new Date(scheduledDate).toISOString(),
+        published_at: isImmediate ? new Date().toISOString() : undefined,
+        first_comment: firstComment.trim() ? firstComment.trim() : undefined,
+        target_accounts: selectedAccounts,
+        tags: ['PulseSocial Sync'],
+      });
+
+      onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur lors de l’enregistrement de la publication';
+      setValidationError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isVideoUrl = (url: string) => {
@@ -518,6 +543,17 @@ export function ComposerModal({
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-y-auto">
           {/* LEFT: Composer Controls */}
           <div className="lg:col-span-7 p-6 space-y-5 border-r border-slate-800 overflow-y-auto">
+            {/* Inline Strict Validation Alert */}
+            {validationError && (
+              <div
+                className="p-3.5 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2.5 animate-in fade-in"
+                role="alert"
+              >
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="font-semibold">{validationError}</span>
+              </div>
+            )}
+
             {/* Account Selector */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-2">
@@ -663,7 +699,10 @@ export function ComposerModal({
               </div>
               <textarea
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  if (validationError) setValidationError(null);
+                }}
                 rows={4}
                 placeholder="Rédigez votre message captivant ici ou utilisez le Rédacteur IA..."
                 className="w-full p-3.5 text-xs rounded-2xl border border-slate-800 bg-slate-950 text-white focus:outline-none focus:border-violet-500 leading-relaxed transition-all font-sans"
@@ -1238,19 +1277,33 @@ export function ComposerModal({
             {!editingPost && (
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={() => handlePublishOrSchedule(true)}
-                className="px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl transition-all shadow-sm cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800 border border-slate-700 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm cursor-pointer"
               >
-                Publier maintenant
+                {isSubmitting ? 'Publication...' : 'Publier maintenant'}
               </button>
             )}
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => handlePublishOrSchedule(false)}
-              className="flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-xl shadow-lg shadow-violet-600/30 active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-lg shadow-violet-600/30 active:scale-95 transition-all cursor-pointer"
             >
-              {editingPost ? <Check className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-              <span>{editingPost ? 'Enregistrer les modifications' : 'Programmer le Post'}</span>
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : editingPost ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Clock className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {isSubmitting
+                  ? 'Enregistrement en cours...'
+                  : editingPost
+                  ? 'Enregistrer les modifications'
+                  : 'Programmer le Post'}
+              </span>
             </button>
           </div>
         </div>

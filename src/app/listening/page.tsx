@@ -135,79 +135,79 @@ export default function ListeningPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-              <h1 className="text-2xl font-black text-white flex items-center gap-2">
-                <Radio className="w-6 h-6 text-violet-400 animate-pulse" />
-                Social Listening &amp; Surveillance de Marque
-              </h1>
-                <p className="text-xs text-slate-400">
-                  Surveillez les mentions de votre marque ({workspaceName}), hashtags sectoriels et signaux concurrents en temps réel.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setModalOpen(true)}
-                className="flex items-center gap-2 py-2 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/30 active:scale-95 transition-all self-start sm:self-center cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Nouvelle Requête de Veille</span>
-              </button>
+            <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+              <Radio className="w-6 h-6 text-violet-600 animate-pulse" />
+              Social Listening &amp; Surveillance de Marque
+            </h1>
+            <p className="text-xs text-slate-600 font-medium">
+              Surveillez les mentions de votre marque ({workspaceName}), hashtags sectoriels et signaux concurrents en temps réel.
+            </p>
           </div>
 
-          {/* Feedback alert */}
-          {feedbackMsg && (
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2 animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{feedbackMsg}</span>
-              </div>
-      )}
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 py-2 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/30 active:scale-95 transition-all self-start sm:self-center cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nouvelle Requête de Veille</span>
+          </button>
+        </div>
 
-              {/* Sentiment Overview Gauge (Real dynamic stats, 0% when 0 mentions) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="pulse-card p-5 flex items-center justify-between border border-slate-800 bg-slate-900/60">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                        <Smile className="w-4 h-4 text-emerald-400" />
-                        Sentiment Positif
-                      </span>
-                      <p className="text-2xl font-black text-white mt-1">{positivePercent}</p>
-                      <span className="text-[10px] text-emerald-400 font-semibold">
-                        {totalMentions > 0 ? 'Réputation optimale' : 'Aucune mention détectée'}
-                      </span>
-                    </div>
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-sm border border-emerald-500/20">
-                        {positivePercent}
-                      </div>
-                    </div>
+        {/* Feedback alert */}
+        {feedbackMsg && (
+          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{feedbackMsg}</span>
+          </div>
+        )}
 
-                      <div className="pulse-card p-5 flex items-center justify-between border border-slate-800 bg-slate-900/60">
-                        <div>
-                          <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                            <Meh className="w-4 h-4 text-amber-400" />
-                            Sentiment Neutre
-                          </span>
-                          <p className="text-2xl font-black text-white mt-1">{neutralPercent}</p>
-                          <span className="text-[10px] text-slate-400 font-medium">Questions &amp; supports</span>
-                        </div>
-                          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-sm border border-amber-500/20">
-                            {neutralPercent}
-                          </div>
-                        </div>
+        {/* Sentiment Overview Gauge (Real dynamic stats, 0% when 0 mentions) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="pulse-card p-5 flex items-center justify-between border border-slate-200 bg-white shadow-sm">
+            <div>
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Smile className="w-4 h-4 text-emerald-600" />
+                Sentiment Positif
+              </span>
+              <p className="text-2xl font-black text-emerald-700 mt-1">{positivePercent}</p>
+              <span className="text-[10px] text-emerald-600 font-semibold">
+                {totalMentions > 0 ? 'Réputation optimale' : 'Aucune mention détectée'}
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm border border-emerald-200">
+              {positivePercent}
+            </div>
+          </div>
 
-                          <div className="pulse-card p-5 flex items-center justify-between border border-slate-800 bg-slate-900/60">
-                            <div>
-                              <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                                <Frown className="w-4 h-4 text-rose-400" />
-                                Signaux Négatifs / Crise
-                              </span>
-                              <p className="text-2xl font-black text-white mt-1">{negativePercent}</p>
-                              <span className="text-[10px] text-emerald-400 font-medium">Aucun risque de crise</span>
-                            </div>
-                              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-sm border border-rose-500/20">
-                                {negativePercent}
-                              </div>
-                            </div>
-                          </div>
+          <div className="pulse-card p-5 flex items-center justify-between border border-slate-200 bg-white shadow-sm">
+            <div>
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Meh className="w-4 h-4 text-amber-600" />
+                Sentiment Neutre
+              </span>
+              <p className="text-2xl font-black text-amber-700 mt-1">{neutralPercent}</p>
+              <span className="text-[10px] text-slate-600 font-medium">Questions &amp; supports</span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-sm border border-amber-200">
+              {neutralPercent}
+            </div>
+          </div>
+
+          <div className="pulse-card p-5 flex items-center justify-between border border-slate-200 bg-white shadow-sm">
+            <div>
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Frown className="w-4 h-4 text-rose-600" />
+                Signaux Négatifs / Crise
+              </span>
+              <p className="text-2xl font-black text-rose-700 mt-1">{negativePercent}</p>
+              <span className="text-[10px] text-slate-600 font-medium">Aucun risque de crise</span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-sm border border-rose-200">
+              {negativePercent}
+            </div>
+          </div>
+        </div>
 
                             {/* Monitored Queries Pills & Filter Bar (Harmonious Dark Theme) */}
                             <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-sm text-slate-100">

@@ -713,7 +713,7 @@ export default function InboxPage() {
                     <FormattedDate
                       date={msg.created_at}
                       formatType="time"
-                      className="text-[9px] text-slate-400 mt-1 px-1 block"
+                      className="text-[10px] text-slate-200 font-bold mt-1 px-1 block tracking-tight"
                     />
                   </div>
                 );
