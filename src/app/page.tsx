@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -85,8 +87,8 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         const [postsRes, accsRes] = await Promise.all([
-          fetch('/api/posts'),
-          fetch('/api/social/connect'),
+          fetch('/api/posts', { cache: 'no-store' }),
+          fetch('/api/social/connect', { cache: 'no-store' }),
         ]);
 
         if (postsRes.ok) {

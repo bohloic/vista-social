@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
         first_comment: validated.first_comment,
         tags: validated.tags || [],
       })
-      .select()
+      .select('id, workspace_id, author_name, content, post_type, media_urls, status, scheduled_for, tags, first_comment, created_at')
       .single();
 
     if (insertError || !inserted) {
@@ -223,7 +223,7 @@ export async function PUT(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .select()
+      .select('id, workspace_id, author_name, content, post_type, media_urls, status, scheduled_for, tags, first_comment, created_at, updated_at')
       .single();
 
     if (error) {

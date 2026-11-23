@@ -40,11 +40,13 @@ async function resolveOrCreateGoogleUser(email: string, fullName: string, avatar
       // 1. Check if user profile already exists
       const { data: existingProfile } = await supabase
         .from('user_profiles')
-        .select('*, workspaces(*)')
+        .select('id, email, full_name, role, is_lifetime_free, workspace_id, avatar_url, workspaces(name)')
         .eq('email', cleanEmail)
         .maybeSingle();
 
       if (existingProfile) {
+        const wsObj = existingProfile.workspaces as any;
+        const wsName = (Array.isArray(wsObj) ? wsObj[0]?.name : wsObj?.name) || 'Mon Espace PulseSocial';
         userRecord = {
           id: existingProfile.id,
           email: existingProfile.email,
@@ -52,7 +54,7 @@ async function resolveOrCreateGoogleUser(email: string, fullName: string, avatar
           role: existingProfile.role || defaultRole,
           isLifetimeFree: existingProfile.is_lifetime_free ?? isLifetimeFree,
           workspaceId: existingProfile.workspace_id || 'ws-default',
-          workspaceName: existingProfile.workspaces?.name || 'Mon Espace PulseSocial',
+          workspaceName: wsName,
           avatarUrl: existingProfile.avatar_url || avatarUrl || '',
         };
       } else {
@@ -93,7 +95,7 @@ async function resolveOrCreateGoogleUser(email: string, fullName: string, avatar
             workspace_id: wsId,
             avatar_url: avatarUrl || null,
           })
-          .select('*')
+          .select('id, email, full_name, role, is_lifetime_free, workspace_id, avatar_url')
           .single();
 
         if (createdUser) {

@@ -4,6 +4,9 @@ import { verifyPassword, createSignedSession } from '@/lib/auth-crypto';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const loginSchema = z.object({
   email: z.string().email('Format email invalide').max(255),
   password: z.string().min(1, 'Mot de passe requis').max(128),

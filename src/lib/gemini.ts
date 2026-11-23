@@ -291,6 +291,11 @@ export async function runPulseAICopilot(params: {
     crmCount: number;
     workspaceName: string;
   };
+  previousToolResult?: {
+    actionType: string;
+    success: boolean;
+    output: string;
+  };
 }): Promise<{ reply: string; action?: CopilotAction; updatedMemory?: CopilotMemory }> {
   const currentMemory = params.memory || {};
 
@@ -310,7 +315,8 @@ POSTURE ET CAPACITÉS EXÉCUTIVES (HUMAN-GRADE AI) :
    - Mémoire actuelle enregistrée : ${JSON.stringify(currentMemory)}.
    - Si l'utilisateur te donne une information personnelle ou une consigne permanente, retiens-la dans "updatedMemory".
 4. INTERDICTION ABSOLUE de répéter des statistiques ou des messages automatiques du genre "Bien reçu, sur /chat vous avez X posts...".
-5. Sois chaleureux, naturel, concis et directement orienté vers le passage à l'action.
+5. Si tu as tenté la même action 2 fois sans succès, arrête-toi et demande à l'utilisateur de reformuler.
+6. Sois chaleureux, naturel, concis et directement orienté vers le passage à l'action.
 
 RÉPONSE STRICTEMENT AU FORMAT JSON SUIVANT (aucun texte hors du JSON) :
 {
@@ -342,7 +348,7 @@ RÉPONSE STRICTEMENT AU FORMAT JSON SUIVANT (aucun texte hors du JSON) :
   const currentTurnParts: Array<Record<string, unknown>> = [
     {
       text: `[Page actuelle: ${params.currentPath} | Espace: ${params.projectStats.workspaceName} | Posts: ${params.projectStats.postsCount} | Prospects CRM: ${params.projectStats.crmCount}]
-Message: ${params.message}`,
+Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil précédent (${params.previousToolResult.actionType}) : ${params.previousToolResult.success ? 'Succès' : 'Échec'} — ${params.previousToolResult.output}]` : ''}`,
     },
   ];
 

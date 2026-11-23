@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { SocialAccount } from '@/lib/types';
 import {
@@ -152,7 +154,7 @@ export default function SettingsPage() {
   // Fetch real accounts from database
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('/api/social/connect');
+      const res = await fetch('/api/social/connect', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data.accounts) setAccounts(data.accounts);
@@ -166,7 +168,7 @@ export default function SettingsPage() {
   const fetchTeamMembers = async () => {
     setTeamLoading(true);
     try {
-      const res = await fetch('/api/team/members');
+      const res = await fetch('/api/team/members', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data.members) setTeamMembers(data.members);

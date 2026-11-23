@@ -4,6 +4,9 @@ import { requireUser, requireWorkspaceRole, ApiError, handleApiError } from '@/l
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const pulsePageSaveSchema = z.object({
   id: z.string().uuid().optional(),
   workspace_id: z.string().uuid(),
@@ -32,7 +35,7 @@ export async function GET(req: NextRequest) {
     if (slug) {
       const { data, error } = await supabase
         .from('pulse_pages')
-        .select('*')
+        .select('id, workspace_id, title, slug, bio, theme, avatar_url, links, social_links, is_published, created_at, updated_at')
         .eq('slug', slug)
         .maybeSingle();
 
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('pulse_pages')
-      .select('*')
+      .select('id, workspace_id, title, slug, bio, theme, avatar_url, links, social_links, is_published, created_at, updated_at')
       .eq('workspace_id', targetWsId)
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -136,7 +139,7 @@ export async function POST(req: NextRequest) {
         .from('pulse_pages')
         .update(payload)
         .eq('id', existingPageId)
-        .select()
+        .select('id, workspace_id, title, slug, bio, theme, avatar_url, links, social_links, is_published, created_at, updated_at')
         .single();
 
       if (updateError) {
@@ -147,7 +150,7 @@ export async function POST(req: NextRequest) {
       const { data: inserted, error: insertError } = await supabase
         .from('pulse_pages')
         .insert(payload)
-        .select()
+        .select('id, workspace_id, title, slug, bio, theme, avatar_url, links, social_links, is_published, created_at, updated_at')
         .single();
 
       if (insertError) {

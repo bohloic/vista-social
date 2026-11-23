@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { verifySignedSession } from '@/lib/auth-crypto';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
     const supabase = getAdminSupabase();
@@ -87,17 +90,17 @@ export async function GET(req: NextRequest) {
     if (supabase) {
       const { data: profile } = await supabase
         .from('user_profiles')
-        .select('*, workspaces(*)')
+        .select('id, email, full_name, role, is_lifetime_free, workspace_id, avatar_url, workspaces(id, name, slug)')
         .eq('id', userId)
         .maybeSingle();
 
       if (profile) {
-        let workspace = profile.workspaces;
+        let workspace: any = profile.workspaces;
         let wsId = profile.workspace_id;
 
         // Auto-assign default workspace if user has none
         if (!wsId) {
-          const { data: defaultWs } = await supabase.from('workspaces').select('*').limit(1).maybeSingle();
+          const { data: defaultWs } = await supabase.from('workspaces').select('id, name, slug').limit(1).maybeSingle();
           if (defaultWs) {
             workspace = defaultWs;
             wsId = defaultWs.id;

@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     const { data: createdUser, error: insertError } = await supabase
       .from('user_profiles')
       .insert(profilePayload)
-      .select('*')
+      .select('id, email, full_name, role, is_lifetime_free, workspace_id')
       .single();
 
     if (insertError || !createdUser) {

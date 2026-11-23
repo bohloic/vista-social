@@ -4,6 +4,9 @@ import path from 'path';
 import { requireUser, ApiError, handleApiError } from '@/lib/security/guards';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(req: NextRequest) {
   try {
     // Require authentication to prevent anonymous file upload DoS

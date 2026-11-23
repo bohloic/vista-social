@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       })
       .or(`id.eq.${transactionId},transaction_ref.eq.${transactionId}`)
       .eq('status', 'pending')
-      .select()
+      .select('id, status, plan, workspace_id, currency, amount, updated_at')
       .maybeSingle();
 
     if (txError) {

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         status: 'pending',
         transaction_ref: transactionRef,
       })
-      .select()
+      .select('id, workspace_id, provider, currency, amount, plan, status, transaction_ref, created_at')
       .single();
 
     if (txError) {

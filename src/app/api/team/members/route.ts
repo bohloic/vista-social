@@ -4,6 +4,9 @@ import { requireUser, requireWorkspaceRole, ApiError, handleApiError } from '@/l
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const inviteSchema = z.object({
   fullName: z.string().min(2, 'Nom requis').max(100),
   email: z.string().email('Email valide requis').max(255),
@@ -135,7 +138,7 @@ export async function POST(req: NextRequest) {
           workspace_id: workspaceId,
           is_lifetime_free: false,
         })
-        .select()
+        .select('id, full_name, email, role, workspace_id')
         .single();
 
       if (insertError) {
@@ -203,7 +206,7 @@ export async function PATCH(req: NextRequest) {
       .update({ role })
       .eq('workspace_id', workspaceId)
       .eq('user_id', userId)
-      .select()
+      .select('id, workspace_id, user_id, role, created_at')
       .single();
 
     if (error) {

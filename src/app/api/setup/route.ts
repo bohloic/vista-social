@@ -3,6 +3,9 @@ import { hashPassword, createSignedSession } from '@/lib/auth-crypto';
 import { encryptToken } from '@/lib/security/encryption';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const setupSchema = z.object({
   fullName: z.string().min(2, 'Le nom complet doit comporter au moins 2 caractères').max(100),
   email: z.string().email('Format email invalide').max(255),
@@ -58,7 +61,7 @@ export async function POST(req: Request) {
         timezone: timezone || 'Africa/Abidjan',
         plan: 'enterprise',
       })
-      .select()
+      .select('id, name, slug, timezone, plan')
       .single();
 
     if (wsError || !wsData) {
@@ -81,7 +84,7 @@ export async function POST(req: Request) {
         salt: salt,
         workspace_id: wsData.id,
       })
-      .select()
+      .select('id, full_name, email, role, is_lifetime_free, workspace_id')
       .single();
 
     if (userError || !userProfile) {
