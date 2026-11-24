@@ -562,13 +562,13 @@ export default function PulsePagesBuilder() {
 
                 {/* Social Quick Bar */}
                 <div className="flex items-center gap-2 pt-1">
-                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                  <div className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[10px] font-bold transition-transform cursor-pointer" title="Instagram">
                     IG
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                  <div className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[10px] font-bold transition-transform cursor-pointer" title="LinkedIn">
                     in
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                  <div className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[10px] font-bold transition-transform cursor-pointer" title="X (Twitter)">
                     𝕏
                   </div>
                 </div>

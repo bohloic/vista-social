@@ -235,11 +235,13 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
         </button>
 
         <div className="min-w-0">
-          <h2 className="text-sm sm:text-base lg:text-lg font-black font-fredoka text-[#1E1B4B] leading-tight flex items-center gap-2 truncate">
+          <h2 className="text-sm sm:text-base lg:text-lg font-black font-fredoka text-[#1E1B4B] leading-tight flex items-center gap-2">
             <span>{currentTitle}</span>
           </h2>
           {currentSubtitle && (
-            <p className="text-[11px] text-slate-500 font-medium font-jakarta hidden sm:block truncate">{currentSubtitle}</p>
+            <p className="text-[11px] text-slate-500 font-medium font-jakarta hidden sm:block max-w-xs md:max-w-md lg:max-w-xl truncate leading-tight">
+              {currentSubtitle}
+            </p>
           )}
         </div>
       </div>

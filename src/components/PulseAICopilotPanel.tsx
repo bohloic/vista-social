@@ -690,13 +690,13 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
       </div>
 
       {/* Quick Prompts */}
-      <div className="px-3 py-2 border-t border-slate-900 flex items-center gap-1.5 overflow-x-auto">
+      <div className="px-3 py-2 border-t border-slate-900 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap">
         {quickPrompts.map((qp, idx) => (
           <button
             key={idx}
             type="button"
             onClick={() => handleSend(qp)}
-            className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 whitespace-nowrap cursor-pointer transition-colors"
+            className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 whitespace-nowrap shrink-0 cursor-pointer transition-colors"
           >
             {qp}
           </button>

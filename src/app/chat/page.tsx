@@ -6,7 +6,7 @@ import { Sparkles, Mic, Paperclip, Zap } from 'lucide-react';
 
 export default function ChatPage() {
   return (
-    <div className="space-y-4 max-w-5xl mx-auto pb-12">
+    <div className="space-y-4 max-w-5xl mx-auto pb-12 pt-2 sm:pt-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">

@@ -37,7 +37,7 @@ import {
 import {
   ClayWalletIcon,
   ClayMoneyBagIcon,
-  ClayShoppingBagIcon,
+  ClayCalendarIcon,
   ClayCoinsStackIcon,
   ClayLightbulbIcon,
 } from '@/components/Clay3DIcons';
@@ -251,7 +251,7 @@ export default function DashboardPage() {
                 <span className="text-slate-400 font-normal">{scheduledCount > 0 ? 'cette semaine' : 'à programmer'}</span>
               </div>
             </div>
-            <ClayShoppingBagIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
+            <ClayCalendarIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
           </div>
         </div>
 
@@ -287,7 +287,7 @@ export default function DashboardPage() {
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
                 Audience &amp; Portée Sociale
               </h3>
-              <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+              <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full whitespace-nowrap inline-flex items-center gap-1">
                 Ce Mois ▾
               </span>
             </div>

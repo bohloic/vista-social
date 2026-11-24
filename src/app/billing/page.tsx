@@ -294,7 +294,7 @@ export default function BillingPage() {
               }`}
             >
               {isPop && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[#FF4D6D] to-[#7C3AED] text-white text-[11px] font-extrabold font-fredoka uppercase tracking-wider shadow-lg shadow-violet-600/30">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[#FF4D6D] to-[#7C3AED] text-white text-[11px] font-extrabold font-fredoka uppercase tracking-wider shadow-lg shadow-violet-600/30 whitespace-nowrap inline-flex items-center gap-1">
                   {plan.badge}
                 </div>
               )}

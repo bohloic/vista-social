@@ -95,6 +95,42 @@ export function ClayShoppingBagIcon({ className = 'w-12 h-12' }: { className?: s
   );
 }
 
+// 3D Clay Calendar / Publications Planifiees Icon
+export function ClayCalendarIcon({ className = 'w-12 h-12' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="calBody" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#818cf8" />
+          <stop offset="50%" stopColor="#6366f1" />
+          <stop offset="100%" stopColor="#4338ca" />
+        </radialGradient>
+        <linearGradient id="calTop" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f43f5e" />
+          <stop offset="100%" stopColor="#be123c" />
+        </linearGradient>
+        <filter id="calShadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="2" dy="5" stdDeviation="3.5" floodColor="#312e81" floodOpacity="0.25" />
+        </filter>
+      </defs>
+      {/* Calendar Base */}
+      <rect x="8" y="16" width="48" height="40" rx="12" fill="url(#calBody)" filter="url(#calShadow)" />
+      {/* Calendar Top Header */}
+      <rect x="8" y="16" width="48" height="14" rx="10" fill="url(#calTop)" />
+      {/* Rings */}
+      <rect x="18" y="10" width="4" height="10" rx="2" fill="#ffffff" />
+      <rect x="42" y="10" width="4" height="10" rx="2" fill="#ffffff" />
+      {/* Days grid dots */}
+      <circle cx="20" cy="38" r="2.5" fill="#ffffff" fillOpacity="0.8" />
+      <circle cx="32" cy="38" r="2.5" fill="#ffffff" fillOpacity="0.8" />
+      <circle cx="44" cy="38" r="2.5" fill="#ffffff" fillOpacity="0.8" />
+      <circle cx="20" cy="47" r="2.5" fill="#ffffff" fillOpacity="0.8" />
+      <circle cx="32" cy="47" r="2.5" fill="#facc15" />
+      <circle cx="44" cy="47" r="2.5" fill="#ffffff" fillOpacity="0.8" />
+    </svg>
+  );
+}
+
 // 3D Clay Gold Coins Stack
 export function ClayCoinsStackIcon({ className = 'w-12 h-12' }: { className?: string }) {
   return (

@@ -283,19 +283,29 @@ export default function ReviewsPage() {
             <Share2 className="w-3.5 h-3.5 text-[#7C3AED]" />
             Canaux surveillés :
           </span>
-          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
             hasGoogle
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-slate-100 text-slate-500 border border-slate-200'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-slate-100 text-slate-500 border-slate-200'
           }`}>
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Google Business ({hasGoogle ? 'Connecté' : 'Non lié'})
+            {hasGoogle ? (
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-slate-400" />
+            )}
+            <span>Google Business ({hasGoogle ? 'Connecté' : 'Non lié'})</span>
           </span>
-          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
             hasFacebook
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-slate-100 text-slate-500 border border-slate-200'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-slate-100 text-slate-500 border-slate-200'
           }`}>
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Facebook Pages ({hasFacebook ? 'Connecté' : 'Non lié'})
+            {hasFacebook ? (
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-slate-400" />
+            )}
+            <span>Facebook Pages ({hasFacebook ? 'Connecté' : 'Non lié'})</span>
           </span>
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
             Trustpilot (Webhook)
