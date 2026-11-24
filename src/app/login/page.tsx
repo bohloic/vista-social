@@ -637,22 +637,18 @@ export default function LoginPage() {
         </div>
 
         {/* Legal & Security links below card */}
-        <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-500">
-          <button
-            type="button"
-            onClick={() => setLegalModalType('privacy')}
-            className="hover:text-slate-800 underline cursor-pointer"
-          >
-            Politique de Confidentialité
-          </button>
+        <div className="mt-4 flex items-center justify-center gap-3 sm:gap-4 text-[11px] text-slate-500 flex-wrap">
+          <Link href="/mentions-legales" className="hover:text-slate-800 underline">
+            Mentions Légales
+          </Link>
           <span>•</span>
-          <button
-            type="button"
-            onClick={() => setLegalModalType('terms')}
-            className="hover:text-slate-800 underline cursor-pointer"
-          >
-            CGU &amp; Abonnements
-          </button>
+          <Link href="/confidentialite" className="hover:text-slate-800 underline">
+            Confidentialité (ARTCI)
+          </Link>
+          <span>•</span>
+          <Link href="/cgu" className="hover:text-slate-800 underline">
+            CGU &amp; Mobile Money
+          </Link>
         </div>
       </div>
 

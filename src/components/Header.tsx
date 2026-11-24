@@ -167,12 +167,14 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore
+    } finally {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('pulsesocial_user');
+        localStorage.clear();
+        sessionStorage.clear();
         window.location.href = '/login';
       }
-    } catch {
-      window.location.href = '/login';
     }
   };
 

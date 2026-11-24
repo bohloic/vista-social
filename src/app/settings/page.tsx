@@ -138,7 +138,6 @@ export default function SettingsPage() {
   });
   const [savedTokens, setSavedTokens] = useState(false);
   const [showTokens, setShowTokens] = useState<Record<string, boolean>>({});
-  const [showSupabaseUrl, setShowSupabaseUrl] = useState(false);
 
   // Ping test state
   const [pingLoading, setPingLoading] = useState(false);
@@ -764,52 +763,34 @@ export default function SettingsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 p-4 rounded-2xl bg-violet-50/80 border border-violet-200">
+            <div className="space-y-2 p-4 rounded-2xl bg-violet-50/80 border border-violet-200">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-extrabold text-violet-950 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-violet-600" />
-                  Clé API Composio (Passerelle OAuth 2.0 Unifiée 1-Clic)
-                </label>
-                <button
-                  type="button"
-                  onClick={() => toggleTokenVisibility('composio')}
-                  className="text-slate-500 hover:text-slate-800 text-xs cursor-pointer font-medium"
-                  title="Afficher/Masquer"
-                >
-                  {showTokens['composio'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
+                <span className="text-xs font-extrabold text-violet-950 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Passerelle OAuth 2.0 Composio
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Sécurisé Serveur
+                </span>
               </div>
-              <input
-                type={showTokens['composio'] ? 'text' : 'password'}
-                placeholder="cmp_live_..."
-                value={tokens.composioApiKey}
-                onChange={(e) => setTokens({ ...tokens, composioApiKey: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-violet-200 bg-white text-slate-900 focus:outline-none focus:border-violet-500 font-mono shadow-xs"
-              />
+              <p className="text-[11px] text-slate-600 leading-snug">
+                Connexion OAuth 2.0 unifiée 1-clic pour vos réseaux sociaux. La clé secrète est gérée exclusivement via les variables d&apos;environnement Vercel (<code className="text-violet-700 font-mono text-[10px]">COMPOSIO_API_KEY</code>) avec zéro exposition client.
+              </p>
             </div>
 
-            <div className="space-y-1.5 p-4 rounded-2xl bg-cyan-50/80 border border-cyan-200">
+            <div className="space-y-2 p-4 rounded-2xl bg-cyan-50/80 border border-cyan-200">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-extrabold text-cyan-950 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-cyan-600" />
-                  Clé Secrète Paystack (Mobile Money &amp; Cartes XOF)
-                </label>
-                <button
-                  type="button"
-                  onClick={() => toggleTokenVisibility('paystack')}
-                  className="text-slate-500 hover:text-slate-800 text-xs cursor-pointer font-medium"
-                  title="Afficher/Masquer"
-                >
-                  {showTokens['paystack'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
+                <span className="text-xs font-extrabold text-cyan-950 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Passerelle Paystack (Mobile Money &amp; Cartes XOF)
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Sécurisé Serveur
+                </span>
               </div>
-              <input
-                type={showTokens['paystack'] ? 'text' : 'password'}
-                placeholder="sk_live_... ou sk_test_..."
-                value={tokens.paystackSecretKey}
-                onChange={(e) => setTokens({ ...tokens, paystackSecretKey: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-xl border border-cyan-200 bg-white text-slate-900 focus:outline-none focus:border-cyan-500 font-mono shadow-xs"
-              />
+              <p className="text-[11px] text-slate-600 leading-snug">
+                Paiements Wave, Orange Money, MTN et cartes bancaires. La clé secrète est protégée côté serveur (<code className="text-cyan-700 font-mono text-[10px]">PAYSTACK_SECRET_KEY</code>) et ne transite jamais dans le navigateur.
+              </p>
             </div>
 
             <div className="space-y-1.5 p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 md:col-span-2">
@@ -1011,17 +992,12 @@ export default function SettingsPage() {
                   Base de données Supabase PostgreSQL
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowSupabaseUrl(!showSupabaseUrl)}
-                className="flex items-center gap-1.5 text-[11px] text-slate-300 hover:text-white cursor-pointer px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-700 transition-colors"
-              >
-                {showSupabaseUrl ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                <span>{showSupabaseUrl ? 'Masquer URL' : 'Afficher URL Projet'}</span>
-              </button>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                SSL Actif
+              </span>
             </div>
             <p className="text-[11px] font-mono text-slate-300">
-              Projet : {showSupabaseUrl ? 'https://ljpslbcouvyyzzvxxfme.supabase.co' : 'https://ljps••••••••xfme.supabase.co'} • Schéma complet : 14 tables actives
+              Projet : https://••••••••.supabase.co • Schéma complet avec RLS (Row Level Security) activé sur 14 tables
             </p>
           </div>
 

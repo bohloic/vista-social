@@ -194,12 +194,14 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
             onClick={async () => {
               try {
                 await fetch('/api/auth/logout', { method: 'POST' });
+              } catch {
+                // ignore
+              } finally {
                 if (typeof window !== 'undefined') {
-                  localStorage.removeItem('pulsesocial_user');
+                  localStorage.clear();
+                  sessionStorage.clear();
                   window.location.href = '/login';
                 }
-              } catch {
-                window.location.href = '/login';
               }
             }}
             className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all cursor-pointer"

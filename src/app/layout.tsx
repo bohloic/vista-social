@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Fredoka, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
@@ -9,6 +10,7 @@ import { Header } from '@/components/Header';
 import { ComposerModal } from '@/components/ComposerModal';
 import { LegalModal } from '@/components/LegalModals';
 import { GlobalAICopilot } from '@/components/GlobalAICopilot';
+import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 import { Post } from '@/lib/types';
 
 const fredoka = Fredoka({
@@ -38,6 +40,9 @@ export default function RootLayout({
     pathname?.startsWith('/setup') ||
     pathname?.startsWith('/p/') ||
     pathname?.startsWith('/login') ||
+    pathname?.startsWith('/mentions-legales') ||
+    pathname?.startsWith('/cgu') ||
+    pathname?.startsWith('/confidentialite') ||
     pathname?.startsWith('/oauth-popup');
 
   // Client-side authentication guard for protected routes
@@ -141,21 +146,25 @@ export default function RootLayout({
                 <div>
                   <span className="font-medium">© 2026 PulseSocial. Conforme ARTCI (Loi n° 2013-450) &amp; RGPD.</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setLegalModalType('privacy')}
-                    className="hover:text-violet-700 font-semibold transition-colors cursor-pointer text-slate-600"
+                <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                  <Link
+                    href="/mentions-legales"
+                    className="hover:text-violet-700 font-semibold transition-colors text-slate-600"
                   >
-                    Politique de Confidentialité (ARTCI / RGPD)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLegalModalType('terms')}
-                    className="hover:text-violet-700 font-semibold transition-colors cursor-pointer text-slate-600"
+                    Mentions Légales
+                  </Link>
+                  <Link
+                    href="/confidentialite"
+                    className="hover:text-violet-700 font-semibold transition-colors text-slate-600"
                   >
-                    CGU &amp; Fenêtre 24h WhatsApp
-                  </button>
+                    Confidentialité (ARTCI / RGPD)
+                  </Link>
+                  <Link
+                    href="/cgu"
+                    className="hover:text-violet-700 font-semibold transition-colors text-slate-600"
+                  >
+                    CGU &amp; WhatsApp 24h
+                  </Link>
                 </div>
               </footer>
             </div>
@@ -173,6 +182,9 @@ export default function RootLayout({
 
             {/* Global Voice & Multimodal AI Copilot accessible everywhere */}
             <GlobalAICopilot />
+
+            {/* Cookie Consent Banner (ARTCI & RGPD compliance) */}
+            <CookieConsentBanner />
           </div>
         )}
       </body>
