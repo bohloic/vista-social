@@ -135,6 +135,33 @@ export default function LoginPage() {
 
       let timer: NodeJS.Timeout | null = null;
       let elapsed = 0;
+
+      const handleSuccess = (user: any) => {
+        if (timer) clearInterval(timer);
+        window.removeEventListener('message', onMessage);
+        localStorage.setItem('pulsesocial_user', JSON.stringify(user));
+        if (user.workspaceName) {
+          localStorage.setItem(
+            'pulsesocial_active_workspace',
+            JSON.stringify({
+              id: user.workspaceId || 'ws-default',
+              name: user.workspaceName,
+            })
+          );
+        }
+        setGoogleLoading(false);
+        router.push('/');
+        router.refresh();
+      };
+
+      const onMessage = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.type === 'GOOGLE_AUTH_SUCCESS' && event.data?.user) {
+          handleSuccess(event.data.user);
+        }
+      };
+      window.addEventListener('message', onMessage);
+
       timer = setInterval(async () => {
         elapsed += 600;
         let isClosed = false;
@@ -147,29 +174,21 @@ export default function LoginPage() {
 
         if (isClosed || elapsed >= 180000) {
           if (timer) clearInterval(timer);
-          try {
-            const verifyRes = await fetch('/api/auth/google/verify', { method: 'POST' });
-            if (verifyRes.ok) {
-              const verifyData = await verifyRes.json();
-              if (verifyData.success && verifyData.user) {
-                localStorage.setItem('pulsesocial_user', JSON.stringify(verifyData.user));
-                if (verifyData.user.workspaceName) {
-                  localStorage.setItem(
-                    'pulsesocial_active_workspace',
-                    JSON.stringify({
-                      id: verifyData.user.workspaceId || 'ws-default',
-                      name: verifyData.user.workspaceName,
-                    })
-                  );
+          window.removeEventListener('message', onMessage);
+
+          if (isClosed) {
+            try {
+              const verifyRes = await fetch('/api/auth/google/verify', { method: 'POST' });
+              if (verifyRes.ok) {
+                const verifyData = await verifyRes.json();
+                if (verifyData.success && verifyData.user) {
+                  handleSuccess(verifyData.user);
+                  return;
                 }
-                setGoogleLoading(false);
-                router.push('/');
-                router.refresh();
-                return;
               }
+            } catch {
+              // ignore
             }
-          } catch {
-            // ignore
           }
           setGoogleLoading(false);
         }

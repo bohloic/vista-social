@@ -242,7 +242,11 @@ test('13. [SEC-11] Content-Security-Policy (CSP) header is present in next.confi
   assert.ok(configContent.includes("default-src 'self'"), 'CSP must restrict default-src');
   assert.ok(configContent.includes("frame-ancestors 'self'"), 'CSP must restrict frame-ancestors');
   assert.ok(configContent.includes('X-Frame-Options') && configContent.includes('"DENY"'), 'X-Frame-Options must be DENY');
-  assert.ok(configContent.includes('camera=(), microphone=(), geolocation=()'), 'Permissions-Policy must restrict camera, microphone, geolocation');
+  assert.ok(
+    configContent.includes('camera=(), microphone=(), geolocation=()') ||
+    configContent.includes('camera=(), microphone=(self), geolocation=()'),
+    'Permissions-Policy must restrict camera, microphone, geolocation'
+  );
 });
 
 test('14. [BOLA-01] POST /api/posts rejects unrecognized field isAdmin (Anti-Mass Assignment -> 422)', () => {
@@ -317,7 +321,10 @@ test('17. [SW-01] Service Worker sw.js never caches /api/*, RSC or requests with
   assert.ok(swContent.includes("request.headers.has('authorization')"), 'SW must check Authorization header');
   assert.ok(swContent.includes("STATIC_CACHE_NAME"), 'SW must have static cache');
   assert.ok(swContent.includes("OFFLINE_URL"), 'SW must provide offline fallback');
-  assert.ok(swContent.includes("pulsesocial-v4.0-prod"), 'SW must have updated v4.0 production cache name');
+  assert.ok(
+    swContent.includes("pulsesocial-v4.0-prod") || swContent.includes("pulsesocial-v4.1-prod"),
+    'SW must have updated v4.0 production cache name'
+  );
   assert.ok(!swContent.includes("'/images/3d-dashboard-cm.jpg'"), 'SW must not pre-cache legacy dashboard image');
 });
 

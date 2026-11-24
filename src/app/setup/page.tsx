@@ -242,7 +242,7 @@ export default function SetupWizardPage() {
                     <input
                       type="text"
                       required
-                      placeholder="Ex: Loic Boh (Directeur CM)"
+                      placeholder="Ex: Responsable Digital (Directeur CM)"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl bg-slate-950/60 border border-slate-800 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"

@@ -5,7 +5,6 @@ import { createSignedSession } from '@/lib/auth-crypto';
 export const dynamic = 'force-dynamic';
 
 const ADMIN_EMAILS = [
-  'bohloic@gmail.com',
   'admin@pulsesocial.ci',
   ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()) : []),
 ];
@@ -127,8 +126,12 @@ export async function GET(req: NextRequest) {
     const emailParam = url.searchParams.get('email');
     const nameParam = url.searchParams.get('name');
 
-    let email = emailParam || 'fondateur@pulsesocial.ci';
-    let fullName = nameParam || 'Dirigeant PulseSocial';
+    if (!code && !emailParam) {
+      return NextResponse.redirect(new URL('/login?error=auth_cancelled', req.url));
+    }
+
+    let email = emailParam || '';
+    let fullName = nameParam || '';
     let avatarUrl = '';
 
     if (code) {
@@ -207,8 +210,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const email = body.email || 'fondateur@pulsesocial.ci';
-    const fullName = body.name || 'Dirigeant PulseSocial';
+    if (!body?.email || typeof body.email !== 'string') {
+      return NextResponse.json({ success: false, error: 'Email requis pour la validation.' }, { status: 400 });
+    }
+    const email = body.email.trim().toLowerCase();
+    const fullName = body.name || email.split('@')[0];
     const avatarUrl = body.avatarUrl || '';
 
     const userRecord = await resolveOrCreateGoogleUser(email, fullName, avatarUrl);

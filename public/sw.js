@@ -8,7 +8,7 @@
  * 4. Immediate cache purge of all previous versions on activate.
  */
 
-const STATIC_CACHE_NAME = 'pulsesocial-v4.1-prod';
+const STATIC_CACHE_NAME = 'pulsesocial-v4.0-prod';
 const OFFLINE_URL = '/offline.html';
 
 // Only immutable offline fallback assets are pre-cached. NEVER pre-cache '/' or HTML pages!

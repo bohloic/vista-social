@@ -5,7 +5,6 @@ import { createSignedSession } from '@/lib/auth-crypto';
 export const dynamic = 'force-dynamic';
 
 const ADMIN_EMAILS = [
-  'bohloic@gmail.com',
   'admin@pulsesocial.ci',
   ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()) : []),
 ];
@@ -176,10 +175,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Default to the admin / primary email if active via Google connection
+    // If no active Google / Composio connection was detected, reject with 401
     if (!detectedEmail) {
-      detectedEmail = 'bohloic@gmail.com';
-      detectedName = 'Loic Boh';
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Aucune session Google active détectée. Veuillez vous authentifier.',
+        },
+        { status: 401 }
+      );
     }
 
     const userRecord = await resolveOrCreateGoogleUser(detectedEmail, detectedName);
