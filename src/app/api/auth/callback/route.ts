@@ -4,10 +4,9 @@ import { createSignedSession } from '@/lib/auth-crypto';
 
 export const dynamic = 'force-dynamic';
 
-const ADMIN_EMAILS = [
-  'admin@pulsesocial.ci',
-  ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()) : []),
-];
+const ADMIN_EMAILS = process.env.ADMIN_EMAILS
+  ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
+  : [];
 
 const isAdminEmail = (e: string) => {
   const clean = e.toLowerCase().trim();

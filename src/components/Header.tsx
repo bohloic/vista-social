@@ -131,10 +131,10 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
           const data = await res.json();
           if (data.authenticated && data.user) {
             setUser({
-              fullName: data.user.fullName || 'Admin',
-              email: data.user.email || 'admin@pulsesocial.app',
-              role: data.user.role || 'super_admin',
-              workspaceName: data.user.workspace?.name || 'Pulse Studio',
+              fullName: data.user.fullName || 'Utilisateur',
+              email: data.user.email || '',
+              role: data.user.role || 'client',
+              workspaceName: data.user.workspace?.name || 'Mon Espace',
             });
           }
         }

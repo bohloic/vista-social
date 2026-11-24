@@ -524,12 +524,17 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
   // 7. Team Invitation CRUD
   if (lower.includes('invite') && (lower.includes('équipe') || lower.includes('membre') || lower.includes('@'))) {
     const emailMatch = params.message.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
-    const email = emailMatch ? emailMatch[1] : 'collaborateur@pulsesocial.ci';
+    if (!emailMatch) {
+      return {
+        reply: "Veuillez spécifier l'adresse email du collaborateur à inviter (ex: 'invite sarah@entreprise.ci dans l'équipe').",
+      };
+    }
+    const email = emailMatch[1];
     return {
-      reply: `Une invitation a été envoyée à ${email} pour rejoindre votre espace PulseSocial.`,
+      reply: `Une invitation a été préparée pour ${email} afin de rejoindre votre espace PulseSocial.`,
       action: {
         type: 'invite_team_member',
-        label: `Invitation envoyée : ${email}`,
+        label: `Invitation préparée : ${email}`,
         payload: { email, role: 'editor' },
       },
     };
