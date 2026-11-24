@@ -365,10 +365,10 @@ export default function LoginPage() {
           {/* Card Header */}
           <div className="text-center pt-3 space-y-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {authMode === 'login' ? 'Welcome Back!' : 'Créer un Compte'}
+              {authMode === 'login' ? 'Bon retour parmi nous !' : 'Créer un Compte'}
             </h1>
             <p className="text-xs text-slate-500 font-medium">
-              {authMode === 'login' ? 'Login to continue' : 'Rejoignez PulseSocial dès aujourd’hui'}
+              {authMode === 'login' ? 'Connectez-vous à votre espace' : 'Rejoignez PulseSocial dès aujourd’hui'}
             </p>
           </div>
 
@@ -441,7 +441,7 @@ export default function LoginPage() {
                   id="login-email"
                   type="email"
                   autoComplete="email"
-                  placeholder="Username / Email"
+                  placeholder="Email ou nom d'utilisateur"
                   value={email}
                   onChange={(e) => handleEmailChange(e.target.value)}
                   className={`w-full pl-11 pr-4 py-3 text-xs rounded-full bg-[#f8fafc] text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner ${
@@ -466,7 +466,7 @@ export default function LoginPage() {
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
-                  placeholder="Password"
+                  placeholder="Mot de passe"
                   value={password}
                   onChange={(e) => handlePasswordChange(e.target.value)}
                   className={`w-full pl-11 pr-11 py-3 text-xs rounded-full bg-[#f8fafc] text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner ${
@@ -505,7 +505,7 @@ export default function LoginPage() {
                   }}
                   className="text-[11px] font-semibold text-[#8b5cf6] hover:text-[#7c3aed] transition-colors cursor-pointer"
                 >
-                  Forgot Password?
+                  Mot de passe oublié ?
                 </button>
               </div>
             )}
@@ -523,7 +523,7 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  <span>{authMode === 'login' ? 'Login' : 'S’inscrire maintenant'}</span>
+                  <span>{authMode === 'login' ? 'Se connecter' : 'S’inscrire maintenant'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -535,7 +535,7 @@ export default function LoginPage() {
             <div className="relative flex items-center justify-center">
               <div className="flex-grow border-t border-slate-200" />
               <span className="flex-shrink mx-3 text-[11px] font-medium text-slate-400">
-                or continue with
+                ou continuer avec
               </span>
               <div className="flex-grow border-t border-slate-200" />
             </div>
@@ -605,7 +605,7 @@ export default function LoginPage() {
             <p className="text-xs text-slate-500 font-medium">
               {authMode === 'login' ? (
                 <>
-                  Don&apos;t have an account?{' '}
+                  Pas encore de compte ?{' '}
                   <button
                     type="button"
                     onClick={() => {
@@ -614,12 +614,12 @@ export default function LoginPage() {
                     }}
                     className="font-bold text-[#6366F1] hover:underline cursor-pointer"
                   >
-                    Sign Up
+                    S&apos;inscrire
                   </button>
                 </>
               ) : (
                 <>
-                  Already have an account?{' '}
+                  Déjà un compte ?{' '}
                   <button
                     type="button"
                     onClick={() => {
@@ -628,7 +628,7 @@ export default function LoginPage() {
                     }}
                     className="font-bold text-[#6366F1] hover:underline cursor-pointer"
                   >
-                    Sign In
+                    Se connecter
                   </button>
                 </>
               )}

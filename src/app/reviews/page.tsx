@@ -227,22 +227,26 @@ export default function ReviewsPage() {
 
         <div className="flex items-center gap-3">
           {/* Projection / Real Toggle (In accord with / and /analytics) */}
-          <button
-            type="button"
-            onClick={() => setProjectionMode(!projectionMode)}
-            className="px-3 py-1.5 text-xs font-semibold font-jakarta rounded-xl bg-white border border-violet-100 text-[#1E1B4B] hover:bg-violet-50 transition-colors cursor-pointer shadow-sm"
-          >
-            {projectionMode ? 'Afficher données réelles' : 'Simuler projection IA'}
-          </button>
+          {process.env.NODE_ENV === 'development' && (
+            <>
+              <button
+                type="button"
+                onClick={() => setProjectionMode(!projectionMode)}
+                className="px-3 py-1.5 text-xs font-semibold font-jakarta rounded-xl bg-white border border-violet-100 text-[#1E1B4B] hover:bg-violet-50 transition-colors cursor-pointer shadow-sm"
+              >
+                {projectionMode ? 'Afficher données réelles' : 'Simuler projection IA'}
+              </button>
 
-          {!projectionMode && (
-            <button
-              onClick={handleSimulateReview}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-jakarta bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-md shadow-violet-600/25 transition-all cursor-pointer"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ Simuler / Importer un avis client (Google / Facebook)</span>
-            </button>
+              {!projectionMode && (
+                <button
+                  onClick={handleSimulateReview}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-jakarta bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-md shadow-violet-600/25 transition-all cursor-pointer"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>+ Simuler / Importer un avis client (Google / Facebook)</span>
+                </button>
+              )}
+            </>
           )}
 
           <div className="flex items-center gap-3 p-3 bg-white border border-violet-100 rounded-2xl shadow-sm">

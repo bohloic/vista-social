@@ -116,21 +116,42 @@ export default function DashboardPage() {
   }, [router]);
 
   const scheduledCount = posts.filter((p) => p.status === 'scheduled').length;
+  const hasAccounts = accounts.length > 0;
 
   // Real-time metrics in West African CFA Franc (XOF / FCFA)
-  const displayReach = '245 680';
-  const displayEngagement = '120 850';
-  const displayScheduled = scheduledCount > 0 ? `${scheduledCount}` : '24';
-  const displayCrmValue = '4 195 000 FCFA';
+  // When no accounts connected, show clean real 0 counters as requested by user
+  const [crmValue, setCrmValue] = useState<string>('0 FCFA');
+
+  useEffect(() => {
+    try {
+      const savedProspects = localStorage.getItem('pulsesocial_crm_prospects');
+      if (savedProspects) {
+        const list = JSON.parse(savedProspects);
+        if (Array.isArray(list) && list.length > 0) {
+          const total = list.reduce((sum: number, p: any) => sum + (Number(p.deal_value) || 0), 0);
+          setCrmValue(`${total.toLocaleString('fr-FR')} FCFA`);
+          return;
+        }
+      }
+      setCrmValue('0 FCFA');
+    } catch {
+      setCrmValue('0 FCFA');
+    }
+  }, []);
+
+  const displayReach = hasAccounts ? '245 680' : '0';
+  const displayEngagement = hasAccounts ? '120 850' : '0';
+  const displayScheduled = `${scheduledCount}`;
+  const displayCrmValue = crmValue;
 
   // Network share Donut data (Audience & Social Reach)
   const donutData = [
-    { name: 'Instagram', value: 25000, color: '#6366F1', percentage: '31%' },
+    { name: 'Instagram', value: 25000, color: '#6366F1', percentage: '32%' },
     { name: 'TikTok', value: 18600, color: '#10B981', percentage: '24%' },
     { name: 'LinkedIn', value: 12300, color: '#F59E0B', percentage: '16%' },
     { name: 'Facebook', value: 10500, color: '#F43F5E', percentage: '13%' },
     { name: 'WhatsApp', value: 6500, color: '#22C55E', percentage: '8%' },
-    { name: 'X (Twitter)', value: 6000, color: '#3B82F6', percentage: '8%' },
+    { name: 'X (Twitter)', value: 6000, color: '#3B82F6', percentage: '7%' },
   ];
 
   if (isLoadingProfile) {
@@ -182,8 +203,8 @@ export default function DashboardPage() {
                 {displayReach}
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
-                <span>↑ 12.5%</span>
-                <span className="text-slate-400 font-normal">vs mois dernier</span>
+                <span>{hasAccounts ? '↑ 12.5%' : '0%'}</span>
+                <span className="text-slate-400 font-normal">{hasAccounts ? 'vs mois dernier' : 'aucun compte actif'}</span>
               </div>
             </div>
             <ClayWalletIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
@@ -204,8 +225,8 @@ export default function DashboardPage() {
                 {displayEngagement}
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
-                <span>↑ 8.3%</span>
-                <span className="text-slate-400 font-normal">vs mois dernier</span>
+                <span>{hasAccounts ? '↑ 8.3%' : '0%'}</span>
+                <span className="text-slate-400 font-normal">{hasAccounts ? 'vs mois dernier' : 'en attente de posts'}</span>
               </div>
             </div>
             <ClayMoneyBagIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
@@ -226,8 +247,8 @@ export default function DashboardPage() {
                 {displayScheduled} posts
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
-                <span>↑ 5.2%</span>
-                <span className="text-slate-400 font-normal">cette semaine</span>
+                <span>{scheduledCount > 0 ? '↑ En file active' : '0 post'}</span>
+                <span className="text-slate-400 font-normal">{scheduledCount > 0 ? 'cette semaine' : 'à programmer'}</span>
               </div>
             </div>
             <ClayShoppingBagIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
@@ -248,8 +269,8 @@ export default function DashboardPage() {
                 {displayCrmValue}
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
-                <span>↑ 15.8%</span>
-                <span className="text-slate-400 font-normal">conversion</span>
+                <span>{crmValue !== '0 FCFA' ? '↑ Actif' : '0 transaction'}</span>
+                <span className="text-slate-400 font-normal">pipeline social</span>
               </div>
             </div>
             <ClayCoinsStackIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
@@ -271,55 +292,78 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {/* Donut Chart with Center Label */}
-            <div className="relative h-44 w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={donutData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={52}
-                    outerRadius={74}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {donutData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#ffffff',
-                      borderRadius: '16px',
-                      border: '1px solid #e2e8f0',
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                      fontSize: '12px',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Abonnés</span>
-                <span className="text-base font-black text-slate-900">78 900</span>
+            {/* Donut Chart with Center Label or Empty State */}
+            {!hasAccounts ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-violet-50 text-[#7C3AED] flex items-center justify-center shadow-inner">
+                  <Globe2 className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-900">Aucun réseau social connecté</p>
+                  <p className="text-[11px] text-slate-500 max-w-[210px] mx-auto leading-relaxed">
+                    Connectez vos comptes pour analyser votre audience globale en direct.
+                  </p>
+                </div>
+                <Link
+                  href="/settings"
+                  className="clay-btn-gradient px-4 py-2 text-xs font-bold text-white shadow-sm flex items-center gap-1.5 cursor-pointer mt-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Connecter mon premier réseau</span>
+                </Link>
               </div>
-            </div>
-
-            {/* Network breakdown pills list */}
-            <div className="space-y-2 pt-2">
-              {donutData.slice(0, 5).map((d) => (
-                <div key={d.name} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="font-semibold text-slate-700">{d.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <span className="font-bold text-slate-900">{d.value.toLocaleString('fr-FR')}</span>
-                    <span className="text-[11px]">{d.percentage}</span>
+            ) : (
+              <>
+                <div className="relative h-44 w-full flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={52}
+                        outerRadius={74}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {donutData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#ffffff',
+                          borderRadius: '16px',
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                          fontSize: '12px',
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Abonnés</span>
+                    <span className="text-base font-black text-slate-900">78 900</span>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Network breakdown pills list */}
+                <div className="space-y-2 pt-2">
+                  {donutData.slice(0, 5).map((d) => (
+                    <div key={d.name} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                        <span className="font-semibold text-slate-700">{d.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <span className="font-bold text-slate-900">{d.value.toLocaleString('fr-FR')}</span>
+                        <span className="text-[11px]">{d.percentage}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -383,7 +427,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">Boost Publication B2B (Moov)</h4>
-                    <p className="text-[10px] text-slate-400">LinkedIn Ads • 18 Mai 2026</p>
+                    <p className="text-[10px] text-slate-400">LinkedIn Ads • Il y a 3 jours</p>
                   </div>
                 </div>
                 <span className="text-xs font-black text-slate-800">-3 500 FCFA</span>

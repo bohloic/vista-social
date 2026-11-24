@@ -469,7 +469,7 @@ export default function CRMPage() {
                   </span>
                 </div>
                 <span className="text-[10px] font-mono font-medium text-slate-500 font-jakarta">
-                  {colTotal.toLocaleString()} F
+                  {colTotal.toLocaleString('fr-FR')} FCFA
                 </span>
               </div>
 
@@ -517,7 +517,7 @@ export default function CRMPage() {
 
                       {/* Notes / Context */}
                       {p.notes && (
-                        <p className="text-[10px] text-slate-600 font-jakarta bg-white/90 p-2 rounded-lg border border-violet-100 leading-relaxed line-clamp-2">
+                        <p className="text-[10px] text-slate-600 font-jakarta bg-white/90 p-2 rounded-lg border border-violet-100 leading-relaxed break-words">
                           {p.notes}
                         </p>
                       )}

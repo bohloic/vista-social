@@ -450,16 +450,18 @@ export default function InboxPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleSimulateLead}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:opacity-90 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Simuler un Prospect Chaud</span>
-          </button>
-        </div>
+        {process.env.NODE_ENV === 'development' && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSimulateLead}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:opacity-90 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Simuler un Prospect Chaud</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter Bar: Channels + Intents */}
@@ -545,13 +547,15 @@ export default function InboxPage() {
               <div className="p-8 text-center text-xs text-slate-400 space-y-2">
                 <Inbox className="w-8 h-8 text-slate-600 mx-auto" />
                 <p>Aucun prospect ne correspond à ces critères.</p>
-                <button
-                  type="button"
-                  onClick={handleSimulateLead}
-                  className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-[11px] font-bold"
-                >
-                  Simuler un Prospect
-                </button>
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    type="button"
+                    onClick={handleSimulateLead}
+                    className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-[11px] font-bold"
+                  >
+                    Simuler un Prospect
+                  </button>
+                )}
               </div>
             ) : (
               filteredConversations.map((conv) => {

@@ -24,7 +24,7 @@ import {
 export default function ListeningPage() {
   const [mentions, setMentions] = useState<ListeningMention[]>([]);
   const [monitoredKeywords, setMonitoredKeywords] = useState<string[]>([]);
-  const [workspaceName, setWorkspaceName] = useState<string>('Special boh2B');
+  const [workspaceName, setWorkspaceName] = useState<string>('Mon Entreprise');
   const [activeQuery, setActiveQuery] = useState<string>('all');
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
@@ -67,10 +67,10 @@ export default function ListeningPage() {
     // Default keywords dynamically calibrated to active workspace
     const cleanName = workspaceName.replace(/[^a-zA-Z0-9]/g, '');
     setMonitoredKeywords([
-      `@${cleanName || 'SpecialBoh2B'}`,
-      `#${cleanName || 'SpecialBoh2B'}`,
-      `${workspaceName || 'Special boh2B'} Officiel`,
-      'Agence CM 2026',
+      `@${cleanName || 'MonEntreprise'}`,
+      `#${cleanName || 'MonEntreprise'}`,
+      `${workspaceName || 'Mon Entreprise'} Officiel`,
+      'Veille Stratégique',
     ]);
   }, [workspaceName]);
 

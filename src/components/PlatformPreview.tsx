@@ -66,7 +66,7 @@ export function PlatformPreview({
                 <img src={avatarUrl} alt={accountName} className="w-7 h-7 rounded-full object-cover ring-2 ring-pink-500 p-0.5" />
                 <div>
                   <p className="font-bold text-[11px] leading-tight">{username.replace('@', '')}</p>
-                  <p className="text-[9px] text-slate-400">Paris, France</p>
+                  <p className="text-[9px] text-slate-400">Abidjan, Côte d&apos;Ivoire</p>
                 </div>
               </div>
               <span className="text-slate-400 font-bold">•••</span>
