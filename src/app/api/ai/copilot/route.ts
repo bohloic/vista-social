@@ -31,6 +31,19 @@ async function executeServerTool(
   }
 
   try {
+    // [STRIX-04 Fix]: Enforce RBAC on AI Copilot server tools (prevent read-only 'client' role from mutating workspace state)
+    const allowedMutators = ['super_admin', 'admin', 'manager', 'editor'];
+    if (
+      ['create_post', 'delete_post', 'update_post', 'create_pulse_page'].includes(act.type) &&
+      !allowedMutators.includes(user.role)
+    ) {
+      return {
+        executed: true,
+        success: false,
+        output: `Privilèges insuffisants (rôle ${user.role}) pour modifier ou supprimer des contenus.`,
+      };
+    }
+
     if (act.type === 'create_post') {
       const p = act.payload || {};
       const { data, error } = await supabase
@@ -128,15 +141,44 @@ async function executeServerTool(
     }
 
     if (act.type === 'invite_team_member') {
-      const email = String(act.payload.email || '');
-      if (!email) {
-        return { executed: true, success: false, output: `Email manquant pour l'invitation.` };
+      // [STRIX-04 Fix]: Only super_admin or admin can invite members, and never self-escalate user.id!
+      if (!['super_admin', 'admin'].includes(user.role)) {
+        return {
+          executed: true,
+          success: false,
+          output: `Privilèges insuffisants : seul un administrateur peut inviter un membre dans l'équipe.`,
+        };
       }
-      const { error } = await supabase.from('workspace_members').insert({
-        workspace_id: workspaceId,
-        user_id: user.id,
-        role: String(act.payload.role || 'editor'),
-      });
+      const email = String(act.payload.email || '').toLowerCase().trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return { executed: true, success: false, output: `Email valide requis pour l'invitation.` };
+      }
+      const requestedRole = String(act.payload.role || 'editor');
+      const safeRole = ['admin', 'manager', 'editor', 'client'].includes(requestedRole) ? requestedRole : 'editor';
+
+      const { data: targetProfile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (!targetProfile?.id) {
+        return {
+          executed: false,
+          success: true,
+          output: `Invitation pour ${email} préparée côté interface.`,
+          isClientAction: true,
+        };
+      }
+
+      const { error } = await supabase.from('workspace_members').upsert(
+        {
+          workspace_id: workspaceId,
+          user_id: targetProfile.id,
+          role: safeRole,
+        },
+        { onConflict: 'workspace_id,user_id' }
+      );
       if (error) {
         return { executed: true, success: false, output: `Échec invitation membre: ${error.message}` };
       }
@@ -196,28 +238,32 @@ const copilotRequestSchema = z
 export async function POST(req: NextRequest) {
   try {
     const { user, supabase } = await requireUser(req);
-    checkRateLimit(`ai:${user.id}`, 10, 60_000);
+    const rl = checkRateLimit(`ai:${user.id}`, 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de requêtes IA atteinte. Veuillez patienter.', retryAfter: rl.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+      );
+    }
 
     const body = await req.json();
     const parsed = copilotRequestSchema.parse(body);
 
     const { message, history, currentPath, attachments, memory, clientStats } = parsed;
 
-    // Gather live project stats concisely
+    // [STRIX-04 Fix]: Gather live project stats strictly scoped to the user's tenant workspaceId
     let postsCount = 0;
     let accountsCount = 0;
-    let workspaceId: string | undefined = user.workspaceId;
+    const workspaceId: string | undefined = user.workspaceId || user.workspace_id;
 
-    if (supabase) {
+    if (supabase && workspaceId) {
       try {
-        const [postsRes, accsRes, wsRes] = await Promise.all([
-          supabase.from('posts').select('id', { count: 'exact', head: true }),
-          supabase.from('social_accounts').select('id', { count: 'exact', head: true }),
-          workspaceId ? Promise.resolve({ data: { id: workspaceId } }) : supabase.from('workspaces').select('id').limit(1).maybeSingle(),
+        const [postsRes, accsRes] = await Promise.all([
+          supabase.from('posts').select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
+          supabase.from('social_accounts').select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
         ]);
         postsCount = postsRes.count || 0;
         accountsCount = accsRes.count || 0;
-        if (!workspaceId && wsRes.data?.id) workspaceId = wsRes.data.id;
       } catch {
         // non-blocking
       }

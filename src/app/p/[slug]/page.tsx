@@ -4,6 +4,7 @@ export const revalidate = 0;
 import React from 'react';
 import { getAdminSupabase } from '@/lib/supabase';
 import { PulsePage } from '@/lib/types';
+import { isSafeHttpUrl } from '@/lib/security/guards';
 import { ExternalLink, Sparkles } from 'lucide-react';
 
 interface Props {
@@ -80,7 +81,7 @@ export default async function PublicPulsePage({ params }: Props) {
         {/* Avatar */}
         <div className="w-28 h-28 rounded-full p-1.5 border-2 border-white/40 overflow-hidden shadow-2xl shrink-0">
           <img
-            src={page.avatar_url}
+            src={isSafeHttpUrl(page.avatar_url) ? page.avatar_url : DEFAULT_PULSE_PAGE.avatar_url}
             alt={page.title}
             className="w-full h-full object-cover rounded-full"
           />
@@ -127,32 +128,35 @@ export default async function PublicPulsePage({ params }: Props) {
 
         {/* Action Links */}
         <div className="w-full space-y-3.5 pt-4">
-          {page.blocks.map((block) => (
-            <a
-              key={block.id}
-              href={block.url || '#'}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full p-4 rounded-2xl block text-center border backdrop-blur-md shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
-              style={{
-                backgroundColor: page.theme_config.button_bg,
-                borderColor: page.theme_config.button_border,
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <span className="w-4" />
-                <span className="font-bold text-sm leading-tight flex-1">
-                  {block.title}
-                </span>
-                <ExternalLink className="w-4 h-4 text-white/60" />
-              </div>
-              {block.subtitle && (
-                <p className="text-[11px] text-white/70 mt-1 leading-snug">
-                  {block.subtitle}
-                </p>
-              )}
-            </a>
-          ))}
+          {page.blocks.map((block) => {
+            const safeHref = isSafeHttpUrl(block.url) ? block.url! : '#';
+            return (
+              <a
+                key={block.id}
+                href={safeHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full p-4 rounded-2xl block text-center border backdrop-blur-md shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  backgroundColor: page.theme_config.button_bg,
+                  borderColor: page.theme_config.button_border,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="w-4" />
+                  <span className="font-bold text-sm leading-tight flex-1">
+                    {block.title}
+                  </span>
+                  <ExternalLink className="w-4 h-4 text-white/60" />
+                </div>
+                {block.subtitle && (
+                  <p className="text-[11px] text-white/70 mt-1 leading-snug">
+                    {block.subtitle}
+                  </p>
+                )}
+              </a>
+            );
+          })}
         </div>
       </div>
 

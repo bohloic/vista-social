@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
-import { hashPassword } from '@/lib/auth-crypto';
+import { hashPassword, createSignedSession, verifySignedSession } from '@/lib/auth-crypto';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import crypto from 'crypto';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
-const requestResetSchema = z.object({
-  action: z.enum(['request', 'confirm']),
-  email: z.string().email('Format email invalide').max(255),
-  token: z.string().optional(),
-  newPassword: z.string().min(8, 'Le mot de passe doit comporter au moins 8 caractères').max(128).optional(),
-});
+const requestResetSchema = z
+  .object({
+    action: z.enum(['request', 'confirm']),
+    email: z.string().email('Format email invalide').max(255),
+    token: z.string().min(4).max(256).optional(),
+    newPassword: z.string().min(8, 'Le mot de passe doit comporter au moins 8 caractères').max(128).optional(),
+  })
+  .strict();
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { action, email, newPassword } = parsed.data;
+    const { action, email, token, newPassword } = parsed.data;
     const cleanEmail = email.toLowerCase().trim();
     const supabase = getAdminSupabase();
 
@@ -56,32 +58,49 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (!user) {
-        // Return success message to prevent user enumeration
+        // Return generic success message to prevent user enumeration
         return NextResponse.json({
           success: true,
-          message: `Si un compte correspond à ${cleanEmail}, les instructions de réinitialisation ont été générées.`,
+          message: `Si un compte correspond à ${cleanEmail}, un code de vérification a été envoyé par e-mail.`,
         });
       }
 
-      // Generate a 6-digit numeric reset code and secure token
-      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const resetToken = crypto.createHash('sha256').update(`${user.id}-${Date.now()}-${resetCode}`).digest('hex');
+      // Generate a cryptographically secure 6-digit OTP code
+      const resetCode = crypto.randomInt(100000, 999999).toString();
+      const codeHash = crypto.createHash('sha256').update(`${cleanEmail}:${resetCode}`).digest('hex');
 
-      // Trigger Supabase Auth reset if configured
+      // Trigger Supabase Auth reset email
       try {
         await supabase.auth.resetPasswordForEmail(cleanEmail, {
           redirectTo: `${new URL(req.url).origin}/login?reset=1`,
         });
       } catch {
-        // Continue with direct token flow
+        // Continue with challenge cookie
       }
 
-      return NextResponse.json({
-        success: true,
-        message: `Code de réinitialisation généré pour ${cleanEmail}. Entrez votre nouveau mot de passe ci-dessous.`,
-        resetCode,
-        resetToken,
+      // [STRIX-02 Fix]: Store signed HMAC challenge in an HttpOnly cookie (never expose resetCode in JSON response!)
+      const challengeCookie = createSignedSession({
+        purpose: 'password_reset',
+        userId: user.id,
+        email: cleanEmail,
+        codeHash,
+        exp: Date.now() + 10 * 60 * 1000, // 10 minutes validity
       });
+
+      const res = NextResponse.json({
+        success: true,
+        message: `Si un compte correspond à ${cleanEmail}, un code de réinitialisation a été envoyé à votre adresse e-mail.`,
+      });
+
+      res.cookies.set('pulsesocial_reset_challenge', challengeCookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/api/auth/reset-password',
+        maxAge: 10 * 60,
+      });
+
+      return res;
     }
 
     // Step 2: Confirm Password Reset
@@ -93,15 +112,50 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // [STRIX-02 Fix]: Require and cryptographically verify the reset token/code before allowing password change!
+      if (!token) {
+        return NextResponse.json(
+          { success: false, error: 'Code de vérification requis pour réinitialiser le mot de passe.' },
+          { status: 401 }
+        );
+      }
+
+      const challengeToken = req.cookies.get('pulsesocial_reset_challenge')?.value;
+      const challenge = challengeToken ? verifySignedSession(challengeToken) : null;
+
+      if (
+        !challenge ||
+        challenge.purpose !== 'password_reset' ||
+        challenge.email !== cleanEmail ||
+        typeof challenge.codeHash !== 'string'
+      ) {
+        return NextResponse.json(
+          { success: false, error: 'Session de réinitialisation invalide ou expirée. Veuillez refaire une demande.' },
+          { status: 401 }
+        );
+      }
+
+      const providedHash = crypto.createHash('sha256').update(`${cleanEmail}:${token.trim()}`).digest('hex');
+      const expectedBuf = Buffer.from(challenge.codeHash, 'hex');
+      const actualBuf = Buffer.from(providedHash, 'hex');
+
+      if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+        return NextResponse.json(
+          { success: false, error: 'Code de vérification invalide.' },
+          { status: 401 }
+        );
+      }
+
       const { data: user, error: findError } = await supabase
         .from('user_profiles')
         .select('id, email')
+        .eq('id', challenge.userId)
         .eq('email', cleanEmail)
         .maybeSingle();
 
       if (findError || !user) {
         return NextResponse.json(
-          { success: false, error: 'Compte introuvable pour cette adresse e-mail.' },
+          { success: false, error: 'Compte introuvable.' },
           { status: 404 }
         );
       }
@@ -125,10 +179,12 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      return NextResponse.json({
+      const res = NextResponse.json({
         success: true,
         message: 'Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.',
       });
+      res.cookies.delete('pulsesocial_reset_challenge');
+      return res;
     }
 
     return NextResponse.json({ success: false, error: 'Action non reconnue' }, { status: 400 });

@@ -21,7 +21,13 @@ export async function POST(req: NextRequest) {
     const { user, supabase } = await requireUser(req);
 
     // Rate limiting: max 5 checkout requests/min per user [M6]
-    checkRateLimit(`billing:${user.id}`, 5, 60_000);
+    const rl = checkRateLimit(`billing:${user.id}`, 5, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives de paiement. Veuillez patienter.', retryAfter: rl.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+      );
+    }
 
     const body = await req.json();
     const validated = checkoutSchema.parse(body);

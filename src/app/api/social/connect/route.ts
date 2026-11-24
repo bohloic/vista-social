@@ -11,25 +11,27 @@ const isUuid = (val?: string) =>
   typeof val === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
-const connectSchema = z.object({
-  platform: z.enum([
-    'instagram',
-    'facebook',
-    'twitter',
-    'linkedin',
-    'tiktok',
-    'google_business',
-    'youtube',
-    'pinterest',
-    'threads',
-    'whatsapp',
-  ]),
-  accountName: z.string().min(1, 'Nom du compte requis').max(120),
-  username: z.string().min(1, 'Identifiant requis').max(120),
-  avatarUrl: z.string().url().or(z.string().startsWith('/')).optional(),
-  accessToken: z.string().max(2048).optional(),
-  workspaceId: z.string().uuid(),
-});
+const connectSchema = z
+  .object({
+    platform: z.enum([
+      'instagram',
+      'facebook',
+      'twitter',
+      'linkedin',
+      'tiktok',
+      'google_business',
+      'youtube',
+      'pinterest',
+      'threads',
+      'whatsapp',
+    ]),
+    accountName: z.string().min(1, 'Nom du compte requis').max(120),
+    username: z.string().min(1, 'Identifiant requis').max(120),
+    avatarUrl: z.string().url().or(z.string().startsWith('/')).optional(),
+    accessToken: z.string().max(2048).optional(),
+    workspaceId: z.string().uuid(),
+  })
+  .strict();
 
 export async function GET(req: NextRequest) {
   try {
@@ -146,13 +148,13 @@ export async function POST(req: NextRequest) {
     const rawToken = accessToken || `oauth_token_${platform}_${Date.now()}`;
     const encryptedToken = encryptToken(rawToken);
 
-    // Check if account already exists to prevent duplicate insertion
+    // Check if account already exists to prevent duplicate insertion (parameterized .in() prevents PostgREST filter injection)
     const { data: existingAccounts } = await supabase
       .from('social_accounts')
       .select('id, avatar_url, access_token')
       .eq('workspace_id', workspaceId)
       .eq('platform', platform)
-      .or(`username.ilike.@${cleanHandle},username.ilike.${cleanHandle}`);
+      .in('username', [`@${cleanHandle}`, cleanHandle]);
 
     if (existingAccounts && existingAccounts.length > 0) {
       const existing = existingAccounts[0];

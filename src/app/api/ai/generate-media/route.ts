@@ -39,7 +39,13 @@ function getCuratedPhotoFallback(prompt: string): string {
 export async function POST(req: NextRequest) {
   try {
     const { user } = await requireUser(req);
-    checkRateLimit(`ai:${user.id}`, 10, 60_000);
+    const rl = checkRateLimit(`ai:${user.id}`, 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de requêtes IA atteinte. Veuillez patienter.', retryAfter: rl.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+      );
+    }
 
     const body = await req.json();
     const validated = generateMediaSchema.parse(body);

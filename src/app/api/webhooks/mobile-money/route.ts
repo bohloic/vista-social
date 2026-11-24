@@ -46,7 +46,12 @@ export async function POST(req: NextRequest) {
     }
 
     const event = JSON.parse(rawBody);
-    const transactionId = event.transactionId || event.data?.reference || event.reference;
+    const rawTxId = event.transactionId || event.data?.reference || event.reference;
+    if (!rawTxId || typeof rawTxId !== 'string' || rawTxId.length > 128) {
+      return NextResponse.json({ error: 'Identifiant de transaction invalide' }, { status: 400 });
+    }
+    const transactionId = rawTxId.trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(transactionId);
     const status = event.status === 'successful' || event.event === 'charge.success' ? 'successful' : 'failed';
 
     const supabase = getAdminSupabase();
@@ -54,14 +59,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
     }
 
-    // Idempotent processing: update only if still pending
-    const { data: tx, error: txError } = await supabase
+    // [STRIX-06 Fix]: Parameterized .eq() lookup instead of string-interpolated .or()
+    let query = supabase
       .from('mobile_money_transactions')
       .update({
         status,
         verified_at: new Date().toISOString(),
-      })
-      .or(`id.eq.${transactionId},transaction_ref.eq.${transactionId}`)
+      });
+
+    query = isUuid ? query.eq('id', transactionId) : query.eq('transaction_ref', transactionId);
+
+    const { data: tx, error: txError } = await query
       .eq('status', 'pending')
       .select('id, status, plan, workspace_id, currency, amount, updated_at')
       .maybeSingle();

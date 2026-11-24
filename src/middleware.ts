@@ -92,6 +92,14 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const origin = request.headers.get('origin');
 
+  // [CVE-2025-29927 Defense-in-Depth]: Block external requests attempting to spoof x-middleware-subrequest
+  if (request.headers.has('x-middleware-subrequest')) {
+    return NextResponse.json(
+      { error: 'Requête interdite (en-tête interne réservé)', code: 'FORBIDDEN_SUBREQUEST_HEADER' },
+      { status: 403 }
+    );
+  }
+
   // Handle CORS preflight for /api/*
   if (pathname.startsWith('/api/') && request.method === 'OPTIONS') {
     if (origin && isAllowedOrigin(origin)) {

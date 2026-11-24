@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requireUser, requireWorkspaceRole, handleApiError } from '@/lib/security/guards';
 
 export const dynamic = 'force-dynamic';
 
-const initiateSchema = z.object({
-  platform: z.enum([
-    'instagram',
-    'facebook',
-    'twitter',
-    'linkedin',
-    'tiktok',
-    'whatsapp',
-    'google_business',
-    'youtube',
-    'threads',
-    'pinterest',
-  ]),
-  workspaceId: z.string().optional(),
-  composioApiKey: z.string().optional(),
-});
+const initiateSchema = z
+  .object({
+    platform: z.enum([
+      'instagram',
+      'facebook',
+      'twitter',
+      'linkedin',
+      'tiktok',
+      'whatsapp',
+      'google_business',
+      'youtube',
+      'threads',
+      'pinterest',
+    ]),
+    workspaceId: z.string().optional(),
+  })
+  .strict();
 
 // Official Direct OAuth 2.0 URLs for each provider (if custom client IDs are configured)
 function getDirectPlatformOAuthUrl(platform: string, callbackUrl: string): string | null {
@@ -95,6 +97,8 @@ const COMPOSIO_TOOLKIT_MAP: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
+    // [STRIX-05 Fix]: Enforce authentication and workspace ownership
+    const user = await requireUser(req);
     const body = await req.json();
     const parsed = initiateSchema.safeParse(body);
 
@@ -105,9 +109,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { platform, workspaceId, composioApiKey } = parsed.data;
+    const { platform, workspaceId: requestedWsId } = parsed.data;
+    const isUuid =
+      typeof requestedWsId === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedWsId);
+    const workspaceId = isUuid ? requestedWsId : (user.workspaceId || user.workspace_id);
+
+    if (workspaceId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspaceId)) {
+      await requireWorkspaceRole(user.id, workspaceId, ['super_admin', 'admin', 'manager', 'editor'], user.role);
+    }
+
     const origin = new URL(req.url).origin;
-    const apiKey = composioApiKey?.trim() || process.env.COMPOSIO_API_KEY?.trim();
+    const apiKey = process.env.COMPOSIO_API_KEY?.trim();
     const callbackUrl = `${origin}/api/social/oauth/callback?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId || '')}`;
 
     // 1. Direct custom developer credentials (if explicitly configured by the user)
@@ -205,7 +218,6 @@ export async function POST(req: NextRequest) {
       mode: 'official_portal',
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Erreur OAuth';
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+    return handleApiError(err);
   }
 }

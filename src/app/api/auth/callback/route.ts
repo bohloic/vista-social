@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { createSignedSession } from '@/lib/auth-crypto';
+import { safeJsonForScript } from '@/lib/security/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,31 +123,28 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
     const popup = url.searchParams.get('popup') === '1';
-    const emailParam = url.searchParams.get('email');
-    const nameParam = url.searchParams.get('name');
 
-    if (!code && !emailParam) {
+    // [STRIX-01 Fix]: Strictly require a real OAuth authorization code. Never trust raw email query params.
+    if (!code) {
       return NextResponse.redirect(new URL('/login?error=auth_cancelled', req.url));
     }
 
-    let email = emailParam || '';
-    let fullName = nameParam || '';
-    let avatarUrl = '';
-
-    if (code) {
-      const supabase = getAdminSupabase();
-      if (supabase) {
-        const { data } = await supabase.auth.exchangeCodeForSession(code);
-        if (data?.user?.email) {
-          email = data.user.email;
-          fullName =
-            data.user.user_metadata?.full_name ||
-            data.user.user_metadata?.name ||
-            email.split('@')[0];
-          avatarUrl = data.user.user_metadata?.avatar_url || '';
-        }
-      }
+    const supabase = getAdminSupabase();
+    if (!supabase) {
+      return NextResponse.redirect(new URL('/login?error=database_unavailable', req.url));
     }
+
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error || !data?.user?.email) {
+      return NextResponse.redirect(new URL('/login?error=google_oauth_failed', req.url));
+    }
+
+    const email = data.user.email.toLowerCase().trim();
+    const fullName =
+      data.user.user_metadata?.full_name ||
+      data.user.user_metadata?.name ||
+      email.split('@')[0];
+    const avatarUrl = data.user.user_metadata?.avatar_url || '';
 
     const userRecord = await resolveOrCreateGoogleUser(email, fullName, avatarUrl);
 
@@ -172,8 +170,8 @@ export async function GET(req: NextRequest) {
       if (window.opener) {
         window.opener.postMessage({
           type: 'GOOGLE_AUTH_SUCCESS',
-          user: ${JSON.stringify(userRecord)}
-        }, '*');
+          user: ${safeJsonForScript(userRecord)}
+        }, window.location.origin);
       }
     } catch (e) {}
     setTimeout(() => window.close(), 300);
@@ -186,6 +184,7 @@ export async function GET(req: NextRequest) {
       });
       res.cookies.set('pulsesocial_session', sessionToken, {
         httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
         path: '/',
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60,
@@ -196,6 +195,7 @@ export async function GET(req: NextRequest) {
     const redirectRes = NextResponse.redirect(new URL('/', req.url));
     redirectRes.cookies.set('pulsesocial_session', sessionToken, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60,
@@ -209,12 +209,36 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!body?.email || typeof body.email !== 'string') {
-      return NextResponse.json({ success: false, error: 'Email requis pour la validation.' }, { status: 400 });
+    const accessToken = typeof body?.accessToken === 'string' ? body.accessToken.trim() : '';
+
+    // [STRIX-01 Fix]: Never mint a session from an unverified email in POST /api/auth/callback.
+    // Require a valid Supabase OAuth access_token verified server-side.
+    if (!accessToken) {
+      return NextResponse.json(
+        { success: false, error: 'Jeton OAuth requis pour la validation de session.' },
+        { status: 401 }
+      );
     }
-    const email = body.email.trim().toLowerCase();
-    const fullName = body.name || email.split('@')[0];
-    const avatarUrl = body.avatarUrl || '';
+
+    const supabase = getAdminSupabase();
+    if (!supabase) {
+      return NextResponse.json({ success: false, error: 'Service indisponible' }, { status: 503 });
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
+    if (authError || !authData?.user?.email) {
+      return NextResponse.json(
+        { success: false, error: 'Jeton OAuth invalide ou expiré.' },
+        { status: 401 }
+      );
+    }
+
+    const email = authData.user.email.toLowerCase().trim();
+    const fullName =
+      authData.user.user_metadata?.full_name ||
+      authData.user.user_metadata?.name ||
+      email.split('@')[0];
+    const avatarUrl = authData.user.user_metadata?.avatar_url || '';
 
     const userRecord = await resolveOrCreateGoogleUser(email, fullName, avatarUrl);
 
@@ -234,6 +258,7 @@ export async function POST(req: NextRequest) {
 
     res.cookies.set('pulsesocial_session', sessionToken, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60,

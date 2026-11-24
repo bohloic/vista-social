@@ -328,4 +328,33 @@ test('17. [SW-01] Service Worker sw.js never caches /api/*, RSC or requests with
   assert.ok(!swContent.includes("'/images/3d-dashboard-cm.jpg'"), 'SW must not pre-cache legacy dashboard image');
 });
 
+test('18. [STRIX-01][STRIX-02] Auth Callback & Reset Password enforce cryptographic verification and never leak resetCode', async () => {
+  const fs = await import('node:fs');
+  const callbackSrc = fs.readFileSync('src/app/api/auth/callback/route.ts', 'utf-8');
+  const resetSrc = fs.readFileSync('src/app/api/auth/reset-password/route.ts', 'utf-8');
+
+  // Callback must not trust raw email query parameters or unauthenticated body.email
+  assert.ok(!callbackSrc.includes("url.searchParams.get('email')"), 'GET /api/auth/callback must not accept unverified email query param');
+  assert.ok(callbackSrc.includes('exchangeCodeForSession(code)'), 'GET /api/auth/callback must exchange OAuth code');
+  assert.ok(callbackSrc.includes('supabase.auth.getUser(accessToken)'), 'POST /api/auth/callback must verify accessToken');
+
+  // Password reset must not return resetCode in JSON and must verify HMAC challenge in constant time
+  assert.ok(!resetSrc.includes('resetCode,\n        resetToken,'), 'POST /api/auth/reset-password must never leak resetCode in JSON response');
+  assert.ok(resetSrc.includes('crypto.timingSafeEqual'), 'Password reset confirm must verify code hash with timingSafeEqual');
+});
+
+test('19. [STRIX-03][STRIX-05][STRIX-06] XSS escaping, javascript: URL blocking, PostgREST injection prevention & CVE-2025-29927 guard', async () => {
+  const fs = await import('node:fs');
+  const guardsSrc = fs.readFileSync('src/lib/security/guards.ts', 'utf-8');
+  const middlewareSrc = fs.readFileSync('src/middleware.ts', 'utf-8');
+  const webhookSrc = fs.readFileSync('src/app/api/webhooks/mobile-money/route.ts', 'utf-8');
+
+  assert.ok(guardsSrc.includes('export function escapeHtml'), 'guards.ts must provide escapeHtml against Reflected XSS');
+  assert.ok(guardsSrc.includes('export function safeJsonForScript'), 'guards.ts must provide safeJsonForScript against </script> breakout XSS');
+  assert.ok(guardsSrc.includes('export function isSafeHttpUrl'), 'guards.ts must provide isSafeHttpUrl against javascript: URI XSS');
+  assert.ok(middlewareSrc.includes("request.headers.has('x-middleware-subrequest')"), 'Middleware must block spoofed x-middleware-subrequest header (CVE-2025-29927)');
+  assert.ok(!webhookSrc.includes('.or(`id.eq.${transactionId}'), 'Mobile money webhook must not interpolate unvalidated string into PostgREST .or()');
+});
+
+
 

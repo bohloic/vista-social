@@ -307,23 +307,55 @@ export async function requireWorkspaceRole(
     if (profile.role === 'super_admin') {
       return 'super_admin';
     }
-    if (profile.workspace_id === workspaceId && allowedRoles.includes(profile.role as WorkspaceRole)) {
-      return profile.role as WorkspaceRole;
-    }
-    if (!profile.workspace_id) {
-      await supabase.from('user_profiles').update({ workspace_id: workspaceId }).eq('id', userId);
-      if (allowedRoles.includes(profile.role as WorkspaceRole)) {
-        return profile.role as WorkspaceRole;
+    if (profile.workspace_id === workspaceId) {
+      const effectiveRole = (profile.role as WorkspaceRole) || currentUserRole || 'client';
+      if (!allowedRoles.includes(effectiveRole)) {
+        throw new ApiError(403, 'ROLE_INSUFFICIENT', 'Privilèges insuffisants pour cette action sur ce workspace');
       }
+      return effectiveRole;
     }
-  }
-
-  // 3. Fallback: if session currentUserRole is present and allowed
-  if (currentUserRole && allowedRoles.includes(currentUserRole)) {
-    return currentUserRole;
+    // User belongs to a different workspace -> strict Anti-BOLA rejection
+    throw new ApiError(403, 'WORKSPACE_ACCESS_DENIED', 'Accès interdit à cet espace de travail (Anti-BOLA)');
   }
 
   throw new ApiError(403, 'WORKSPACE_ACCESS_DENIED', 'Accès au workspace refusé ou rôle insuffisant');
+}
+
+/**
+ * Escapes HTML special characters to prevent Reflected/Stored XSS in server-rendered HTML responses.
+ */
+export function escapeHtml(unsafe: string): string {
+  return String(unsafe || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Safely serializes an object to JSON for embedding inside an HTML <script> tag (prevents </script> breakout XSS).
+ */
+export function safeJsonForScript(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
+/**
+ * Validates that a URL uses a safe protocol (http:, https:, or relative path starting with /) to prevent javascript: XSS.
+ */
+export function isSafeHttpUrl(url: string | undefined | null): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return true;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
 }
 
 export function handleApiError(err: unknown): NextResponse {

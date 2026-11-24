@@ -120,7 +120,13 @@ export async function POST(req: NextRequest) {
     const { user, supabase } = await requireUser(req);
 
     // Enforce Rate Limiting: 30 requests/min per user [M6]
-    checkRateLimit(`post:${user.id}`, 30, 60_000);
+    const rl = checkRateLimit(`post:${user.id}`, 30, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de requêtes atteinte. Veuillez patienter.', retryAfter: rl.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+      );
+    }
 
     const body = await req.json();
     const validated = postCreateSchema.parse(body);
@@ -187,7 +193,13 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const { user, supabase } = await requireUser(req);
-    checkRateLimit(`post:${user.id}`, 30, 60_000);
+    const rl = checkRateLimit(`post:${user.id}`, 30, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de requêtes atteinte. Veuillez patienter.', retryAfter: rl.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+      );
+    }
 
     const body = await req.json();
     const validated = postUpdateSchema.parse(body);
@@ -239,7 +251,13 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { user, supabase } = await requireUser(req);
-    checkRateLimit(`post:${user.id}`, 30, 60_000);
+    const rl = checkRateLimit(`post:${user.id}`, 30, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de requêtes atteinte. Veuillez patienter.', retryAfter: rl.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     let id = searchParams.get('id');
