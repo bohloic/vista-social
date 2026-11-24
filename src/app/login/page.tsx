@@ -61,6 +61,16 @@ export default function LoginPage() {
         setResetEmail(savedEmail);
       }
 
+      // Purge any stale unauthenticated state in localStorage
+      fetch('/api/auth/me')
+        .then((res) => {
+          if (!res.ok) {
+            localStorage.removeItem('pulsesocial_user');
+            localStorage.removeItem('pulsesocial_active_workspace');
+          }
+        })
+        .catch(() => {});
+
       const handleOAuthMessage = (event: MessageEvent) => {
         if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
           if (event.data.user) {
