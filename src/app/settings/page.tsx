@@ -192,10 +192,10 @@ export default function SettingsPage() {
     }
 
     const handleOAuthPopupMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'COMPOSIO_OAUTH_SUCCESS') {
-        const accName = event.data.account?.account_name || event.data.platform?.toUpperCase();
+      if (event.data?.type === 'COMPOSIO_OAUTH_SUCCESS' || event.data?.type === 'OAUTH_SUCCESS') {
+        const accName = event.data.account?.account_name || event.data.platform?.toUpperCase() || 'Réseau';
         setConnectMessage(
-          `✓ ${accName} authentifié et synchronisé avec succès via la fenêtre officielle OAuth 2.0 (Composio) !`
+          `✓ ${accName} authentifié et synchronisé avec succès via la fenêtre officielle OAuth 2.0 !`
         );
         setConnectingPlatform(null);
         fetchAccounts();
@@ -267,9 +267,20 @@ export default function SettingsPage() {
         return;
       }
 
-      const timer = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(timer);
+      let timer: NodeJS.Timeout | null = null;
+      let elapsed = 0;
+      timer = setInterval(() => {
+        elapsed += 600;
+        let isClosed = false;
+        try {
+          // Wrapped in try/catch to prevent Cross-Origin-Opener-Policy browser error
+          isClosed = Boolean(popup && popup.closed);
+        } catch {
+          // COOP policy blocks accessing cross-origin window properties
+        }
+
+        if (isClosed || elapsed >= 180000) {
+          if (timer) clearInterval(timer);
           setConnectingPlatform(null);
           fetchAccounts();
         }

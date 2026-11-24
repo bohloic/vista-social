@@ -8,7 +8,7 @@
  * 4. Immediate cache purge of all previous versions on activate.
  */
 
-const STATIC_CACHE_NAME = 'pulsesocial-v4.0-prod';
+const STATIC_CACHE_NAME = 'pulsesocial-v4.1-prod';
 const OFFLINE_URL = '/offline.html';
 
 // Only immutable offline fallback assets are pre-cached. NEVER pre-cache '/' or HTML pages!
@@ -65,8 +65,15 @@ self.addEventListener('fetch', (event) => {
     hasAuthHeader;
 
   if (isAuthOrApiOrRsc) {
-    // NetworkOnly: bypass service worker cache completely
-    event.respondWith(fetch(request));
+    // NetworkOnly: bypass service worker cache completely, but catch network errors gracefully
+    event.respondWith(
+      fetch(request).catch(() => {
+        return new Response(JSON.stringify({ error: 'Réseau indisponible', offline: true }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+    );
     return;
   }
 
@@ -110,6 +117,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: Network fetch
-  event.respondWith(fetch(request));
+  // Default: Network fetch with error handling
+  event.respondWith(
+    fetch(request).catch(() => {
+      if (request.mode === 'navigate') {
+        return caches.match(OFFLINE_URL);
+      }
+      return new Response('', { status: 408, statusText: 'Request Timeout' });
+    })
+  );
 });

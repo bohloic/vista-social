@@ -133,9 +133,20 @@ export default function LoginPage() {
         return;
       }
 
-      const timer = setInterval(async () => {
-        if (popup.closed) {
-          clearInterval(timer);
+      let timer: NodeJS.Timeout | null = null;
+      let elapsed = 0;
+      timer = setInterval(async () => {
+        elapsed += 600;
+        let isClosed = false;
+        try {
+          // Safe try-catch to prevent Cross-Origin-Opener-Policy blocking
+          isClosed = Boolean(popup && popup.closed);
+        } catch {
+          // Cross-Origin-Opener-Policy policy catch
+        }
+
+        if (isClosed || elapsed >= 180000) {
+          if (timer) clearInterval(timer);
           try {
             const verifyRes = await fetch('/api/auth/google/verify', { method: 'POST' });
             if (verifyRes.ok) {
