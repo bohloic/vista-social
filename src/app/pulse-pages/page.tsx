@@ -87,6 +87,29 @@ const DEFAULT_PAGE: PulsePage = {
   updated_at: new Date().toISOString(),
 };
 
+function sanitizePulsePageState(raw: any): PulsePage {
+  if (!raw || typeof raw !== 'object') return DEFAULT_PAGE;
+  return {
+    ...DEFAULT_PAGE,
+    ...raw,
+    avatar_url:
+      !raw.avatar_url || String(raw.avatar_url).includes('images.unsplash.com')
+        ? '/logo.svg'
+        : raw.avatar_url,
+    theme_config:
+      raw.theme_config && typeof raw.theme_config === 'object' && raw.theme_config.bg_gradient
+        ? raw.theme_config
+        : raw.social_links && typeof raw.social_links === 'object' && raw.social_links.bg_gradient
+        ? raw.social_links
+        : DEFAULT_PAGE.theme_config,
+    blocks: Array.isArray(raw.blocks)
+      ? raw.blocks
+      : Array.isArray(raw.links)
+      ? raw.links
+      : DEFAULT_PAGE.blocks,
+  };
+}
+
 export default function PulsePagesBuilder() {
   const [page, setPage] = useState<PulsePage>(DEFAULT_PAGE);
   const [saving, setSaving] = useState(false);
@@ -102,7 +125,7 @@ export default function PulsePagesBuilder() {
         try {
           const parsed = JSON.parse(draft);
           if (parsed && parsed.title) {
-            setPage(parsed);
+            setPage(sanitizePulsePageState(parsed));
           }
         } catch {
           // ignore draft parse error
@@ -117,13 +140,7 @@ export default function PulsePagesBuilder() {
         if (res.ok) {
           const data = await res.json();
           if (data.page) {
-            const normalizedPage = {
-              ...data.page,
-              avatar_url:
-                !data.page.avatar_url || data.page.avatar_url.includes('images.unsplash.com')
-                  ? '/logo.svg'
-                  : data.page.avatar_url,
-            };
+            const normalizedPage = sanitizePulsePageState(data.page);
             setPage(normalizedPage);
             if (typeof window !== 'undefined') {
               localStorage.setItem('pulsesocial_page_saved', JSON.stringify(normalizedPage));
@@ -142,7 +159,7 @@ export default function PulsePagesBuilder() {
           try {
             const parsed = JSON.parse(saved);
             if (parsed && parsed.title) {
-              setPage(parsed);
+              setPage(sanitizePulsePageState(parsed));
             }
           } catch {
             // ignore
@@ -156,9 +173,10 @@ export default function PulsePagesBuilder() {
 
   // Update page helper that also persists to sessionStorage draft
   const updatePage = (updated: PulsePage) => {
-    setPage(updated);
+    const clean = sanitizePulsePageState(updated);
+    setPage(clean);
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('pulsesocial_page_draft', JSON.stringify(updated));
+      sessionStorage.setItem('pulsesocial_page_draft', JSON.stringify(clean));
     }
   };
 
@@ -207,10 +225,11 @@ export default function PulsePagesBuilder() {
       }
 
       if (data.page) {
-        setPage(data.page);
+        const normalized = sanitizePulsePageState(data.page);
+        setPage(normalized);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('pulsesocial_page_saved', JSON.stringify(data.page));
-          sessionStorage.setItem('pulsesocial_page_draft', JSON.stringify(data.page));
+          localStorage.setItem('pulsesocial_page_saved', JSON.stringify(normalized));
+          sessionStorage.setItem('pulsesocial_page_draft', JSON.stringify(normalized));
         }
       }
 
@@ -257,11 +276,10 @@ export default function PulsePagesBuilder() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-lg transition-all ${
-              savedSuccess
-                ? 'bg-emerald-600 shadow-emerald-600/30'
-                : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-lg transition-all ${savedSuccess
+              ? 'bg-emerald-600 shadow-emerald-600/30'
+              : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
+              }`}
           >
             {saving ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -277,22 +295,22 @@ export default function PulsePagesBuilder() {
 
       {/* Success / Error notification banner */}
       {savedSuccess && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-xs flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>Vos modifications ont été synchronisées et enregistrées avec succès dans Supabase !</span>
         </div>
       )}
 
       {errorMessage && (
-        <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between animate-in fade-in">
+        <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 text-xs flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-rose-400">Attention :</span>
+            <span className="font-bold text-rose-700">Attention :</span>
             <span>{errorMessage} (Sauvegarde locale garantie dans votre navigateur)</span>
           </div>
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
-            className="text-xs text-rose-400 hover:text-white"
+            className="text-xs text-rose-600 hover:text-rose-900"
           >
             ✕
           </button>
@@ -446,11 +464,10 @@ export default function PulsePagesBuilder() {
                       },
                     })
                   }
-                  className={`p-3 rounded-2xl border text-left transition-all ${
-                    page.theme_config.bg_gradient === preset.gradient
-                      ? 'border-violet-600 ring-2 ring-violet-500/30'
-                      : 'border-slate-200 hover:border-slate-400 bg-slate-50/50'
-                  }`}
+                  className={`p-3 rounded-2xl border text-left transition-all ${page.theme_config.bg_gradient === preset.gradient
+                    ? 'border-violet-600 ring-2 ring-violet-500/30'
+                    : 'border-slate-200 hover:border-slate-400 bg-slate-50/50'
+                    }`}
                 >
                   <div
                     className={`h-10 rounded-xl bg-gradient-to-br ${preset.gradient} mb-2 border border-black/10`}

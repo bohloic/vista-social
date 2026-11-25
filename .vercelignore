@@ -1,0 +1,18 @@
+# Sensitive environment files (never upload local secrets)
+.env
+.env.*
+.env*.local
+
+# Tests, QA seed scripts & Playwright reports
+tests/
+test-results/
+playwright-report/
+playwright.config.ts
+scripts/seed-test-users.mjs
+
+# Database migrations & local docs
+supabase/
+*.md
+*.log
+*.zip
+.git/

@@ -66,7 +66,21 @@ export default async function PublicPulsePage({ params }: Props) {
         .maybeSingle();
 
       if (data) {
-        page = data as PulsePage;
+        page = {
+          ...DEFAULT_PULSE_PAGE,
+          ...data,
+          theme_config:
+            data.theme_config && typeof data.theme_config === 'object' && data.theme_config.bg_gradient
+              ? data.theme_config
+              : data.social_links && typeof data.social_links === 'object' && data.social_links.bg_gradient
+              ? data.social_links
+              : DEFAULT_PULSE_PAGE.theme_config,
+          blocks: Array.isArray(data.blocks)
+            ? data.blocks
+            : Array.isArray(data.links)
+            ? data.links
+            : DEFAULT_PULSE_PAGE.blocks,
+        } as PulsePage;
       }
     }
   } catch (err) {
@@ -120,13 +134,13 @@ export default async function PublicPulsePage({ params }: Props) {
             in
           </a>
           <a
-            href="https://x.com"
+            href="https://wa.me/"
             target="_blank"
             rel="noreferrer"
             className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center font-bold text-xs transition-transform hover:scale-110"
-            aria-label="Twitter / X"
+            aria-label="WhatsApp"
           >
-            𝕏
+            WA
           </a>
         </div>
 
