@@ -449,7 +449,8 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat outil serv
     return { reply: directRes.text };
   }
 
-  const rawText = await callGeminiAPI(generationPayload);
+  const directRes = await callGeminiDirect(generationPayload);
+  const rawText = directRes.text;
 
   if (rawText) {
     try {
