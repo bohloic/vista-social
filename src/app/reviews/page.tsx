@@ -62,14 +62,15 @@ export default function ReviewsPage() {
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [loadingAi, setLoadingAi] = useState<Record<string, boolean>>({});
   const [workspaceName, setWorkspaceName] = useState<string>('Votre Établissement');
+  const [userRole, setUserRole] = useState<string>('client');
 
   useEffect(() => {
-    // 1. Load active workspace name
+    // 1. Load active workspace name & role from session API
     try {
       const saved = localStorage.getItem('pulsesocial_active_workspace');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.name) setWorkspaceName(parsed.name);
+        if (parsed.name && parsed.name !== 'Special boh2B') setWorkspaceName(parsed.name);
       }
       const savedReviews = localStorage.getItem('pulsesocial_reviews_list');
       if (savedReviews) {
@@ -78,6 +79,19 @@ export default function ReviewsPage() {
     } catch {
       // ignore
     }
+
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.authenticated && data?.user) {
+          setUserRole(data.user.role || 'client');
+          const wsName = data.user.workspace?.name || data.user.fullName;
+          if (wsName && wsName !== 'Special boh2B') {
+            setWorkspaceName(wsName);
+          }
+        }
+      })
+      .catch(() => {});
 
     // 2. Fetch connected social accounts to inspect review channels
     const fetchAccounts = async () => {
@@ -368,7 +382,7 @@ export default function ReviewsPage() {
             </h4>
             <p className="text-xs text-slate-400 max-w-md mx-auto">
               {totalReviews === 0
-                ? "Dès que vos clients déposeront un avis sur vos fiches Google Business, Trustpilot ou Facebook connectées, vous recevrez une alerte avec proposition de réponse générée par l'IA Gemini. Vous pouvez également cliquer sur 'Simuler projection IA' pour tester la modération intelligente."
+                ? "Dès que vos clients déposeront un avis sur vos fiches Google Business, Trustpilot ou Facebook connectées, vous recevrez une alerte avec proposition de réponse générée par l'IA Gemini."
                 : 'Modifiez votre filtre pour afficher les autres avis de vos clients.'}
             </p>
           </div>

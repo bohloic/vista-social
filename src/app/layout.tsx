@@ -11,6 +11,7 @@ import { ComposerModal } from '@/components/ComposerModal';
 import { LegalModal } from '@/components/LegalModals';
 import { GlobalAICopilot } from '@/components/GlobalAICopilot';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
+import { RoleGuard } from '@/components/RoleGuard';
 import { Post } from '@/lib/types';
 
 const fredoka = Fredoka({
@@ -40,6 +41,7 @@ export default function RootLayout({
     pathname?.startsWith('/setup') ||
     pathname?.startsWith('/p/') ||
     pathname?.startsWith('/login') ||
+    pathname?.startsWith('/verify-email') ||
     pathname?.startsWith('/mentions-legales') ||
     pathname?.startsWith('/cgu') ||
     pathname?.startsWith('/confidentialite') ||
@@ -139,7 +141,9 @@ export default function RootLayout({
                 onOpenComposer={() => setComposerOpen(true)}
                 onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
               />
-              <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 overflow-y-auto">{children}</main>
+              <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 overflow-y-auto">
+                <RoleGuard>{children}</RoleGuard>
+              </main>
 
               {/* Discrete Legal & Compliance Footer with safe clearance for floating assistant */}
               <footer className="px-6 pr-24 sm:pr-60 pb-20 sm:pb-4 py-4 border-t border-slate-200/80 bg-white/95 text-[11px] text-slate-600 flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -182,11 +186,11 @@ export default function RootLayout({
 
             {/* Global Voice & Multimodal AI Copilot accessible everywhere */}
             <GlobalAICopilot />
-
-            {/* Cookie Consent Banner (ARTCI & RGPD compliance) */}
-            <CookieConsentBanner />
           </div>
         )}
+
+        {/* Cookie Consent Banner (ARTCI & RGPD compliance - rendered globally including on /login) */}
+        <CookieConsentBanner />
       </body>
     </html>
   );

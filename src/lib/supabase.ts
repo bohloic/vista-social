@@ -41,7 +41,12 @@ export async function checkAppInitialized(): Promise<{
       .select('*')
       .limit(1);
 
-    if (userErr || !users || users.length === 0) {
+    if (userErr) {
+      // If Supabase network is unreachable (e.g., offline sandbox or transient network error), fail-safe to initialized: true
+      return { initialized: true, adminProfile: null, workspace: null };
+    }
+
+    if (!users || users.length === 0) {
       return { initialized: false, adminProfile: null, workspace: null };
     }
 
@@ -55,6 +60,6 @@ export async function checkAppInitialized(): Promise<{
     return { initialized: true, adminProfile: admin, workspace: ws };
   } catch (err) {
     console.error('Error checking app initialization status:', err);
-    return { initialized: false, adminProfile: null, workspace: null };
+    return { initialized: true, adminProfile: null, workspace: null };
   }
 }

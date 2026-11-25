@@ -356,5 +356,55 @@ test('19. [STRIX-03][STRIX-05][STRIX-06] XSS escaping, javascript: URL blocking,
   assert.ok(!webhookSrc.includes('.or(`id.eq.${transactionId}'), 'Mobile money webhook must not interpolate unvalidated string into PostgREST .or()');
 });
 
+test('20. [RBAC-5-ROLES] permissions.ts enforces strict route and capability matrix for all 5 roles', async () => {
+  const { canAccessRoute, getRoleCapabilities } = await import('../../src/lib/permissions.ts');
+
+  // super_admin and admin have full route access
+  assert.equal(canAccessRoute('super_admin', '/billing'), true);
+  assert.equal(canAccessRoute('admin', '/billing'), true);
+  assert.equal(getRoleCapabilities('super_admin').canPromoteSuperAdmin, true);
+  assert.equal(getRoleCapabilities('admin').canPromoteSuperAdmin, false);
+
+  // manager can view /billing read-only, cannot manage team or manual tokens
+  assert.equal(canAccessRoute('manager', '/billing'), true);
+  assert.equal(getRoleCapabilities('manager').canSubscribeOrPayBilling, false);
+  assert.equal(getRoleCapabilities('manager').canManageTeam, false);
+
+  // editor cannot access /inbox, /crm, /reviews, /billing
+  assert.equal(canAccessRoute('editor', '/publish'), true);
+  assert.equal(canAccessRoute('editor', '/inbox'), false);
+  assert.equal(canAccessRoute('editor', '/crm'), false);
+  assert.equal(canAccessRoute('editor', '/reviews'), false);
+  assert.equal(canAccessRoute('editor', '/billing'), false);
+
+  // client cannot access /chat, /inbox, /crm, /listening, /billing
+  assert.equal(canAccessRoute('client', '/publish'), true);
+  assert.equal(canAccessRoute('client', '/reviews'), true);
+  assert.equal(canAccessRoute('client', '/chat'), false);
+  assert.equal(canAccessRoute('client', '/inbox'), false);
+  assert.equal(canAccessRoute('client', '/crm'), false);
+  assert.equal(canAccessRoute('client', '/listening'), false);
+  assert.equal(canAccessRoute('client', '/billing'), false);
+  assert.equal(getRoleCapabilities('client').canApproveOrRejectPosts, true);
+  assert.equal(getRoleCapabilities('client').canCreateDrafts, false);
+});
+
+test('21. [MFA-TOTP-RFC6238] totp.ts generates valid Base32 secrets, 6-digit RFC 6238 codes, and SVG QR codes', async () => {
+  const { generateTotpSecret, generateTotpCode, verifyTotpCode, buildTotpQrSvg } = await import('../../src/lib/totp.ts');
+
+  const secret = generateTotpSecret();
+  assert.ok(secret.length >= 32, 'Base32 TOTP secret must be at least 160 bits');
+
+  const now = 1_700_000_000_000;
+  const code = generateTotpCode(secret, now);
+  assert.match(code, /^\d{6}$/, 'TOTP code must be 6 digits');
+  assert.equal(verifyTotpCode(secret, code, 1, now), true, 'Valid TOTP code must verify within window');
+  assert.equal(verifyTotpCode(secret, '000000', 0, now) && code !== '000000', false, 'Wrong TOTP code must be rejected');
+
+  const svg = buildTotpQrSvg(`otpauth://totp/PulseSocial?secret=${secret}`, secret);
+  assert.ok(svg.startsWith('<svg') && svg.includes('</svg>'), 'QR generator must return valid inline SVG');
+});
+
+
 
 

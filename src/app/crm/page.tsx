@@ -119,6 +119,7 @@ const COLUMNS: { id: CRMStage; label: string; color: string; badgeBg: string; bo
 
 export default function CRMPage() {
   const [prospects, setProspects] = useState<CRMProspect[]>([]);
+  const [workspaceId, setWorkspaceId] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -143,23 +144,47 @@ export default function CRMPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadProspects = () => {
+  const getStorageKey = (wsId: string) => `pulsesocial_crm_prospects_${wsId || 'default'}`;
+
+  const loadProspects = (wsId = workspaceId) => {
     try {
-      const saved = localStorage.getItem('pulsesocial_crm_prospects');
+      const saved = localStorage.getItem(getStorageKey(wsId));
       if (saved) {
-        setProspects(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setProspects(Array.isArray(parsed) ? parsed : []);
       } else {
-        setProspects(DEFAULT_CRM_PROSPECTS);
-        localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify(DEFAULT_CRM_PROSPECTS));
+        // Real authenticated accounts start with 0 demo prospects (clean empty state)
+        setProspects([]);
       }
-    } catch (e) {
-      setProspects(DEFAULT_CRM_PROSPECTS);
+    } catch {
+      setProspects([]);
     }
   };
 
   useEffect(() => {
-    loadProspects();
-    const handleUpdate = () => loadProspects();
+    let activeWs = 'default';
+    try {
+      const savedWs = localStorage.getItem('pulsesocial_active_workspace');
+      if (savedWs) {
+        activeWs = JSON.parse(savedWs).id || 'default';
+      }
+    } catch {
+      // ignore
+    }
+    setWorkspaceId(activeWs);
+    loadProspects(activeWs);
+
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.authenticated && data?.user?.workspaceId) {
+          setWorkspaceId(data.user.workspaceId);
+          loadProspects(data.user.workspaceId);
+        }
+      })
+      .catch(() => {});
+
+    const handleUpdate = () => loadProspects(activeWs);
     window.addEventListener('crm-updated', handleUpdate);
 
     const handlePaystackMsg = (event: MessageEvent) => {
@@ -176,7 +201,7 @@ export default function CRMPage() {
               : p
           );
           try {
-            localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify(updated));
+            localStorage.setItem(getStorageKey(activeWs), JSON.stringify(updated));
           } catch {
             // ignore
           }
@@ -199,6 +224,7 @@ export default function CRMPage() {
   const saveProspects = (updated: CRMProspect[]) => {
     setProspects(updated);
     try {
+      localStorage.setItem(getStorageKey(workspaceId), JSON.stringify(updated));
       localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify(updated));
       window.dispatchEvent(new Event('crm-updated'));
     } catch (e) {
@@ -245,7 +271,7 @@ export default function CRMPage() {
       name: newName.trim(),
       platform: newPlatform,
       handle: newHandle.trim() || '@prospect',
-      avatar_url: `https://images.unsplash.com/photo-${1530000000000 + Math.floor(Math.random() * 999999)}?w=120&h=120&fit=crop`,
+      avatar_url: '/logo.svg',
       deal_value: Number(newDealValue) || 50000,
       currency: 'FCFA',
       status: newStatus,

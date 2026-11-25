@@ -6,15 +6,15 @@ import { Sparkles, Mic, Paperclip, Zap } from 'lucide-react';
 
 export default function ChatPage() {
   return (
-    <div className="space-y-4 max-w-5xl mx-auto pb-12 pt-2 sm:pt-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div className="space-y-4 max-w-5xl mx-auto pb-16 pt-4 sm:pt-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-[#6366F1]" />
-            Assistant Exécutif &amp; Vocal PulseAI (Gemini)
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-[#6366F1] shrink-0" />
+            <span>Assistant Exécutif &amp; Vocal PulseAI (Gemini)</span>
           </h1>
-          <p className="text-xs text-slate-600 font-medium">
-            Échangez à l&apos;écrit ou à la voix, joignez jusqu&apos;à 10 fichiers (images, vidéos, documents) et déléguez vos tâches sur toute la plateforme.
+          <p className="text-xs text-slate-600 font-medium leading-relaxed whitespace-normal">
+            Pilotez vos publications, votre CRM et vos liens Mobile Money par écrit ou à la voix (jusqu&apos;à 10 fichiers joints).
           </p>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-slate-700">

@@ -72,6 +72,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, page: null });
     }
 
+    if (data && typeof data.avatar_url === 'string' && data.avatar_url.includes('images.unsplash.com')) {
+      data.avatar_url = '/logo.svg';
+    }
+
     return NextResponse.json({ success: true, page: data });
   } catch (err) {
     return handleApiError(err);

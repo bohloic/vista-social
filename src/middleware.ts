@@ -58,6 +58,18 @@ async function verifyHmacSha256(data: string, signatureHex: string, secret: stri
   }
 }
 
+function decodeBase64Utf8(base64Str: string): string {
+  if (typeof atob === 'function') {
+    const bin = atob(base64Str);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) {
+      bytes[i] = bin.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  }
+  return Buffer.from(base64Str, 'base64').toString('utf-8');
+}
+
 /**
  * Validate session token cryptographically at the Edge.
  */
@@ -65,11 +77,9 @@ async function isSessionValid(cookieValue: string | undefined): Promise<boolean>
   if (!cookieValue || !AUTH_SECRET) return false;
 
   try {
-    const raw = typeof atob === 'function'
-      ? atob(cookieValue)
-      : Buffer.from(cookieValue, 'base64').toString('utf-8');
+    const decodedRaw = decodeBase64Utf8(cookieValue);
 
-    const { data, signature } = JSON.parse(raw);
+    const { data, signature } = JSON.parse(decodedRaw);
     if (!data || !signature) return false;
 
     // 1. Verify HMAC-SHA256 signature
@@ -142,7 +152,7 @@ export async function middleware(request: NextRequest) {
   // Only consider authenticated if a verified cryptographic session or Bearer token is present
   const isAuthenticated = isValidSession || hasBearerToken;
 
-  // 3. Authenticated user visiting /login -> redirect to dashboard /
+  // 3. Authenticated user visiting /login -> redirect to dashboard / (except /login/mfa)
   if (pathname === '/login') {
     if (isAuthenticated) {
       return NextResponse.redirect(new URL('/', request.url));
@@ -153,6 +163,11 @@ export async function middleware(request: NextRequest) {
   // 4. Strict Public Routes (NO dangerous wildcards like /api/billing/paystack/*)
   const isStrictPublicRoute =
     pathname === '/setup' ||
+    pathname === '/login/mfa' ||
+    pathname === '/verify-email' ||
+    pathname === '/mentions-legales' ||
+    pathname === '/confidentialite' ||
+    pathname === '/cgu' ||
     pathname.startsWith('/p/') ||
     pathname.startsWith('/oauth-popup') ||
     pathname === '/api/health' ||
@@ -190,6 +205,27 @@ export async function middleware(request: NextRequest) {
       response.cookies.delete('pulsesocial_session');
     }
     return response;
+  }
+
+  // 6. Enforce AAL2 MFA step-up when the user has a verified MFA factor and session is still AAL1
+  const mfaCookie = request.cookies.get('pulsesocial_mfa_factors')?.value;
+  if (mfaCookie && sessionCookie?.value && !pathname.startsWith('/api/') && pathname !== '/login/mfa') {
+    try {
+      const decodedMfa = decodeBase64Utf8(mfaCookie);
+      const parsedMfa = JSON.parse(JSON.parse(decodedMfa).data || '{}');
+      const hasVerifiedFactor =
+        Array.isArray(parsedMfa.factors) && parsedMfa.factors.some((f: any) => f.status === 'verified');
+
+      if (hasVerifiedFactor) {
+        const decodedSess = decodeBase64Utf8(sessionCookie.value);
+        const parsedSess = JSON.parse(JSON.parse(decodedSess).data || '{}');
+        if (parsedSess.aal !== 'aal2') {
+          return NextResponse.redirect(new URL('/login/mfa', request.url));
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
   }
 
   const res = NextResponse.next();

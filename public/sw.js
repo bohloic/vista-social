@@ -15,6 +15,7 @@ const OFFLINE_URL = '/offline.html';
 const STATIC_ASSETS = [
   '/offline.html',
   '/manifest.webmanifest',
+  '/logo.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
@@ -50,8 +51,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 1. NON-GET requests -> NetworkOnly
+  // 1. NON-GET requests or Chrome only-if-cached bug -> NetworkOnly
   if (request.method !== 'GET') {
+    return;
+  }
+  if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') {
     return;
   }
 
@@ -65,15 +69,7 @@ self.addEventListener('fetch', (event) => {
     hasAuthHeader;
 
   if (isAuthOrApiOrRsc) {
-    // NetworkOnly: bypass service worker cache completely, but catch network errors gracefully
-    event.respondWith(
-      fetch(request).catch(() => {
-        return new Response(JSON.stringify({ error: 'Réseau indisponible', offline: true }), {
-          status: 503,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      })
-    );
+    // NetworkOnly: bypass service worker cache completely (let browser perform native network fetch)
     return;
   }
 
@@ -90,11 +86,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. CacheFirst ONLY for immutable hashed static assets (_next/static, icons)
+  // 4. CacheFirst ONLY for immutable hashed static assets (_next/static, icons, logo.svg)
   if (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
-    /\.(woff|woff2|ttf|ico)$/.test(url.pathname)
+    url.pathname === '/logo.svg' ||
+    /\.(woff|woff2|ttf|ico|svg)$/.test(url.pathname)
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {

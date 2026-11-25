@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Post, SocialAccount } from '@/lib/types';
+import { Post, SocialAccount, CRMProspect } from '@/lib/types';
+import { getRoleCapabilities, normalizeRole, ROLE_LABELS, UserRole } from '@/lib/permissions';
 import {
   Users,
   Calendar,
@@ -49,8 +50,22 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
   const [workspaceName, setWorkspaceName] = useState<string>('');
+  const [workspaceId, setWorkspaceId] = useState<string>('default');
+  const [userRole, setUserRole] = useState<UserRole>('client');
+  const [restrictedBanner, setRestrictedBanner] = useState<string | null>(null);
+  const [crmProspects, setCrmProspects] = useState<CRMProspect[]>([]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('restricted') === '1') {
+        const fromPath = params.get('from') || '';
+        setRestrictedBanner(
+          `Accès réservé : votre rôle actuel ne permet pas d’ouvrir la section ${fromPath || 'demandée'}.`
+        );
+      }
+    }
+
     // 1. Verify initialization status and authentication
     const checkSetupAndAuth = async () => {
       try {
@@ -62,7 +77,7 @@ export default function DashboardPage() {
             return;
           }
 
-          const authRes = await fetch('/api/auth/me');
+          const authRes = await fetch('/api/auth/me', { cache: 'no-store' });
           if (authRes.ok) {
             const authData = await authRes.json();
             if (!authData.authenticated) {
@@ -70,7 +85,20 @@ export default function DashboardPage() {
               return;
             }
             const name = authData.user?.workspace?.name || authData.user?.fullName || 'Pulse Social Studio';
+            const wsId = authData.user?.workspaceId || authData.user?.workspace?.id || 'default';
             setWorkspaceName(name);
+            setWorkspaceId(wsId);
+            setUserRole(normalizeRole(authData.user?.role));
+
+            try {
+              const savedProspects = localStorage.getItem(`pulsesocial_crm_prospects_${wsId}`);
+              if (savedProspects) {
+                const list = JSON.parse(savedProspects);
+                if (Array.isArray(list)) setCrmProspects(list);
+              }
+            } catch {
+              // ignore
+            }
           } else {
             window.location.href = '/login';
             return;
@@ -116,33 +144,29 @@ export default function DashboardPage() {
   }, [router]);
 
   const scheduledCount = posts.filter((p) => p.status === 'scheduled').length;
+  const draftCount = posts.filter((p) => p.status === 'draft' || p.status === 'needs_approval').length;
   const hasAccounts = accounts.length > 0;
+  const capabilities = getRoleCapabilities(userRole);
 
   // Real-time metrics in West African CFA Franc (XOF / FCFA)
-  // When no accounts connected, show clean real 0 counters as requested by user
-  const [crmValue, setCrmValue] = useState<string>('0 FCFA');
+  // Isolated per workspace: zero static demo amounts for real authenticated users
+  const totalPipelineAmount = crmProspects.reduce((sum, p) => sum + (Number(p.deal_value) || 0), 0);
+  const wonRevenueAmount = crmProspects
+    .filter((p) => p.status === 'won')
+    .reduce((sum, p) => sum + (Number(p.deal_value) || 0), 0);
 
-  useEffect(() => {
-    try {
-      const savedProspects = localStorage.getItem('pulsesocial_crm_prospects');
-      if (savedProspects) {
-        const list = JSON.parse(savedProspects);
-        if (Array.isArray(list) && list.length > 0) {
-          const total = list.reduce((sum: number, p: any) => sum + (Number(p.deal_value) || 0), 0);
-          setCrmValue(`${total.toLocaleString('fr-FR')} FCFA`);
-          return;
-        }
-      }
-      setCrmValue('0 FCFA');
-    } catch {
-      setCrmValue('0 FCFA');
-    }
-  }, []);
-
-  const displayReach = hasAccounts ? '245 680' : '0';
-  const displayEngagement = hasAccounts ? '120 850' : '0';
+  const displayReach = hasAccounts
+    ? accounts.reduce((acc, a) => acc + (a.followers_count || 0), 0).toLocaleString('fr-FR')
+    : '0';
+  const displayEngagement = hasAccounts ? `${posts.length * 120}` : '0';
   const displayScheduled = `${scheduledCount}`;
-  const displayCrmValue = crmValue;
+  const displayCrmValue = `${totalPipelineAmount.toLocaleString('fr-FR')} FCFA`;
+  const displayWonRevenue = `${wonRevenueAmount.toLocaleString('fr-FR')} FCFA`;
+  const campaignGoalProgress = Math.min(100, Math.round((wonRevenueAmount / 1_000_000) * 100));
+  const totalFollowers = hasAccounts
+    ? accounts.reduce((acc, a) => acc + (a.followers_count || 0), 0)
+    : 0;
+  const followersGoalProgress = Math.min(100, Math.round((totalFollowers / 500) * 100));
 
   // Network share Donut data (Audience & Social Reach)
   const donutData = [
@@ -164,26 +188,66 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 text-slate-800">
+    <div className="space-y-6 max-w-7xl mx-auto pb-24 text-slate-800">
+      {/* Restricted Route Notice Banner */}
+      {restrictedBanner && (
+        <div
+          role="alert"
+          data-testid="restricted-access-banner"
+          className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold flex items-center justify-between gap-3 shadow-xs"
+        >
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>{restrictedBanner}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRestrictedBanner(null)}
+            className="text-amber-700 hover:text-amber-950 font-bold px-2 py-0.5 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* GREETING HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Bonjour !</span>
-            <span className="text-2xl">👋</span>
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+              <span>Bonjour !</span>
+              <span className="text-2xl">👋</span>
+            </h1>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-violet-100 text-[#7C3AED] border border-violet-200">
+              Vue {ROLE_LABELS[userRole]} • {workspaceName || 'Mon Espace'}
+            </span>
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
-            Voici les performances en temps réel de votre audience et de vos publications aujourd&apos;hui.
+            {userRole === 'client'
+              ? 'Consultez vos indicateurs clés et validez les publications soumises à votre approbation.'
+              : userRole === 'editor'
+              ? 'Gérez vos brouillons créatifs, préparez vos visuels Flyers et soumettez vos posts pour validation.'
+              : 'Voici les performances en temps réel de votre audience et de vos publications aujourd’hui.'}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/publish"
-            className="clay-btn-gradient px-4 py-2 text-xs font-bold text-white shadow-md flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nouveau Post</span>
-          </Link>
+          {capabilities.canCreateDrafts ? (
+            <Link
+              href="/publish"
+              className="clay-btn-gradient px-4 py-2 text-xs font-bold text-white shadow-md flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouveau Post</span>
+            </Link>
+          ) : (
+            <Link
+              href="/publish"
+              className="px-4 py-2 rounded-2xl bg-violet-100 text-[#7C3AED] border border-violet-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Posts à valider ({draftCount + scheduledCount})</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -255,10 +319,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 4: Pipeline Ventes CRM (FCFA) */}
+        {/* Card 4: Role-Adapted 4th KPI Card */}
         <div className="clay-card p-5 sm:p-6 flex flex-col justify-between relative group">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold text-slate-500 tracking-tight">Pipeline Ventes CRM</span>
+            <span className="text-xs font-bold text-slate-500 tracking-tight">
+              {userRole === 'client'
+                ? 'Posts à Valider'
+                : userRole === 'editor'
+                ? 'Mes Brouillons'
+                : 'Pipeline Ventes CRM'}
+            </span>
             <button className="text-slate-400 hover:text-slate-700 p-1" aria-label="Options">
               <MoreVertical className="w-4 h-4" />
             </button>
@@ -266,11 +336,23 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between gap-2 mt-1">
             <div>
               <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {displayCrmValue}
+                {userRole === 'client' || userRole === 'editor'
+                  ? `${draftCount} brouillons`
+                  : displayCrmValue}
               </p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
-                <span>{crmValue !== '0 FCFA' ? '↑ Actif' : '0 transaction'}</span>
-                <span className="text-slate-400 font-normal">pipeline social</span>
+                <span>
+                  {userRole === 'client' || userRole === 'editor'
+                    ? draftCount > 0
+                      ? 'En attente de revue'
+                      : '0 en attente'
+                    : totalPipelineAmount > 0
+                    ? '↑ Actif'
+                    : '0 opportunité'}
+                </span>
+                <span className="text-slate-400 font-normal">
+                  {userRole === 'client' || userRole === 'editor' ? 'calendrier éditorial' : 'pipeline social'}
+                </span>
               </div>
             </div>
             <ClayCoinsStackIcon className="w-14 h-14 shrink-0 drop-shadow-md group-hover:scale-105 transition-transform" />
@@ -374,65 +456,72 @@ export default function DashboardPage() {
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
                 Activités &amp; Ventes Récentes
               </h3>
-              <Link href="/crm" className="text-xs font-bold text-[#6366F1] hover:underline">
-                Voir CRM
-              </Link>
+              {capabilities.canManageCrm ? (
+                <Link href="/crm" className="text-xs font-bold text-[#6366F1] hover:underline">
+                  Voir CRM
+                </Link>
+              ) : (
+                <Link href="/publish" className="text-xs font-bold text-[#6366F1] hover:underline">
+                  Voir Calendrier
+                </Link>
+              )}
             </div>
 
-            {/* List of real social marketing & Mobile Money transactions */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">Formation VIP (Orange Money)</h4>
-                    <p className="text-[10px] text-slate-400">Paiement reçu • Aujourd&apos;hui</p>
-                  </div>
+            {/* Real CRM & Social Activities or Clean Empty State */}
+            {crmProspects.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
+                  <Briefcase className="w-6 h-6" />
                 </div>
-                <span className="text-xs font-black text-emerald-600">+15 000 FCFA</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-sm">
-                    <Flame className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">Campagne Instagram Ads (Wave)</h4>
-                    <p className="text-[10px] text-slate-400">Budget sponsorisé • Aujourd&apos;hui</p>
-                  </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-900">0 opportunité commerciale enregistrée</p>
+                  <p className="text-[11px] text-slate-500 max-w-[230px] mx-auto leading-relaxed">
+                    Vos ventes Mobile Money et opportunités CRM apparaîtront ici en temps réel.
+                  </p>
                 </div>
-                <span className="text-xs font-black text-slate-800">-5 000 FCFA</span>
+                {capabilities.canManageCrm ? (
+                  <Link
+                    href="/crm"
+                    className="clay-btn-gradient px-4 py-2 text-xs font-bold text-white shadow-sm flex items-center gap-1.5 cursor-pointer mt-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Nouvelle opportunité</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/publish"
+                    className="px-4 py-2 rounded-2xl bg-violet-100 text-[#7C3AED] text-xs font-bold flex items-center gap-1.5 cursor-pointer mt-1"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Ouvrir le Planificateur</span>
+                  </Link>
+                )}
               </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
-                    <Briefcase className="w-5 h-5" />
+            ) : (
+              <div className="space-y-3">
+                {crmProspects.slice(0, 4).map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                        <Briefcase className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900">{p.name}</h4>
+                        <p className="text-[10px] text-slate-500">
+                          {p.platform.toUpperCase()} • {p.status === 'won' ? 'Payé ✅' : 'En cours'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black text-emerald-700">
+                      {(Number(p.deal_value) || 0).toLocaleString('fr-FR')} FCFA
+                    </span>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">Abonnement Pulse Pro (MTN MoMo)</h4>
-                    <p className="text-[10px] text-slate-400">Renouvellement 3 mois • Hier</p>
-                  </div>
-                </div>
-                <span className="text-xs font-black text-emerald-600">+45 000 FCFA</span>
+                ))}
               </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-sm">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">Boost Publication B2B (Moov)</h4>
-                    <p className="text-[10px] text-slate-400">LinkedIn Ads • Il y a 3 jours</p>
-                  </div>
-                </div>
-                <span className="text-xs font-black text-slate-800">-3 500 FCFA</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -446,9 +535,24 @@ export default function DashboardPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   PulseSocial Studio
                 </span>
-                <p className="text-xs text-slate-300 font-semibold font-jakarta mt-2">Revenus Social Selling (UEMOA)</p>
+                <p className="text-xs text-slate-300 font-semibold font-jakarta mt-2">
+                  {userRole === 'client'
+                    ? 'Publications Validées & Actives'
+                    : userRole === 'editor'
+                    ? 'Production Éditoriale & Flyers'
+                    : 'Revenus Social Selling (UEMOA)'}
+                </p>
                 <p className="text-2xl sm:text-3xl font-black font-fredoka tracking-tight text-white mt-0.5">
-                  1 485 000 <span className="text-sm font-black text-[#FACC15]">FCFA</span>
+                  {userRole === 'client' || userRole === 'editor' ? (
+                    <>
+                      {posts.length} <span className="text-sm font-black text-[#FACC15]">POSTS</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-white">{wonRevenueAmount.toLocaleString('fr-FR')}</span>{' '}
+                      <span className="text-sm font-black text-[#FACC15]">FCFA</span>
+                    </>
+                  )}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[#7C3AED] font-black text-sm shadow-inner">
@@ -458,12 +562,13 @@ export default function DashboardPage() {
 
             <div className="pt-3 border-t border-slate-800 mt-4 flex items-center justify-between text-xs font-jakarta">
               <span className="text-emerald-400 font-black flex items-center gap-1">
-                ↗ +24.8% <span className="text-slate-400 font-medium text-[11px]">vs mois précédent</span>
+                {wonRevenueAmount > 0 ? '↗ Actif' : '0 FCFA encaissé'}{' '}
+                <span className="text-slate-300 font-medium text-[11px]">ce mois</span>
               </span>
               <div className="flex items-center gap-1.5">
-                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300">Wave</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300">MoMo</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300">Orange</span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-200">Wave</span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-200">MoMo</span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-200">Orange</span>
               </div>
             </div>
           </div>
@@ -505,11 +610,11 @@ export default function DashboardPage() {
               <div className="flex-1 min-w-0">
                 <h4 className="text-xs font-bold text-slate-900 truncate">Ventes Campagne Fêtes (MoMo)</h4>
                 <div className="w-full bg-slate-200 rounded-full h-2 my-1.5 overflow-hidden">
-                  <div className="bg-[#6366F1] h-2 rounded-full" style={{ width: '60%' }} />
+                  <div className="bg-[#6366F1] h-2 rounded-full" style={{ width: `${campaignGoalProgress}%` }} />
                 </div>
-                <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
-                  <span>600 000 / 1 000 000 FCFA</span>
-                  <span className="text-[#6366F1]">60%</span>
+                <div className="flex justify-between text-[10px] text-slate-600 font-semibold">
+                  <span>{wonRevenueAmount.toLocaleString('fr-FR')} / 1 000 000 FCFA</span>
+                  <span className="text-[#6366F1]">{campaignGoalProgress}%</span>
                 </div>
               </div>
             </div>
@@ -522,11 +627,11 @@ export default function DashboardPage() {
               <div className="flex-1 min-w-0">
                 <h4 className="text-xs font-bold text-slate-900 truncate">Acquisition 500 Abonnés TikTok</h4>
                 <div className="w-full bg-slate-200 rounded-full h-2 my-1.5 overflow-hidden">
-                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '75%' }} />
+                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${followersGoalProgress}%` }} />
                 </div>
-                <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
-                  <span>375 / 500 abonnés</span>
-                  <span className="text-emerald-600">75%</span>
+                <div className="flex justify-between text-[10px] text-slate-600 font-semibold">
+                  <span>{totalFollowers.toLocaleString('fr-FR')} / 500 abonnés</span>
+                  <span className="text-emerald-700">{followersGoalProgress}%</span>
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { CalendarView } from '@/components/CalendarView';
 import { ComposerModal } from '@/components/ComposerModal';
 import { Post, SocialAccount, SocialPlatform } from '@/lib/types';
 import { FormattedDate } from '@/components/FormattedDate';
+import { getRoleCapabilities, normalizeRole, UserRole } from '@/lib/permissions';
 import {
   Calendar,
   List,
@@ -353,6 +354,8 @@ export default function PublishPage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>('client');
+  const capabilities = getRoleCapabilities(userRole);
 
   // Calendar AI Generator Modal State
   const [calendarGeneratorOpen, setCalendarGeneratorOpen] = useState(false);
@@ -384,11 +387,43 @@ export default function PublishPage() {
 
   useEffect(() => {
     fetchPostsAndAccounts();
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.authenticated && data?.user?.role) {
+          setUserRole(normalizeRole(data.user.role));
+        }
+      })
+      .catch(() => {});
 
     const handleUpdate = () => fetchPostsAndAccounts();
     window.addEventListener('posts-updated', handleUpdate);
     return () => window.removeEventListener('posts-updated', handleUpdate);
   }, []);
+
+  const handleClientDecision = async (post: Post, decision: 'approved' | 'draft') => {
+    try {
+      const res = await fetch('/api/posts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: post.id, status: decision }),
+      });
+      if (res.ok) {
+        setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, status: decision } : p)));
+        if (selectedPost?.id === post.id) {
+          setSelectedPost({ ...selectedPost, status: decision });
+        }
+        setActionMessage(
+          decision === 'approved'
+            ? '✓ Publication approuvée avec succès !'
+            : '✓ Publication renvoyée en brouillon pour révision.'
+        );
+        setTimeout(() => setActionMessage(null), 3500);
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const handleSavePost = async (newPost: Omit<Post, 'id' | 'created_at'>) => {
     try {
@@ -600,25 +635,29 @@ export default function PublishPage() {
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setCalendarGeneratorOpen(true)}
-            className="flex items-center gap-2 py-2 px-3.5 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 hover:opacity-90 text-white text-xs font-bold shadow-lg shadow-violet-600/30 active:scale-95 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>✨ Générateur de Calendrier IA</span>
-          </button>
+          {capabilities.canCreateDrafts && (
+            <>
+              <button
+                type="button"
+                onClick={() => setCalendarGeneratorOpen(true)}
+                className="flex items-center gap-2 py-2 px-3.5 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 hover:opacity-90 text-white text-xs font-bold shadow-lg shadow-violet-600/30 active:scale-95 transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>✨ Générateur de Calendrier IA</span>
+              </button>
 
-          <button
-            onClick={() => {
-              setEditingPost(null);
-              setComposerOpen(true);
-            }}
-            className="flex items-center gap-2 py-2 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/30 active:scale-95 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nouveau Post</span>
-          </button>
+              <button
+                onClick={() => {
+                  setEditingPost(null);
+                  setComposerOpen(true);
+                }}
+                className="flex items-center gap-2 py-2 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/30 active:scale-95 transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nouveau Post</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -742,8 +781,8 @@ export default function PublishPage() {
                     </div>
                   </div>
 
-                  {/* Action Buttons: Preview, Edit, Delete */}
-                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  {/* Action Buttons: Preview, Approve/Reject, Edit, Delete */}
+                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0 flex-wrap">
                     <button
                       onClick={() => setSelectedPost(post)}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
@@ -752,22 +791,48 @@ export default function PublishPage() {
                       <Eye className="w-3.5 h-3.5 text-violet-400" />
                       <span>Aperçu</span>
                     </button>
-                    <button
-                      onClick={() => openEditModal(post)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-violet-500/30 bg-violet-950/40 hover:bg-violet-900/60 text-violet-300 transition-colors cursor-pointer"
-                      title="Modifier cette publication"
-                    >
-                      <FileEdit className="w-3.5 h-3.5" />
-                      <span>Modifier</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-rose-500/30 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 transition-colors cursor-pointer"
-                      title="Supprimer définitivement"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                      <span>Supprimer</span>
-                    </button>
+                    {capabilities.canApproveOrRejectPosts && (
+                      <>
+                        <button
+                          type="button"
+                          data-testid={`approve-post-${post.id}`}
+                          onClick={() => handleClientDecision(post, 'approved')}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-emerald-500/40 bg-emerald-950/50 hover:bg-emerald-900/70 text-emerald-300 transition-colors cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Approuver</span>
+                        </button>
+                        <button
+                          type="button"
+                          data-testid={`reject-post-${post.id}`}
+                          onClick={() => handleClientDecision(post, 'draft')}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-amber-500/40 bg-amber-950/50 hover:bg-amber-900/70 text-amber-300 transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Rejeter</span>
+                        </button>
+                      </>
+                    )}
+                    {capabilities.canCreateDrafts && (
+                      <>
+                        <button
+                          onClick={() => openEditModal(post)}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-violet-500/30 bg-violet-950/40 hover:bg-violet-900/60 text-violet-300 transition-colors cursor-pointer"
+                          title="Modifier cette publication"
+                        >
+                          <FileEdit className="w-3.5 h-3.5" />
+                          <span>Modifier</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-rose-500/30 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 transition-colors cursor-pointer"
+                          title="Supprimer définitivement"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Supprimer</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );

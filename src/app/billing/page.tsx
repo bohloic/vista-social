@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
 import { LegalModal } from '@/components/LegalModals';
+import { getRoleCapabilities, normalizeRole, ROLE_LABELS, UserRole } from '@/lib/permissions';
 import {
   CreditCard,
   CheckCircle2,
@@ -112,6 +113,8 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [workspaceId, setWorkspaceId] = useState<string>('');
+  const [userRole, setUserRole] = useState<UserRole>('client');
+  const [isLifetimeFree, setIsLifetimeFree] = useState<boolean>(false);
   const [legalModalType, setLegalModalType] = useState<'rgpd' | 'cgu' | null>(null);
   const [paymentResult, setPaymentResult] = useState<{
     success: boolean;
@@ -133,6 +136,18 @@ export default function BillingPage() {
     } catch {
       // ignore
     }
+
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.authenticated && data?.user) {
+          const r = normalizeRole(data.user.role);
+          setUserRole(r);
+          setIsLifetimeFree(Boolean(data.user.isLifetimeFree));
+          if (data.user.workspaceId) setWorkspaceId(data.user.workspaceId);
+        }
+      })
+      .catch(() => {});
 
     const handlePaystackMessage = (event: MessageEvent) => {
       if (event.data?.type === 'PAYSTACK_PAYMENT_SUCCESS') {
@@ -331,39 +346,68 @@ export default function BillingPage() {
                 </ul>
               </div>
 
-              <button
-                onClick={() => handleOpenCheckout(plan.id)}
-                className={`w-full py-3.5 px-4 rounded-2xl text-xs font-bold font-jakarta flex items-center justify-center gap-2 transition-all active:scale-95 ${
-                  isPop
-                    ? 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-xl shadow-violet-600/25'
-                    : 'bg-violet-50 hover:bg-violet-100 text-[#7C3AED] border border-violet-200/60'
-                }`}
-              >
-                <span>Choisir la formule {plan.name}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {getRoleCapabilities(userRole).canSubscribeOrPayBilling ? (
+                <button
+                  onClick={() => handleOpenCheckout(plan.id)}
+                  className={`w-full py-3.5 px-4 rounded-2xl text-xs font-bold font-jakarta flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer ${
+                    isPop
+                      ? 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-xl shadow-violet-600/25'
+                      : 'bg-violet-50 hover:bg-violet-100 text-[#7C3AED] border border-violet-200/60'
+                  }`}
+                >
+                  <span>Choisir la formule {plan.name}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="w-full py-3 px-4 rounded-2xl text-xs font-semibold font-jakarta text-center bg-slate-100 text-slate-600 border border-slate-200">
+                  Consultation seule ({ROLE_LABELS[userRole]})
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Admin Notice Banner */}
-      <div className="p-6 rounded-3xl bg-white border border-violet-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 font-jakarta">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-6 h-6" />
+      {/* Role-Conditioned Subscription Status Banner (Never show privileged admin banner to non-admins) */}
+      {userRole === 'super_admin' || (userRole === 'admin' && isLifetimeFree) ? (
+        <div className="p-6 rounded-3xl bg-white border border-violet-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 font-jakarta">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold font-fredoka text-[#1E1B4B]">Compte Super-Admin Privilégié</h3>
+              <p className="text-xs text-slate-500 font-jakarta">
+                En tant que propriétaire administrateur, votre accès est permanent, illimité et 100% gratuit.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold font-fredoka text-[#1E1B4B]">Compte Super-Admin Privilégié</h3>
-            <p className="text-xs text-slate-500 font-jakarta">
-              En tant que propriétaire administrateur, votre accès est permanent, illimité et 100% gratuit.
-            </p>
-          </div>
+          <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold font-jakarta">
+            Pass Gratuit à Vie Actif
+          </span>
         </div>
-        <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold font-jakarta">
-          Pass Gratuit à Vie Actif
-        </span>
-      </div>
+      ) : (
+        <div className="p-6 rounded-3xl bg-white border border-violet-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 font-jakarta">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-violet-50 border border-violet-200 text-[#7C3AED] flex items-center justify-center shrink-0">
+              <CreditCard className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold font-fredoka text-[#1E1B4B]">
+                Statut de votre Espace : Formule Découverte / Essai
+              </h3>
+              <p className="text-xs text-slate-600 font-jakarta">
+                {getRoleCapabilities(userRole).canSubscribeOrPayBilling
+                  ? 'Sélectionnez une formule ci-dessus pour activer votre abonnement via Mobile Money (Wave, Orange, MTN, Moov) ou Carte Bancaire.'
+                  : 'Seul le propriétaire ou administrateur de cet espace peut modifier ou résilier le forfait actif.'}
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-[#7C3AED] text-xs font-bold font-jakarta">
+            {ROLE_LABELS[userRole]}
+          </span>
+        </div>
+      )}
 
       {/* Checkout Modal */}
       {checkoutModalOpen && (

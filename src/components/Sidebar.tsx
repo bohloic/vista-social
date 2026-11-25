@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -15,13 +15,21 @@ import {
   Settings,
   PlusCircle,
   CreditCard,
-  Zap,
   LogOut,
   X,
   Briefcase,
   Layers,
+  ShieldCheck,
 } from 'lucide-react';
 import { ClayPiggyBankIcon } from '@/components/Clay3DIcons';
+import {
+  canAccessRoute,
+  getRoleCapabilities,
+  normalizeRole,
+  ROLE_BADGE_STYLES,
+  ROLE_LABELS,
+  UserRole,
+} from '@/lib/permissions';
 
 interface SidebarProps {
   onOpenComposer?: () => void;
@@ -45,6 +53,53 @@ const navItems = [
 
 export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [role, setRole] = useState<UserRole | null>(null);
+  const [roleLoaded, setRoleLoaded] = useState<boolean>(false);
+
+  useEffect(() => {
+    let active = true;
+    // 1. Read synchronously cached role first to avoid unauthorized menu flash
+    try {
+      const savedUser = localStorage.getItem('pulsesocial_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed?.role && active) {
+          setRole(normalizeRole(parsed.role));
+          setRoleLoaded(true);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Authoritative role verification from session API
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active) return;
+        if (data?.authenticated && data?.user) {
+          const verifiedRole = normalizeRole(data.user.role);
+          setRole(verifiedRole);
+          try {
+            localStorage.setItem('pulsesocial_user', JSON.stringify(data.user));
+          } catch {
+            // ignore
+          }
+        }
+        setRoleLoaded(true);
+      })
+      .catch(() => {
+        if (active) setRoleLoaded(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
+  const effectiveRole: UserRole = role || 'client';
+  const capabilities = getRoleCapabilities(effectiveRole);
+  const visibleNavItems = navItems.filter((item) => canAccessRoute(effectiveRole, item.href));
 
   const handleLinkClick = () => {
     if (onClose) onClose();
@@ -88,7 +143,19 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
                   PRO
                 </span>
               </h1>
-              <p className="text-[11px] text-slate-500 font-medium font-jakarta">Community Management</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {roleLoaded ? (
+                  <span
+                    data-testid="sidebar-role-badge"
+                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${ROLE_BADGE_STYLES[effectiveRole]}`}
+                  >
+                    <ShieldCheck className="w-3 h-3 shrink-0" />
+                    <span>{ROLE_LABELS[effectiveRole]}</span>
+                  </span>
+                ) : (
+                  <span className="h-4 w-24 bg-slate-100 rounded-full animate-pulse inline-block" />
+                )}
+              </div>
             </div>
           </div>
 
@@ -103,82 +170,94 @@ export function Sidebar({ onOpenComposer, isOpen = false, onClose }: SidebarProp
           </button>
         </div>
 
-        {/* Primary Action Button (Smooth Brand Kit Violet) */}
-        <div className="p-4">
-          <button
-            onClick={() => {
-              if (onOpenComposer) onOpenComposer();
-              if (onClose) onClose();
-            }}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs font-jakarta shadow-lg shadow-violet-500/25 transition-all duration-300 active:scale-[0.98] cursor-pointer"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Nouveau Post</span>
-          </button>
-        </div>
+        {/* Primary Action Button (Only for roles allowed to create drafts/posts) */}
+        {capabilities.canCreateDrafts && (
+          <div className="p-4">
+            <button
+              onClick={() => {
+                if (onOpenComposer) onOpenComposer();
+                if (onClose) onClose();
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs font-jakarta shadow-lg shadow-violet-500/25 transition-all duration-300 active:scale-[0.98] cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Nouveau Post</span>
+            </button>
+          </div>
+        )}
 
-        {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
+        {/* Navigation Links (Strictly filtered by ROLE_ALLOWED_ROUTES with skeleton during initial load) */}
+        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto" aria-label="Menu principal">
+          {!roleLoaded ? (
+            <div className="space-y-2 px-2 py-2">
+              {[...Array(6)].map((_, idx) => (
+                <div key={idx} className="h-10 rounded-2xl bg-slate-100 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            visibleNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={handleLinkClick}
-                className={`min-h-[44px] flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold font-jakarta transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[#7C3AED] text-white shadow-md shadow-violet-500/25'
-                    : 'text-slate-600 hover:text-[#1E1B4B] hover:bg-violet-50/70'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`text-[9px] font-bold font-jakarta px-2 py-0.5 rounded-full ${
-                      isActive
-                        ? 'bg-white/20 text-white'
-                        : item.badge === 'Smart'
-                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                        : item.badge === 'Vocal'
-                        ? 'bg-purple-50 text-purple-600 border border-purple-200'
-                        : item.badge === 'FCFA'
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-violet-50 text-[#7C3AED] border border-violet-200'
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={handleLinkClick}
+                  className={`min-h-[44px] flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold font-jakarta transition-all duration-200 ${
+                    isActive
+                      ? 'bg-[#7C3AED] text-white shadow-md shadow-violet-500/25'
+                      : 'text-slate-600 hover:text-[#1E1B4B] hover:bg-violet-50/70'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span
+                      className={`text-[9px] font-bold font-jakarta px-2 py-0.5 rounded-full ${
+                        isActive
+                          ? 'bg-white/20 text-white'
+                          : item.badge === 'Smart'
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                          : item.badge === 'Vocal'
+                          ? 'bg-purple-50 text-purple-600 border border-purple-200'
+                          : item.badge === 'FCFA'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-violet-50 text-[#7C3AED] border border-violet-200'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })
+          )}
         </nav>
 
         {/* 3D Goal Card */}
-        <div className="p-4 mx-3 mb-3 rounded-2xl bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#1E1B4B] text-white shadow-lg shadow-violet-500/20 relative overflow-hidden">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1 max-w-[130px]">
-              <p className="text-[11px] font-bold text-violet-200 uppercase tracking-wider font-jakarta">Objectif Mensuel</p>
-              <h4 className="text-xs font-black font-fredoka leading-tight">Augmentez votre portée</h4>
-              <p className="text-[10px] text-violet-200/90 leading-tight font-jakarta">Campagnes multi-réseaux</p>
+        {capabilities.canCreateDrafts && (
+          <div className="p-4 mx-3 mb-3 rounded-2xl bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#1E1B4B] text-white shadow-lg shadow-violet-500/20 relative overflow-hidden">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1 max-w-[130px]">
+                <p className="text-[11px] font-bold text-violet-200 uppercase tracking-wider font-jakarta">Objectif Mensuel</p>
+                <h4 className="text-xs font-black font-fredoka leading-tight">Augmentez votre portée</h4>
+                <p className="text-[10px] text-violet-200/90 leading-tight font-jakarta">Campagnes multi-réseaux</p>
+              </div>
+              <ClayPiggyBankIcon className="w-12 h-12 shrink-0 drop-shadow-md" />
             </div>
-            <ClayPiggyBankIcon className="w-12 h-12 shrink-0 drop-shadow-md" />
+            <button
+              onClick={() => {
+                if (onOpenComposer) onOpenComposer();
+              }}
+              className="mt-3 w-full py-1.5 px-3 rounded-xl bg-white text-[#7C3AED] hover:bg-violet-50 text-[11px] font-bold font-jakarta shadow-sm transition-colors text-center cursor-pointer"
+            >
+              Créer un Post
+            </button>
           </div>
-          <button
-            onClick={() => {
-              if (onOpenComposer) onOpenComposer();
-            }}
-            className="mt-3 w-full py-1.5 px-3 rounded-xl bg-white text-[#7C3AED] hover:bg-violet-50 text-[11px] font-bold font-jakarta shadow-sm transition-colors text-center cursor-pointer"
-          >
-            Créer un Post
-          </button>
-        </div>
+        )}
 
         {/* Footer System Status & Logout */}
         <div className="p-4 border-t border-slate-100 space-y-2">

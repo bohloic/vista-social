@@ -82,11 +82,36 @@ export default function ConfidentialitePage() {
             </p>
           </section>
 
-          {/* Section 4 : Exercice des droits */}
+          {/* Section 4 : Durées de conservation des données */}
+          <section className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+              <Database className="w-4 h-4 text-emerald-400" />
+              4. Durées de conservation des données
+            </h2>
+            <p>
+              Conformément à la Loi ivoirienne n° 2013-450 (ARTCI) et à l&apos;article 5 du RGPD, vos données personnelles sont conservées pour une durée strictement limitée aux finalités pour lesquelles elles sont traitées :
+            </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">
+              <li>
+                <strong className="text-white">Données de compte et d&apos;espace de travail :</strong> conservées pendant toute la durée de la relation contractuelle active, puis supprimées ou anonymisées définitivement sous <strong>30 jours</strong> après la clôture du compte.
+              </li>
+              <li>
+                <strong className="text-white">Jetons OAuth des réseaux sociaux :</strong> chiffrés en AES-256-GCM pendant l&apos;utilisation et <strong>révoqués / purgés immédiatement</strong> dès la déconnexion d&apos;un réseau social par l&apos;utilisateur.
+              </li>
+              <li>
+                <strong className="text-white">Factures et transactions Mobile Money / Paystack :</strong> conservées pendant <strong>10 ans</strong> conformément aux obligations légales et comptables en vigueur dans l&apos;espace OHADA.
+              </li>
+              <li>
+                <strong className="text-white">Journaux de sécurité et traces d&apos;accès (Logs) :</strong> conservés pendant <strong>12 mois</strong> à des fins d&apos;audit de sécurité et de prévention des intrusions.
+              </li>
+            </ul>
+          </section>
+
+          {/* Section 5 : Exercice des droits */}
           <section className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              4. Vos Droits &amp; Contact DPO
+              5. Vos Droits &amp; Contact DPO
             </h2>
             <p>
               Conformément à la Loi n° 2013-450, vous disposez d&apos;un droit d&apos;accès, de rectification et de suppression intégrale de vos données. Pour exercer ce droit ou demander la suppression définitive de votre espace de travail :

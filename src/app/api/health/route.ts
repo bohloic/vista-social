@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { requireUser } from '@/lib/security/guards';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const testAll = searchParams.get('test') === 'all';
 
@@ -10,6 +11,22 @@ export async function GET(request: Request) {
   let aiStatus = 'active';
 
   if (testAll) {
+    // Only admin and super_admin can execute infrastructure diagnostic tests
+    try {
+      const { user } = await requireUser(request);
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Privilèges insuffisants pour tester l’infrastructure Supabase & IA', code: 'FORBIDDEN_ROLE' },
+          { status: 403 }
+        );
+      }
+    } catch {
+      return NextResponse.json(
+        { error: 'Authentification administrateur requise', code: 'UNAUTHENTICATED' },
+        { status: 401 }
+      );
+    }
+
     const startSb = Date.now();
     try {
       const { error } = await supabase.from('social_accounts').select('id').limit(1);

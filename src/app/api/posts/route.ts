@@ -219,15 +219,24 @@ export async function PUT(req: NextRequest) {
       throw new ApiError(404, 'POST_NOT_FOUND', 'Publication introuvable');
     }
 
+    const { id, ...updates } = validated;
+    const updateKeys = Object.keys(updates);
+    const isClientApprovalOnly =
+      updateKeys.length === 1 &&
+      updateKeys[0] === 'status' &&
+      ['approved', 'draft', 'needs_approval'].includes(String(updates.status));
+
+    const allowedUpdateRoles: ('super_admin' | 'admin' | 'manager' | 'editor' | 'client')[] = isClientApprovalOnly
+      ? ['super_admin', 'admin', 'manager', 'editor', 'client']
+      : ['super_admin', 'admin', 'manager', 'editor'];
+
     await requireWorkspaceRole(
       supabase,
       user.id,
       existingPost.workspace_id,
-      ['super_admin', 'admin', 'manager', 'editor'],
+      allowedUpdateRoles,
       user.role
     );
-
-    const { id, ...updates } = validated;
     const { data: updated, error } = await supabase
       .from('posts')
       .update({

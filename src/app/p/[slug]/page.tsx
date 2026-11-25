@@ -17,7 +17,7 @@ const DEFAULT_PULSE_PAGE: PulsePage = {
   title: 'PulseSocial Creator Studio',
   slug: 'pulse-studio',
   bio: 'Transformez votre présence sur les réseaux sociaux grâce à la puissance de PulseSocial et de l\'IA Gemini.',
-  avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
+  avatar_url: '/logo.svg',
   theme_config: {
     bg_gradient: 'from-violet-950 via-slate-950 to-indigo-950',
     button_bg: 'rgba(255, 255, 255, 0.08)',
@@ -81,7 +81,11 @@ export default async function PublicPulsePage({ params }: Props) {
         {/* Avatar */}
         <div className="w-28 h-28 rounded-full p-1.5 border-2 border-white/40 overflow-hidden shadow-2xl shrink-0">
           <img
-            src={isSafeHttpUrl(page.avatar_url) ? page.avatar_url : DEFAULT_PULSE_PAGE.avatar_url}
+            src={
+              isSafeHttpUrl(page.avatar_url) && !page.avatar_url.includes('images.unsplash.com')
+                ? page.avatar_url
+                : '/logo.svg'
+            }
             alt={page.title}
             className="w-full h-full object-cover rounded-full"
           />

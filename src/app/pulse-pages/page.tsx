@@ -53,7 +53,7 @@ const DEFAULT_PAGE: PulsePage = {
   title: 'PulseSocial Creator Studio',
   slug: 'pulse-studio',
   bio: 'Accédez à toutes mes ressources exclusives, services et liens officiels en un seul clic.',
-  avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
+  avatar_url: '/logo.svg',
   theme_config: {
     bg_gradient: 'from-violet-950 via-slate-950 to-indigo-950',
     button_bg: 'rgba(255, 255, 255, 0.08)',
@@ -117,9 +117,16 @@ export default function PulsePagesBuilder() {
         if (res.ok) {
           const data = await res.json();
           if (data.page) {
-            setPage(data.page);
+            const normalizedPage = {
+              ...data.page,
+              avatar_url:
+                !data.page.avatar_url || data.page.avatar_url.includes('images.unsplash.com')
+                  ? '/logo.svg'
+                  : data.page.avatar_url,
+            };
+            setPage(normalizedPage);
             if (typeof window !== 'undefined') {
-              localStorage.setItem('pulsesocial_page_saved', JSON.stringify(data.page));
+              localStorage.setItem('pulsesocial_page_saved', JSON.stringify(normalizedPage));
             }
             return;
           }
@@ -544,32 +551,40 @@ export default function PulsePagesBuilder() {
             >
               <div className="w-full flex flex-col items-center text-center space-y-4">
                 {/* Avatar */}
-                <div className="w-20 h-20 rounded-full p-1 border-2 border-white/40 overflow-hidden shadow-xl shrink-0">
+                <div className="w-20 h-20 rounded-full p-1 border-2 border-white/40 overflow-hidden shadow-xl shrink-0 bg-slate-900 flex items-center justify-center">
                   <img
-                    src={page.avatar_url}
+                    src={
+                      !page.avatar_url || page.avatar_url.includes('images.unsplash.com')
+                        ? '/logo.svg'
+                        : page.avatar_url
+                    }
                     alt={page.title}
+                    onError={(e) => {
+                      const img = e.currentTarget as HTMLImageElement;
+                      if (!img.src.endsWith('/logo.svg')) img.src = '/logo.svg';
+                    }}
                     className="w-full h-full object-cover rounded-full"
                   />
                 </div>
 
                 {/* Title & Bio */}
                 <div className="space-y-1">
-                  <h3 className="font-extrabold text-sm">{page.title}</h3>
-                  <p className="text-[11px] text-white/80 line-clamp-3 leading-snug">
+                  <h3 className="font-extrabold text-sm text-white">{page.title}</h3>
+                  <p className="text-[11px] text-white/85 line-clamp-3 leading-snug">
                     {page.bio}
                   </p>
                 </div>
 
                 {/* Social Quick Bar */}
                 <div className="flex items-center gap-2 pt-1">
-                  <div className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[10px] font-bold transition-transform cursor-pointer" title="Instagram">
+                  <div className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white transition-transform cursor-pointer" title="Instagram">
                     IG
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[10px] font-bold transition-transform cursor-pointer" title="LinkedIn">
+                  <div className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white transition-transform cursor-pointer" title="LinkedIn">
                     in
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[10px] font-bold transition-transform cursor-pointer" title="X (Twitter)">
-                    𝕏
+                  <div className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white transition-transform cursor-pointer" title="WhatsApp">
+                    WA
                   </div>
                 </div>
 

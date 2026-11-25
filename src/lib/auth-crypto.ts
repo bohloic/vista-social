@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 
-const AUTH_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+function getAuthSecret(): string {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+}
 
 /**
  * Hash a password securely using scrypt with random salt.
@@ -39,7 +41,7 @@ export function verifyPassword(password: string, storedHash: string, salt: strin
  */
 export function createSignedSession(payload: Record<string, any>): string {
   const data = JSON.stringify(payload);
-  const signature = crypto.createHmac('sha256', AUTH_SECRET).update(data).digest('hex');
+  const signature = crypto.createHmac('sha256', getAuthSecret()).update(data).digest('hex');
   return Buffer.from(JSON.stringify({ data, signature })).toString('base64');
 }
 
@@ -51,7 +53,7 @@ export function verifySignedSession(token: string): Record<string, any> | null {
     const raw = Buffer.from(token, 'base64').toString('utf-8');
     const { data, signature } = JSON.parse(raw);
 
-    const expectedSignature = crypto.createHmac('sha256', AUTH_SECRET).update(data).digest('hex');
+    const expectedSignature = crypto.createHmac('sha256', getAuthSecret()).update(data).digest('hex');
     const expectedBuf = Buffer.from(expectedSignature, 'hex');
     const actualBuf = Buffer.from(signature, 'hex');
 

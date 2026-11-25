@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
 import { SocialAccount } from '@/lib/types';
+import { getRoleCapabilities, normalizeRole, ROLE_BADGE_STYLES, ROLE_LABELS, UserRole } from '@/lib/permissions';
 import {
   Settings,
   Share2,
@@ -105,9 +106,29 @@ const OAUTH_PROVIDERS = [
 
 export default function SettingsPage() {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
-  const [activeTab, setActiveTab] = useState<'oauth' | 'tokens' | 'accounts' | 'team' | 'api'>('oauth');
+  const [userRole, setUserRole] = useState<UserRole>('client');
+  const [currentUser, setCurrentUser] = useState<{
+    fullName: string;
+    email: string;
+    workspaceName: string;
+  }>({ fullName: 'Utilisateur', email: '', workspaceName: 'Mon Espace' });
+  const [activeTab, setActiveTab] = useState<
+    'oauth' | 'tokens' | 'accounts' | 'team' | 'api' | 'profile' | 'security'
+  >('profile');
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [connectMessage, setConnectMessage] = useState<string | null>(null);
+
+  // MFA (TOTP) State
+  const [mfaFactors, setMfaFactors] = useState<
+    { id: string; friendly_name: string; factor_type: string; status: string }[]
+  >([]);
+  const [mfaCurrentLevel, setMfaCurrentLevel] = useState<'aal1' | 'aal2'>('aal1');
+  const [enrollingFactorId, setEnrollingFactorId] = useState<string | null>(null);
+  const [enrollingQr, setEnrollingQr] = useState<string | null>(null);
+  const [enrollingSecret, setEnrollingSecret] = useState<string | null>(null);
+  const [totpCode, setTotpCode] = useState<string>('');
+  const [mfaLoading, setMfaLoading] = useState<boolean>(false);
+  const [mfaError, setMfaError] = useState<string | null>(null);
 
   // Interactive OAuth Modal state
   const [oauthModalProvider, setOauthModalProvider] = useState<typeof OAUTH_PROVIDERS[0] | null>(null);
@@ -120,7 +141,7 @@ export default function SettingsPage() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteFullName, setInviteFullName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'admin' | 'manager' | 'editor' | 'client'>('editor');
+  const [inviteRole, setInviteRole] = useState<'super_admin' | 'admin' | 'manager' | 'editor' | 'client'>('editor');
   const [inviteLoading, setInviteLoading] = useState(false);
 
   // Real API Tokens form
@@ -179,9 +200,159 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchMfaStatus = async () => {
+    try {
+      const res = await fetch('/api/auth/mfa', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setMfaFactors(data.factors || []);
+        if (data.currentLevel) setMfaCurrentLevel(data.currentLevel);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleEnrollTotp = async () => {
+    setMfaLoading(true);
+    setMfaError(null);
+    try {
+      const res = await fetch('/api/auth/mfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'enroll',
+          factorType: 'totp',
+          friendlyName: 'PulseSocial Authenticator',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setMfaError(data.error || 'Échec de l’initialisation TOTP.');
+      } else {
+        setEnrollingFactorId(data.id);
+        setEnrollingQr(data.totp?.qr_code || null);
+        setEnrollingSecret(data.totp?.secret || null);
+      }
+    } catch {
+      setMfaError('Erreur réseau lors de l’activation MFA.');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleVerifyTotp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (totpCode.trim().length !== 6) {
+      setMfaError('Veuillez saisir le code à 6 chiffres.');
+      return;
+    }
+    setMfaLoading(true);
+    setMfaError(null);
+    try {
+      const res = await fetch('/api/auth/mfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify',
+          factorId: enrollingFactorId || undefined,
+          code: totpCode.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setMfaError(data.error || 'Code TOTP invalide.');
+      } else {
+        setConnectMessage('✓ Double authentification TOTP (AAL2) activée avec succès !');
+        setEnrollingQr(null);
+        setEnrollingSecret(null);
+        setEnrollingFactorId(null);
+        setTotpCode('');
+        await fetchMfaStatus();
+      }
+    } catch {
+      setMfaError('Erreur lors de la vérification du code TOTP.');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleUnenrollTotp = async (factorId: string) => {
+    setMfaLoading(true);
+    setMfaError(null);
+    try {
+      const res = await fetch('/api/auth/mfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'unenroll',
+          factorId,
+        }),
+      });
+      if (res.ok) {
+        setConnectMessage('Facteur MFA TOTP désactivé.');
+        setEnrollingQr(null);
+        setEnrollingSecret(null);
+        await fetchMfaStatus();
+      }
+    } catch {
+      setMfaError('Impossible de désactiver le facteur MFA.');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchAccounts();
-    fetchTeamMembers();
+    // 1. Synchronous role hydration from localStorage to avoid tab flash
+    let initialRole: UserRole = 'client';
+    try {
+      const cachedUser = localStorage.getItem('pulsesocial_user');
+      if (cachedUser) {
+        const parsed = JSON.parse(cachedUser);
+        if (parsed?.role) {
+          initialRole = normalizeRole(parsed.role);
+          setUserRole(initialRole);
+          setCurrentUser({
+            fullName: parsed.fullName || 'Utilisateur',
+            email: parsed.email || '',
+            workspaceName: parsed.workspaceName || parsed.workspace?.name || 'Mon Espace',
+          });
+          if (initialRole === 'super_admin' || initialRole === 'admin') {
+            setActiveTab('oauth');
+          } else {
+            setActiveTab('profile');
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Authoritative verification from /api/auth/me
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.authenticated && data?.user) {
+          const r = normalizeRole(data.user.role);
+          setUserRole(r);
+          setCurrentUser({
+            fullName: data.user.fullName || 'Utilisateur',
+            email: data.user.email || '',
+            workspaceName: data.user.workspace?.name || 'Mon Espace',
+          });
+          if (r === 'super_admin' || r === 'admin') {
+            fetchAccounts();
+            fetchTeamMembers();
+            setActiveTab((prev) => (prev === 'profile' && initialRole === 'client' ? 'oauth' : prev));
+          } else {
+            setActiveTab((prev) => (['profile', 'security'].includes(prev) ? prev : 'profile'));
+          }
+        }
+      })
+      .catch(() => {});
+
+    fetchMfaStatus();
+
     try {
       const saved = localStorage.getItem('pulsesocial_manual_tokens');
       if (saved) {
@@ -396,81 +567,136 @@ export default function SettingsPage() {
     setTimeout(() => setSavedTokens(false), 3000);
   };
 
+  const capabilities = getRoleCapabilities(userRole);
+  const isAdminOrSuper = userRole === 'super_admin' || userRole === 'admin';
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black font-fredoka text-[#1E1B4B] flex items-center gap-2">
-          <Settings className="w-6 h-6 text-[#7C3AED]" />
-          Paramètres &amp; Gestion des Réseaux PulseSocial
-        </h1>
-        <p className="text-xs text-slate-600 font-medium font-jakarta">
-          Connectez vos profils sociaux en 1 clic (OAuth 2.0 interactif), gérez vos membres, clés APIs et base Supabase.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black font-fredoka text-[#1E1B4B] flex items-center gap-2">
+            <Settings className="w-6 h-6 text-[#7C3AED]" />
+            Paramètres &amp; Sécurité du Compte
+          </h1>
+          <p className="text-xs text-slate-600 font-medium font-jakarta">
+            {isAdminOrSuper
+              ? 'Connectez vos profils sociaux en 1 clic (OAuth 2.0), gérez votre équipe, la sécurité MFA et votre infrastructure.'
+              : 'Consultez les informations de votre profil et configurez votre double authentification (MFA / TOTP).'}
+          </p>
+        </div>
+        <span
+          data-testid="settings-role-badge"
+          className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border self-start sm:self-auto ${ROLE_BADGE_STYLES[userRole]}`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>{ROLE_LABELS[userRole]}</span>
+        </span>
       </div>
 
-      {/* Tabs */}
+      {/* Role-Filtered Tabs */}
       <div className="flex items-center gap-1 sm:gap-2 border-b border-violet-100 pb-px overflow-x-auto scrollbar-thin scrollbar-thumb-violet-200">
+        {capabilities.canManageSocialAccounts && (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('oauth')}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === 'oauth'
+                  ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+                  : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
+              }`}
+            >
+              <Zap className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>OAuth 1-Clic</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('accounts')}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === 'accounts'
+                  ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+                  : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
+              }`}
+            >
+              <Share2 className="w-4 h-4 shrink-0" />
+              <span>Comptes ({accounts.length})</span>
+            </button>
+          </>
+        )}
+
+        {capabilities.canManageTeam && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('team')}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === 'team'
+                ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+                : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
+            }`}
+          >
+            <Users className="w-4 h-4 shrink-0" />
+            <span>Équipe ({teamMembers.length})</span>
+          </button>
+        )}
+
         <button
           type="button"
-          onClick={() => setActiveTab('oauth')}
+          data-testid="tab-profile"
+          onClick={() => setActiveTab('profile')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'oauth'
+            activeTab === 'profile'
               ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
               : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
           }`}
         >
-          <Zap className="w-4 h-4 text-emerald-500 shrink-0" />
-          <span>OAuth 1-Clic</span>
+          <UserCheck className="w-4 h-4 shrink-0" />
+          <span>Mon Profil</span>
         </button>
+
         <button
           type="button"
-          onClick={() => setActiveTab('accounts')}
+          data-testid="tab-security"
+          onClick={() => setActiveTab('security')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'accounts'
+            activeTab === 'security'
               ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
               : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
           }`}
         >
-          <Share2 className="w-4 h-4 shrink-0" />
-          <span>Comptes ({accounts.length})</span>
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>Sécurité &amp; MFA</span>
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('team')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'team'
-              ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
-              : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-          }`}
-        >
-          <Users className="w-4 h-4 shrink-0" />
-          <span>Équipe ({teamMembers.length})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('tokens')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'tokens'
-              ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
-              : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-          }`}
-        >
-          <Lock className="w-4 h-4 shrink-0" />
-          <span>Tokens Manuels</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('api')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'api'
-              ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
-              : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-          }`}
-        >
-          <Key className="w-4 h-4 shrink-0" />
-          <span>Supabase &amp; IA</span>
-        </button>
+
+        {capabilities.canManageManualTokens && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('tokens')}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === 'tokens'
+                ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+                : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
+            }`}
+          >
+            <Lock className="w-4 h-4 shrink-0" />
+            <span>Tokens Manuels</span>
+          </button>
+        )}
+
+        {capabilities.canTestInfrastructure && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('api')}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === 'api'
+                ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
+                : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
+            }`}
+          >
+            <Key className="w-4 h-4 shrink-0" />
+            <span>Supabase &amp; IA</span>
+          </button>
+        )}
       </div>
 
       {/* Feedback Alert */}
@@ -995,19 +1221,19 @@ export default function SettingsPage() {
             </span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 space-y-2">
+          <div className="p-4 rounded-2xl bg-slate-900 border border-violet-500/40 space-y-2 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-violet-400" />
-                <p className="font-bold text-xs text-violet-300">
+                <Database className="w-4 h-4 text-violet-300" />
+                <p className="font-bold text-xs text-white">
                   Base de données Supabase PostgreSQL
                 </p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/30 text-violet-100 border border-violet-400/40">
                 SSL Actif
               </span>
             </div>
-            <p className="text-[11px] font-mono text-slate-300">
+            <p className="text-[11px] font-mono text-slate-200">
               Projet : https://••••••••.supabase.co • Schéma complet avec RLS (Row Level Security) activé sur 14 tables
             </p>
           </div>
@@ -1048,6 +1274,185 @@ export default function SettingsPage() {
                 <p className="text-[10px] text-slate-400 mt-0.5">Modèle : {pingResult.ai.model} opérationnel.</p>
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: MON PROFIL */}
+      {activeTab === 'profile' && (
+        <div className="p-6 rounded-3xl bg-white border border-violet-100 shadow-sm space-y-5 font-jakarta">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="font-bold text-sm text-[#1E1B4B] flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-[#7C3AED]" />
+                Mon Profil Utilisateur &amp; Habilitations
+              </h3>
+              <p className="text-xs text-slate-500">
+                Informations de votre compte authentifié et périmètre d&apos;accès sur l&apos;espace de travail.
+              </p>
+            </div>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${ROLE_BADGE_STYLES[userRole]}`}>
+              {ROLE_LABELS[userRole]}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <span className="text-[11px] font-bold text-slate-500 block">Nom complet</span>
+              <p className="text-sm font-extrabold text-slate-900 mt-0.5">{currentUser.fullName}</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <span className="text-[11px] font-bold text-slate-500 block">Adresse e-mail</span>
+              <p className="text-sm font-extrabold text-slate-900 mt-0.5 truncate">{currentUser.email || 'Session active'}</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <span className="text-[11px] font-bold text-slate-500 block">Espace de travail</span>
+              <p className="text-sm font-extrabold text-slate-900 mt-0.5">{currentUser.workspaceName}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: SÉCURITÉ & MFA (TOTP AUTHENTICATOR) */}
+      {activeTab === 'security' && (
+        <div className="p-6 rounded-3xl bg-white border border-violet-100 shadow-sm space-y-6 font-jakarta">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div>
+              <h3 className="font-bold text-sm text-[#1E1B4B] flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                Sécurité &amp; Double Authentification (MFA / TOTP)
+              </h3>
+              <p className="text-xs text-slate-500">
+                Protégez votre compte avec Google Authenticator ou Authy (norme RFC 6238 / Supabase AAL2).
+              </p>
+            </div>
+            <span
+              data-testid="mfa-aal-badge"
+              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${
+                mfaCurrentLevel === 'aal2'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Niveau d&apos;assurance : {mfaCurrentLevel.toUpperCase()}</span>
+            </span>
+          </div>
+
+          {mfaError && (
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{mfaError}</span>
+            </div>
+          )}
+
+          {/* Active Verified Factors List */}
+          {mfaFactors.filter((f) => f.status === 'verified').length > 0 ? (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-700">Facteurs Authenticator actifs :</h4>
+              {mfaFactors
+                .filter((f) => f.status === 'verified')
+                .map((factor) => (
+                  <div
+                    key={factor.id}
+                    className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div>
+                        <p className="text-xs font-extrabold text-slate-900">{factor.friendly_name}</p>
+                        <p className="text-[11px] text-emerald-700">
+                          TOTP 6 chiffres actif • Protection RLS AAL2 activée
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      data-testid="settings-mfa-unenroll"
+                      onClick={() => handleUnenrollTotp(factor.id)}
+                      disabled={mfaLoading}
+                      className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer disabled:opacity-50"
+                    >
+                      Désactiver
+                    </button>
+                  </div>
+                ))}
+            </div>
+          ) : !enrollingSecret ? (
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-xs font-extrabold text-slate-900">
+                  Aucun facteur TOTP configuré sur ce compte
+                </p>
+                <p className="text-[11px] text-slate-600">
+                  {capabilities.requiresMfa
+                    ? 'Recommandation Critique : votre rôle Administrateur requiert l’activation de la double authentification TOTP.'
+                    : 'Activez un code temporaire à 6 chiffres pour renforcer la sécurité de vos accès.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                data-testid="settings-mfa-enroll-btn"
+                onClick={handleEnrollTotp}
+                disabled={mfaLoading}
+                className="px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold shadow-md cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                {mfaLoading ? 'Initialisation...' : 'Activer TOTP (QR Code)'}
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleVerifyTotp} className="p-5 rounded-2xl bg-slate-50 border border-violet-200 space-y-4">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                {enrollingQr && (
+                  <div
+                    data-testid="settings-mfa-qr"
+                    className="p-3 bg-white rounded-2xl border border-slate-200 shadow-xs shrink-0"
+                    dangerouslySetInnerHTML={{ __html: enrollingQr }}
+                  />
+                )}
+                <div className="space-y-2 flex-1">
+                  <h4 className="text-xs font-extrabold text-slate-900">
+                    1. Scannez ce QR Code avec Google Authenticator ou Authy
+                  </h4>
+                  <p className="text-[11px] text-slate-600">
+                    Ou saisissez manuellement la clé secrète Base32 ci-dessous dans votre application :
+                  </p>
+                  <code
+                    data-testid="settings-mfa-secret"
+                    className="inline-block px-3 py-1.5 rounded-xl bg-violet-100 text-[#1E1B4B] font-mono text-xs font-black select-all"
+                  >
+                    {enrollingSecret}
+                  </code>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    2. Entrez le code à 6 chiffres généré pour confirmer l&apos;activation :
+                  </label>
+                  <input
+                    type="text"
+                    data-testid="settings-mfa-code"
+                    inputMode="numeric"
+                    maxLength={6}
+                    required
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white font-mono text-sm font-black tracking-widest text-slate-900 focus:outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  data-testid="settings-mfa-verify-btn"
+                  disabled={mfaLoading}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {mfaLoading ? 'Vérification...' : 'Valider et Activer AAL2'}
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}

@@ -21,8 +21,14 @@ export function PlatformPreview({
   firstComment,
   accountName = 'Studio Nova',
   username = '@studionova.agency',
-  avatarUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
+  avatarUrl = '/logo.svg',
 }: PlatformPreviewProps) {
+  const safeAvatarUrl =
+    avatarUrl && !avatarUrl.includes('photo-1618005182384-a83a8bd57fbe') ? avatarUrl : '/logo.svg';
+  const handleAvatarError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (!img.src.endsWith('/logo.svg')) img.src = '/logo.svg';
+  };
   const displayContent = content || "Votre contenu apparaîtra ici en temps réel...";
   const displayMedia = mediaUrls.length > 0 ? mediaUrls[0] : null;
 
@@ -63,7 +69,7 @@ export function PlatformPreview({
           <div className="p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <img src={avatarUrl} alt={accountName} className="w-7 h-7 rounded-full object-cover ring-2 ring-pink-500 p-0.5" />
+                <img src={safeAvatarUrl} onError={handleAvatarError} alt={accountName} className="w-7 h-7 rounded-full object-cover ring-2 ring-pink-500 p-0.5 bg-slate-100" />
                 <div>
                   <p className="font-bold text-[11px] leading-tight">{username.replace('@', '')}</p>
                   <p className="text-[9px] text-slate-400">Abidjan, Côte d&apos;Ivoire</p>
@@ -115,7 +121,7 @@ export function PlatformPreview({
         {platform === 'linkedin' && (
           <div className="p-3.5 space-y-2.5">
             <div className="flex items-center gap-2.5">
-              <img src={avatarUrl} alt={accountName} className="w-8 h-8 rounded-full object-cover" />
+              <img src={safeAvatarUrl} onError={handleAvatarError} alt={accountName} className="w-8 h-8 rounded-full object-cover bg-slate-100" />
               <div>
                 <p className="font-bold text-[11px] leading-tight flex items-center gap-1">
                   {accountName}
@@ -149,7 +155,7 @@ export function PlatformPreview({
         {platform === 'twitter' && (
           <div className="p-3.5 space-y-2.5">
             <div className="flex items-start gap-2.5">
-              <img src={avatarUrl} alt={accountName} className="w-8 h-8 rounded-full object-cover shrink-0" />
+              <img src={safeAvatarUrl} onError={handleAvatarError} alt={accountName} className="w-8 h-8 rounded-full object-cover shrink-0 bg-slate-100" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-bold text-[11px] text-slate-900 dark:text-white">{accountName}</span>
@@ -199,7 +205,7 @@ export function PlatformPreview({
             {/* Right side actions */}
             <div className="relative z-10 self-end flex flex-col items-center gap-3 mr-1 text-[10px]">
               <div className="w-8 h-8 rounded-full border border-white overflow-hidden">
-                <img src={avatarUrl} alt="TikTok Avatar" className="w-full h-full object-cover" />
+                <img src={safeAvatarUrl} onError={handleAvatarError} alt="TikTok Avatar" className="w-full h-full object-cover bg-slate-900" />
               </div>
               <div className="flex flex-col items-center">
                 <Heart className="w-5 h-5 text-white" />
@@ -235,7 +241,7 @@ export function PlatformPreview({
         {platform === 'facebook' && (
           <div className="p-3.5 space-y-2.5">
             <div className="flex items-center gap-2">
-              <img src={avatarUrl} alt={accountName} className="w-8 h-8 rounded-full object-cover" />
+              <img src={safeAvatarUrl} onError={handleAvatarError} alt={accountName} className="w-8 h-8 rounded-full object-cover bg-slate-100" />
               <div>
                 <p className="font-bold text-[11px] text-slate-900 dark:text-white">{accountName}</p>
                 <p className="text-[9px] text-slate-400">À l&apos;instant • 👥 Public</p>
@@ -289,7 +295,7 @@ export function PlatformPreview({
                 {displayContent}
               </p>
               <div className="flex items-center gap-2 pt-2">
-                <img src={avatarUrl} alt={accountName} className="w-5 h-5 rounded-full object-cover" />
+                <img src={safeAvatarUrl} onError={handleAvatarError} alt={accountName} className="w-5 h-5 rounded-full object-cover bg-slate-100" />
                 <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{accountName}</span>
               </div>
             </div>

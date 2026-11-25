@@ -298,6 +298,20 @@ export default function LoginPage() {
         }
       }
 
+      // Check if user has an active MFA factor requiring AAL2 verification
+      try {
+        const mfaRes = await fetch('/api/auth/mfa', { cache: 'no-store' });
+        if (mfaRes.ok) {
+          const mfaData = await mfaRes.json();
+          if (mfaData.currentLevel === 'aal1' && mfaData.nextLevel === 'aal2') {
+            router.push('/login/mfa');
+            return;
+          }
+        }
+      } catch {
+        // continue to dashboard
+      }
+
       router.push('/');
       router.refresh();
     } catch {
@@ -374,20 +388,23 @@ export default function LoginPage() {
 
       {/* Main Container with 3D Mascot & Card */}
       <div className="w-full max-w-sm sm:max-w-md relative z-10 flex flex-col items-center">
-        {/* 3D Character Illustration (Direct inspiration from Image 2: Girl with purple hoodie & phone) */}
-        <div className="relative -mb-10 z-20 w-44 sm:w-52 h-36 sm:h-44 flex items-end justify-center">
-          <div className="w-full h-full rounded-t-[40px] overflow-hidden drop-shadow-2xl flex items-end justify-center">
+        {/* 100% French 3D Clay Security Header (Zero English Text Image) */}
+        <div className="relative -mb-8 z-20 w-56 sm:w-64 h-32 sm:h-36 flex flex-col items-center justify-center">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#1E1B4B] shadow-2xl border-4 border-white flex items-center justify-center relative">
             <img
-              src="/images/3d-login-character.jpg"
-              alt="Mascotte 3D PulseSocial"
-              className="w-full h-full object-cover object-top scale-110"
+              src="/logo.svg"
+              alt="Logo PulseSocial PRO"
+              className="w-12 h-12 object-contain drop-shadow-md"
             />
+            <span className="absolute -bottom-2 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wider shadow-sm border border-white">
+              Sécurisé 2FA
+            </span>
           </div>
-          {/* Floating 3D Icons around character */}
-          <div className="absolute -left-6 top-6 w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#c4b5fd] to-[#fbcfe8] shadow-md flex items-center justify-center text-white animate-bounce duration-1000">
+          {/* Floating 3D Icons around emblem */}
+          <div className="absolute -left-2 top-4 w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#c4b5fd] to-[#fbcfe8] shadow-md flex items-center justify-center text-white animate-bounce duration-1000">
             <User className="w-5 h-5 text-white" />
           </div>
-          <div className="absolute -right-6 top-8 animate-pulse">
+          <div className="absolute -right-2 top-5 animate-pulse">
             <ClayPadlockIcon className="w-11 h-11 drop-shadow-md" />
           </div>
         </div>
