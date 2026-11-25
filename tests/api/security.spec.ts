@@ -421,6 +421,19 @@ test('22. [LOGOUT-PURGE] /api/auth/logout purges all auth, MFA, OAuth, and reque
   assert.ok(logoutRoute.includes('req.cookies.getAll()'), 'Logout must also iterate and expire all incoming request cookies');
 });
 
+test('23. [TEAM-ADMIN-INVITE] /api/team/members derives workspaceId from session when omitted by client', async () => {
+  const fs = await import('node:fs');
+  const teamRoute = fs.readFileSync('src/app/api/team/members/route.ts', 'utf-8');
+  assert.ok(
+    teamRoute.includes('workspaceId: z.string().optional()'),
+    'inviteSchema and updateRoleSchema must allow omitting workspaceId and derive it from session'
+  );
+  assert.ok(
+    teamRoute.includes('resolveTargetWorkspaceId'),
+    'Team route must resolve workspaceId from session/profile when not passed in body'
+  );
+});
+
 
 
 

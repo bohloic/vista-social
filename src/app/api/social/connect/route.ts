@@ -29,7 +29,7 @@ const connectSchema = z
     username: z.string().min(1, 'Identifiant requis').max(120),
     avatarUrl: z.string().url().or(z.string().startsWith('/')).optional(),
     accessToken: z.string().max(2048).optional(),
-    workspaceId: z.string().uuid(),
+    workspaceId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -130,8 +130,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { platform, accountName, username, avatarUrl, accessToken, workspaceId } = parsed.data;
-    await requireWorkspaceRole(user.id, workspaceId, ['super_admin', 'admin', 'manager', 'editor']);
+    const { platform, accountName, username, avatarUrl, accessToken, workspaceId: bodyWorkspaceId } = parsed.data;
+    const workspaceId =
+      (bodyWorkspaceId && isUuid(bodyWorkspaceId) ? bodyWorkspaceId : undefined) ||
+      user.workspace_id ||
+      user.workspaceId ||
+      '';
+    await requireWorkspaceRole(user.id, workspaceId, ['super_admin', 'admin', 'manager', 'editor'], user.role);
 
     const supabase = getAdminSupabase();
     if (!supabase) {

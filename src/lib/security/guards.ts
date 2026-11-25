@@ -280,42 +280,53 @@ export async function requireWorkspaceRole(
     throw new ApiError(403, 'WORKSPACE_ACCESS_DENIED', 'Accès au workspace refusé');
   }
 
-  // 1. Check workspace_members table
-  const { data: membership, error } = await supabase
-    .from('workspace_members')
-    .select('role')
-    .eq('workspace_id', workspaceId)
-    .eq('user_id', userId)
-    .maybeSingle();
+  // 1. Check workspace_members table and user_profiles table
+  const [{ data: membership, error: memberErr }, { data: profile }] = await Promise.all([
+    supabase
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('user_profiles')
+      .select('role, workspace_id')
+      .eq('id', userId)
+      .maybeSingle(),
+  ]);
 
-  if (!error && membership?.role) {
-    const role = membership.role as WorkspaceRole;
-    if (!allowedRoles.includes(role)) {
-      throw new ApiError(403, 'ROLE_INSUFFICIENT', 'Privilèges insuffisants pour cette action sur ce workspace');
-    }
-    return role;
+  if (profile?.role === 'super_admin') {
+    return 'super_admin';
   }
 
-  // 2. Check user_profiles table (direct workspace assignment or super_admin status)
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('role, workspace_id')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (profile) {
-    if (profile.role === 'super_admin') {
-      return 'super_admin';
-    }
-    if (profile.workspace_id === workspaceId) {
-      const effectiveRole = (profile.role as WorkspaceRole) || currentUserRole || 'client';
-      if (!allowedRoles.includes(effectiveRole)) {
-        throw new ApiError(403, 'ROLE_INSUFFICIENT', 'Privilèges insuffisants pour cette action sur ce workspace');
-      }
-      return effectiveRole;
-    }
-    // User belongs to a different workspace -> strict Anti-BOLA rejection
+  // Strict Anti-BOLA: if user profile is bound to a different workspace and has no membership in target workspace, reject
+  if (profile?.workspace_id && profile.workspace_id !== workspaceId && !membership?.role) {
     throw new ApiError(403, 'WORKSPACE_ACCESS_DENIED', 'Accès interdit à cet espace de travail (Anti-BOLA)');
+  }
+
+  // If user profile had no workspace_id assigned yet, bind it to this workspace
+  if (profile && !profile.workspace_id) {
+    try {
+      await supabase.from('user_profiles').update({ workspace_id: workspaceId }).eq('id', userId);
+    } catch {
+      // ignore
+    }
+  }
+
+  const candidateRoles: WorkspaceRole[] = [];
+  if (!memberErr && membership?.role) {
+    candidateRoles.push(membership.role as WorkspaceRole);
+  }
+  if (profile && (!profile.workspace_id || profile.workspace_id === workspaceId) && profile.role) {
+    candidateRoles.push(profile.role as WorkspaceRole);
+  }
+
+  if (candidateRoles.length > 0) {
+    const matchedRole = candidateRoles.find((r) => allowedRoles.includes(r));
+    if (matchedRole) {
+      return matchedRole;
+    }
+    throw new ApiError(403, 'ROLE_INSUFFICIENT', 'Privilèges insuffisants pour cette action sur ce workspace');
   }
 
   throw new ApiError(403, 'WORKSPACE_ACCESS_DENIED', 'Accès au workspace refusé ou rôle insuffisant');

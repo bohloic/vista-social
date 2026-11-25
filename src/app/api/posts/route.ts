@@ -129,6 +129,12 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    if (
+      (!body?.workspace_id || body.workspace_id === '00000000-0000-0000-0000-000000000000') &&
+      (user.workspaceId || user.workspace_id)
+    ) {
+      body.workspace_id = user.workspaceId || user.workspace_id;
+    }
     const validated = postCreateSchema.parse(body);
 
     // Enforce workspace membership and non-client role [C2, M1, M2]
