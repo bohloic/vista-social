@@ -25,12 +25,23 @@ import {
 import { ResourceShortcutGuide } from './ResourceShortcutGuide';
 import type { CopilotAction, CopilotAttachment, CopilotMemory } from '@/lib/gemini';
 
+interface PendingConfirmation {
+  type: string;
+  label: string;
+  payload: Record<string, unknown>;
+  summary?: string;
+}
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   attachments?: CopilotAttachment[];
   action?: CopilotAction | null;
+  pendingConfirmation?: PendingConfirmation | null;
+  confirmationHandled?: 'confirmed' | 'cancelled';
+  connectUrl?: string;
+  isError?: boolean;
   paystackUrl?: string;
   timestamp: string;
 }
@@ -480,11 +491,24 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
         }),
       });
 
-      const data = await res.json();
-      const replyText = data.reply || data.error || 'Action traitée.';
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        const errMsg = data?.error || data?.reply || `Erreur API (${res.status})`;
+        const errAssistantMsg: ChatMessage = {
+          id: `err-${Date.now()}`,
+          role: 'assistant',
+          content: errMsg.startsWith('⚠️') ? errMsg : `⚠️ ${errMsg}`,
+          isError: true,
+          timestamp: new Date().toISOString(),
+        };
+        persistMessages([...nextMessages, errAssistantMsg]);
+        return;
+      }
+
+      const replyText = data.reply || 'Réponse reçue.';
       let paystackUrl: string | undefined;
 
-      if (data.action) {
+      if (data.action && !data.pendingConfirmation) {
         paystackUrl = await executeClientAction(data.action);
       }
 
@@ -496,7 +520,9 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
         id: `a-${Date.now()}`,
         role: 'assistant',
         content: replyText,
-        action: data.action || null,
+        action: data.pendingConfirmation ? null : data.action || null,
+        pendingConfirmation: data.pendingConfirmation || null,
+        connectUrl: data.connectUrl || undefined,
         paystackUrl,
         timestamp: new Date().toISOString(),
       };
@@ -506,13 +532,16 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
       if (voiceOutputEnabled) {
         speakText(replyText);
       }
-    } catch {
+    } catch (err: unknown) {
+      const errMsg =
+        err instanceof Error ? err.message : 'Erreur réseau lors de la communication avec PulseAI.';
       persistMessages([
         ...nextMessages,
         {
           id: `err-${Date.now()}`,
           role: 'assistant',
-          content: 'Erreur de connexion avec PulseAI. Réessayez dans un instant.',
+          content: `⚠️ ${errMsg}`,
+          isError: true,
           timestamp: new Date().toISOString(),
         },
       ]);
@@ -521,11 +550,98 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
     }
   };
 
+  const handleConfirmPendingAction = async (msgId: string, pending: PendingConfirmation) => {
+    if (loading) return;
+    setLoading(true);
+    const updatedWithHandled = messages.map((m) =>
+      m.id === msgId ? { ...m, confirmationHandled: 'confirmed' as const } : m
+    );
+    persistMessages(updatedWithHandled);
+
+    try {
+      const res = await fetch('/api/ai/copilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Confirmation : ${pending.label}`,
+          history: updatedWithHandled.slice(-10).map((m) => ({ role: m.role, content: m.content })),
+          memory,
+          currentPath: pathname,
+          confirmedAction: {
+            type: pending.type,
+            label: pending.label,
+            payload: pending.payload,
+          },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        const errMsg = data?.error || data?.reply || `Erreur lors de l'exécution (${res.status})`;
+        persistMessages([
+          ...updatedWithHandled,
+          {
+            id: `err-${Date.now()}`,
+            role: 'assistant',
+            content: errMsg.startsWith('⚠️') ? errMsg : `⚠️ ${errMsg}`,
+            isError: true,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
+
+      if (pending.type.includes('post')) window.dispatchEvent(new Event('posts-updated'));
+      if (pending.type.includes('crm')) window.dispatchEvent(new Event('crm-updated'));
+      if (pending.type.includes('pulse_page')) window.dispatchEvent(new Event('pulse-pages-updated'));
+      if (pending.type.includes('team')) window.dispatchEvent(new Event('team-updated'));
+
+      persistMessages([
+        ...updatedWithHandled,
+        {
+          id: `a-conf-${Date.now()}`,
+          role: 'assistant',
+          content: data.reply || '✓ Action confirmée et exécutée.',
+          action: data.action || { type: pending.type as any, label: pending.label, payload: pending.payload },
+          connectUrl: data.connectUrl,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Erreur réseau lors de la confirmation.';
+      persistMessages([
+        ...updatedWithHandled,
+        {
+          id: `err-${Date.now()}`,
+          role: 'assistant',
+          content: `⚠️ ${errMsg}`,
+          isError: true,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelPendingAction = (msgId: string) => {
+    const updated = messages.map((m) =>
+      m.id === msgId ? { ...m, confirmationHandled: 'cancelled' as const } : m
+    );
+    persistMessages([
+      ...updated,
+      {
+        id: `a-cancel-${Date.now()}`,
+        role: 'assistant',
+        content: 'Action annulée. Aucune modification n’a été enregistrée dans votre espace.',
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  };
+
   const quickPrompts = [
-    'Crée un post LinkedIn sur notre offre',
-    'Ajoute un prospect CRM de 100000 FCFA',
-    'Passe le prospect en étape Gagné',
-    'Génère un lien Paystack de 15000 FCFA',
+    'Fais-moi un résumé de mon espace de travail',
+    'Génère un lien Composio pour connecter Instagram',
+    'Prépare un brouillon de post LinkedIn sur notre offre',
     'Crée une page bio pour nos réseaux',
   ];
 
@@ -608,6 +724,8 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
             <div
               className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed space-y-2 ${msg.role === 'user'
                 ? 'bg-violet-600 text-white rounded-br-sm'
+                : msg.isError
+                ? 'bg-rose-950/70 border border-rose-500/40 text-rose-200 rounded-bl-sm'
                 : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
                 }`}
             >
@@ -631,6 +749,48 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
                       <span className="truncate max-w-[120px]">{att.name}</span>
                     </span>
                   ))}
+                </div>
+              )}
+
+              {/* Pending Write Confirmation Controls */}
+              {msg.pendingConfirmation && !msg.confirmationHandled && (
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <p className="text-[11px] font-semibold text-amber-300">
+                    Confirmation requise : {msg.pendingConfirmation.label}
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleConfirmPendingAction(msg.id, msg.pendingConfirmation!)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Confirmer et enregistrer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleCancelPendingAction(msg.id)}
+                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold cursor-pointer"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Direct Composio Connect Link */}
+              {msg.connectUrl && (
+                <div className="pt-1.5 border-t border-slate-800/80">
+                  <button
+                    type="button"
+                    onClick={() => window.open(msg.connectUrl, 'ComposioConnectOAuth', 'width=560,height=740')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Ouvrir le lien de connexion OAuth
+                  </button>
                 </div>
               )}
 

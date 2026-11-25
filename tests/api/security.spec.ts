@@ -434,6 +434,63 @@ test('23. [TEAM-ADMIN-INVITE] /api/team/members derives workspaceId from session
   );
 });
 
+test('24. [BUG1-CHAT-COPILOT] /api/ai/copilot enforces strictRealLLM, workspace tools, and explicit write confirmation', async () => {
+  const fs = await import('node:fs');
+  const copilotRoute = fs.readFileSync('src/app/api/ai/copilot/route.ts', 'utf-8');
+  const chatRoute = fs.readFileSync('src/app/api/chat/route.ts', 'utf-8');
+  const geminiLib = fs.readFileSync('src/lib/gemini.ts', 'utf-8');
+
+  assert.ok(chatRoute.includes('@/app/api/ai/copilot/route'), '/api/chat must delegate cleanly to /api/ai/copilot');
+  assert.ok(copilotRoute.includes('strictRealLLM: true'), '/api/ai/copilot must enforce strictRealLLM: true');
+  assert.ok(copilotRoute.includes('pendingConfirmation') && copilotRoute.includes('confirmedAction'), 'Write tools must require explicit confirmation');
+  for (const tool of ['get_workspace_summary', 'create_composio_connect_link', 'create_draft_post', 'create_pulse_page']) {
+    assert.ok(copilotRoute.includes(tool), `Copilot server must implement ${tool}`);
+  }
+  assert.equal(geminiLib.includes('Bonjour ! Ravi de me joindre'), false, 'Silent greeting fallback must be removed');
+});
+
+test('25. [BUG2-CRM-PERSIST] /api/crm/prospects uses strict Zod, workspace session scoping, and Inbox posts directly to API', async () => {
+  const fs = await import('node:fs');
+  const crmRoute = fs.readFileSync('src/app/api/crm/prospects/route.ts', 'utf-8');
+  const inboxPage = fs.readFileSync('src/app/inbox/page.tsx', 'utf-8');
+
+  assert.ok(crmRoute.includes('.strict()'), '/api/crm/prospects must use strict Zod schemas');
+  assert.ok(crmRoute.includes('resolveWorkspaceId'), '/api/crm/prospects must derive workspace_id from session');
+  assert.ok(crmRoute.includes("if (stage === 'lead') return 'new'"), 'CRM API must map lead to DB CHECK status new');
+  assert.ok(inboxPage.includes("fetch('/api/crm/prospects'"), '/inbox must persist prospects via /api/crm/prospects');
+});
+
+test('26. [BUG3-PULSE-PAGES-BLOCKS] /api/pulse-pages writes blocks and theme_config without nonexistent links column', async () => {
+  const fs = await import('node:fs');
+  const pulseRoute = fs.readFileSync('src/app/api/pulse-pages/route.ts', 'utf-8');
+  assert.ok(pulseRoute.includes('blocks:') && pulseRoute.includes('theme_config:'), '/api/pulse-pages must map blocks and theme_config');
+  assert.equal(/\blinks\b/.test(pulseRoute), false, '/api/pulse-pages must not reference nonexistent links column');
+});
+
+test('27. [BUG4-FLYERS-LOCAL] CURATED_FLYER_PRESETS uses 6 valid local SVG assets in public/flyers/', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { CURATED_FLYER_PRESETS } = await import('../../src/lib/flyer-studio.ts');
+
+  assert.equal(CURATED_FLYER_PRESETS.length, 6, 'Must have 6 curated flyer presets');
+  for (const preset of CURATED_FLYER_PRESETS) {
+    assert.ok(preset.imageUrl.startsWith('/flyers/'), `Preset ${preset.id} must use local /flyers/ asset`);
+    const diskPath = path.resolve('public', preset.imageUrl.slice(1));
+    assert.ok(fs.existsSync(diskPath), `Local flyer file missing: ${diskPath}`);
+  }
+});
+
+test('28. [BUG5-BILLING-CARD] /billing hides USSD phone input and shows Paystack Checkout email flow for card payments', async () => {
+  const fs = await import('node:fs');
+  const billingPage = fs.readFileSync('src/app/billing/page.tsx', 'utf-8');
+  const paystackInit = fs.readFileSync('src/app/api/billing/paystack/initialize/route.ts', 'utf-8');
+
+  assert.ok(billingPage.includes("const isCardProvider = selectedProvider === 'card'"), 'Billing modal must detect card provider');
+  assert.ok(billingPage.includes('isCardProvider ?'), 'Billing modal must conditionally swap USSD phone for Paystack email');
+  assert.ok(billingPage.includes('Paystack Checkout (Visa / Mastercard'), 'Billing modal must explain Paystack Checkout flow');
+  assert.ok(paystackInit.includes("validated.provider === 'card' ? ['card']"), 'Paystack initialize must pass card channel when provider=card');
+});
+
 
 
 

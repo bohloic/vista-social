@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { SocialAccount, Post, SocialPlatform, PostType } from '@/lib/types';
 import { PlatformPreview } from './PlatformPreview';
 import { Avatar } from './Avatar';
 import {
   CURATED_FLYER_PRESETS,
+  getLocalFlyerFallback,
   renderFlyerCompositeToDataUrl,
   CuratedFlyerPreset,
 } from '@/lib/flyer-studio';
@@ -78,6 +80,7 @@ export function ComposerModal({
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -204,13 +207,9 @@ export function ComposerModal({
     }
   };
 
-  // Photorealistic Studio Visual Generator (Direct Pollinations / Unsplash HD Photo Engine)
-  const generateRealPhotographicVisual = (promptText: string, ratio: string, style: string) => {
-    const width = ratio === '16:9' ? 1280 : ratio === '9:16' ? 720 : ratio === '4:5' ? 1080 : 1080;
-    const height = ratio === '16:9' ? 720 : ratio === '9:16' ? 1280 : ratio === '4:5' ? 1350 : 1080;
-    const cleanPrompt = encodeURIComponent(`${promptText}, 8k photorealistic photography, commercial studio lighting, high detail, ${style}`);
-    const seed = Math.floor(Math.random() * 999999);
-    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux&enhance=true`;
+  // Local SVG Studio Visual Fallback (always loads offline/online with zero broken external URLs)
+  const generateRealPhotographicVisual = (promptText: string, _ratio: string, _style: string) => {
+    return getLocalFlyerFallback(promptText);
   };
 
   // Upload handler for photos and videos (with instantaneous FileReader fallback)
@@ -441,17 +440,23 @@ export function ComposerModal({
   const handlePublishOrSchedule = async (isImmediate: boolean) => {
     setValidationError(null);
 
+    if (availableAccounts.length === 0) {
+      setValidationError(
+        'Aucun compte social connecté. Veuillez connecter au moins un réseau social dans Paramètres avant de publier ou programmer un post.'
+      );
+      leftPanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (!content.trim()) {
       setValidationError('La légende du post est obligatoire. Veuillez saisir un texte avant de programmer.');
+      leftPanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     if (selectedAccounts.length === 0) {
-      if (availableAccounts.length === 0) {
-        setValidationError('Aucun réseau social connecté. Veuillez connecter au moins un compte dans Paramètres avant de programmer.');
-      } else {
-        setValidationError('Veuillez sélectionner au moins un réseau social de destination.');
-      }
+      setValidationError('Veuillez sélectionner au moins un réseau social de destination.');
+      leftPanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -542,7 +547,7 @@ export function ComposerModal({
         {/* Modal Body: Split view Editor & Live Device Simulator */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-y-auto">
           {/* LEFT: Composer Controls */}
-          <div className="lg:col-span-7 p-6 space-y-5 border-r border-slate-800 overflow-y-auto">
+          <div ref={leftPanelRef} className="lg:col-span-7 p-6 space-y-5 border-r border-slate-800 overflow-y-auto">
             {/* Inline Strict Validation Alert */}
             {validationError && (
               <div
@@ -967,8 +972,9 @@ export function ComposerModal({
                           className="w-full max-h-56 object-cover"
                           onError={(e) => {
                             const target = e.currentTarget;
-                            if (!target.src.includes('images.unsplash.com')) {
-                              target.src = 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=1200&auto=format&fit=crop&q=85';
+                            const fallbackSrc = getLocalFlyerFallback(aiVisualPrompt);
+                            if (!target.src.endsWith(fallbackSrc)) {
+                              target.src = fallbackSrc;
                             }
                           }}
                         />
@@ -1262,6 +1268,28 @@ export function ComposerModal({
             />
           </div>
         </div>
+
+        {/* Footer validation banner (always visible next to action buttons) */}
+        {validationError && (
+          <div
+            role="alert"
+            className="px-6 py-3 bg-rose-950/90 border-t border-rose-500/40 text-rose-100 text-xs flex items-center justify-between gap-3 flex-wrap"
+          >
+            <div className="flex items-center gap-2 font-semibold">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{validationError}</span>
+            </div>
+            {availableAccounts.length === 0 && (
+              <Link
+                href="/settings"
+                onClick={onClose}
+                className="px-3 py-1.5 rounded-lg bg-white text-rose-900 font-bold text-[11px] hover:bg-rose-50 transition-colors shrink-0"
+              >
+                Connecter un compte →
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* Modal Footer Actions */}
         <div className="px-6 py-4 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between">

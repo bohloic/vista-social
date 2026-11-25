@@ -20,7 +20,7 @@ export const CURATED_FLYER_PRESETS: CuratedFlyerPreset[] = [
     id: 'food-burger',
     category: 'Restauration & Food',
     title: 'Burger Gourmet & Frites',
-    imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=1200&auto=format&fit=crop&q=85',
+    imageUrl: '/flyers/food-burger.svg',
     headline: 'Menu Royal & Frites Maison',
     subtitle: 'Saveurs grillées à la flamme • Sauce secrète du chef',
     badge: '6 500 FCFA',
@@ -32,7 +32,7 @@ export const CURATED_FLYER_PRESETS: CuratedFlyerPreset[] = [
     id: 'fashion-afro',
     category: 'Mode & Création',
     title: 'Collection Capsule Wax',
-    imageUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&auto=format&fit=crop&q=85',
+    imageUrl: '/flyers/fashion-afro.svg',
     headline: 'Nouvelle Collection Printemps',
     subtitle: 'Luxe éco-responsable & coupes afro-contemporaines',
     badge: '-25% CETTE SEMAINE',
@@ -44,7 +44,7 @@ export const CURATED_FLYER_PRESETS: CuratedFlyerPreset[] = [
     id: 'tech-saas',
     category: 'Tech & B2B',
     title: 'Masterclass Croissance',
-    imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&auto=format&fit=crop&q=85',
+    imageUrl: '/flyers/tech-saas.svg',
     headline: 'Boostez Votre Acquisition B2B',
     subtitle: 'Masterclass exclusive animée par nos experts',
     badge: 'ACCÈS GRATUIT',
@@ -56,7 +56,7 @@ export const CURATED_FLYER_PRESETS: CuratedFlyerPreset[] = [
     id: 'event-concert',
     category: 'Événements & Soirées',
     title: 'Nuit Blanche Afrobeat',
-    imageUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=85',
+    imageUrl: '/flyers/event-concert.svg',
     headline: 'Nuit Blanche Afro-Fusion',
     subtitle: 'DJ sets d’exception, cocktails signature & surprises',
     badge: 'ENTRÉE LIBRE',
@@ -68,7 +68,7 @@ export const CURATED_FLYER_PRESETS: CuratedFlyerPreset[] = [
     id: 'beauty-spa',
     category: 'Beauté & Bien-être',
     title: 'Forfait Détente & Soin',
-    imageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=85',
+    imageUrl: '/flyers/beauty-spa.svg',
     headline: 'Journée Sérénité & Éclat',
     subtitle: 'Massages relaxants aux huiles naturelles précieuses',
     badge: 'PACK DUO 25 000 F',
@@ -80,7 +80,7 @@ export const CURATED_FLYER_PRESETS: CuratedFlyerPreset[] = [
     id: 'sale-flash',
     category: 'Social Selling & Promo',
     title: 'Grande Vente Flash',
-    imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&auto=format&fit=crop&q=85',
+    imageUrl: '/flyers/sale-flash.svg',
     headline: 'Solde Flash Immanquable',
     subtitle: 'Stocks ultra-limités sur toute la boutique en ligne',
     badge: "JUSQU'À -50%",
@@ -89,6 +89,29 @@ export const CURATED_FLYER_PRESETS: CuratedFlyerPreset[] = [
     ratio: '4:5',
   },
 ];
+
+export function getLocalFlyerFallback(prompt: string = ''): string {
+  const p = prompt.toLowerCase();
+  if (/burger|restau|food|manger|plat|cuisine|nourriture|pizza/i.test(p)) {
+    return '/flyers/food-burger.svg';
+  }
+  if (/mode|robe|habit|couture|vetement|fashion|tissu|wax/i.test(p)) {
+    return '/flyers/fashion-afro.svg';
+  }
+  if (/tech|ia|digital|webinaire|saas|logiciel|b2b|formation|masterclass/i.test(p)) {
+    return '/flyers/tech-saas.svg';
+  }
+  if (/soiree|concert|party|event|club|afrobeat|musique|festival/i.test(p)) {
+    return '/flyers/event-concert.svg';
+  }
+  if (/spa|soin|massage|beaute|peau|coiffure|cheveux|salon/i.test(p)) {
+    return '/flyers/beauty-spa.svg';
+  }
+  if (/solde|promo|vente|flash|discount|reduction|offre/i.test(p)) {
+    return '/flyers/sale-flash.svg';
+  }
+  return '/flyers/food-burger.svg';
+}
 
 export interface FlyerCanvasOptions {
   imageUrl: string;

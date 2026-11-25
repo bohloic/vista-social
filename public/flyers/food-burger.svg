@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" fill="none">
+  <defs>
+    <linearGradient id="foodBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1C1917" />
+      <stop offset="50%" stop-color="#292524" />
+      <stop offset="100%" stop-color="#0C0A09" />
+    </linearGradient>
+    <radialGradient id="foodGlow" cx="50%" cy="34%" r="48%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.45" />
+      <stop offset="60%" stop-color="#EA580C" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#0C0A09" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bunGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="pattyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#451A03" />
+      <stop offset="50%" stop-color="#78350F" />
+      <stop offset="100%" stop-color="#451A03" />
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1080" fill="url(#foodBg)" />
+  <rect width="1080" height="1080" fill="url(#foodGlow)" />
+  <circle cx="880" cy="180" r="140" fill="#F59E0B" fill-opacity="0.08" />
+  <circle cx="200" cy="240" r="100" fill="#EF4444" fill-opacity="0.08" />
+  <g transform="translate(540, 340)">
+    <ellipse cx="0" cy="165" rx="220" ry="30" fill="#000000" fill-opacity="0.45" />
+    <path d="M-190 -20 C-190 -145, 190 -145, 190 -20 Z" fill="url(#bunGrad)" />
+    <ellipse cx="-70" cy="-82" rx="10" ry="5" fill="#FEF3C7" transform="rotate(-15 -70 -82)" />
+    <ellipse cx="10" cy="-98" rx="11" ry="5" fill="#FEF3C7" transform="rotate(10 10 -98)" />
+    <ellipse cx="85" cy="-76" rx="10" ry="5" fill="#FEF3C7" transform="rotate(20 85 -76)" />
+    <path d="M-205 -12 Q-145 14 -95 -6 Q-45 18 0 -4 Q45 18 95 -6 Q145 14 205 -12 L195 14 Q140 32 95 14 Q45 32 0 14 Q-45 32 -95 14 Q-140 32 -195 14 Z" fill="#22C55E" />
+    <path d="M-185 20 L185 20 L155 56 L115 30 L70 58 L0 32 L-70 56 L-120 30 Z" fill="#FACC15" />
+    <rect x="-195" y="34" width="390" height="54" rx="26" fill="url(#pattyGrad)" />
+    <rect x="-185" y="94" width="370" height="44" rx="20" fill="#D97706" />
+  </g>
+</svg>

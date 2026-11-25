@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" fill="none">
+  <defs>
+    <linearGradient id="eventBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090D16" />
+      <stop offset="45%" stop-color="#3B0764" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <radialGradient id="spot1" cx="30%" cy="22%" r="45%">
+      <stop offset="0%" stop-color="#A855F7" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#090D16" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="spot2" cx="75%" cy="34%" r="42%">
+      <stop offset="0%" stop-color="#EC4899" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#090D16" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#eventBg)" />
+  <rect width="1080" height="1920" fill="url(#spot1)" />
+  <rect width="1080" height="1920" fill="url(#spot2)" />
+  <polygon points="180,0 540,950 420,950" fill="#A855F7" fill-opacity="0.16" />
+  <polygon points="900,0 540,950 660,950" fill="#EC4899" fill-opacity="0.16" />
+  <g transform="translate(540, 560)">
+    <circle cx="0" cy="0" r="210" stroke="#C084FC" stroke-width="5" stroke-opacity="0.6" />
+    <circle cx="0" cy="0" r="155" stroke="#F472B6" stroke-width="3" stroke-dasharray="18 12" />
+    <rect x="-110" y="-40" width="22" height="80" rx="11" fill="#FDE047" />
+    <rect x="-66" y="-85" width="22" height="170" rx="11" fill="#E879F9" />
+    <rect x="-22" y="-120" width="22" height="240" rx="11" fill="#38BDF8" />
+    <rect x="22" y="-75" width="22" height="150" rx="11" fill="#E879F9" />
+    <rect x="66" y="-45" width="22" height="90" rx="11" fill="#FDE047" />
+  </g>
+</svg>

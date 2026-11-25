@@ -111,12 +111,13 @@ export default function DashboardPage() {
       }
     };
 
-    // 2. Fetch real posts & accounts
+    // 2. Fetch real posts, accounts & CRM prospects
     const fetchData = async () => {
       try {
-        const [postsRes, accsRes] = await Promise.all([
+        const [postsRes, accsRes, crmRes] = await Promise.all([
           fetch('/api/posts', { cache: 'no-store' }),
           fetch('/api/social/connect', { cache: 'no-store' }),
+          fetch('/api/crm/prospects', { cache: 'no-store' }),
         ]);
 
         if (postsRes.ok) {
@@ -127,6 +128,11 @@ export default function DashboardPage() {
         if (accsRes.ok) {
           const accsData = await accsRes.json();
           if (accsData.accounts) setAccounts(accsData.accounts);
+        }
+
+        if (crmRes.ok) {
+          const crmData = await crmRes.json();
+          if (Array.isArray(crmData.prospects)) setCrmProspects(crmData.prospects);
         }
       } catch (err) {
         console.warn('Failed to fetch data from API:', err);
@@ -140,7 +146,11 @@ export default function DashboardPage() {
 
     const handleUpdate = () => fetchData();
     window.addEventListener('posts-updated', handleUpdate);
-    return () => window.removeEventListener('posts-updated', handleUpdate);
+    window.addEventListener('crm-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('posts-updated', handleUpdate);
+      window.removeEventListener('crm-updated', handleUpdate);
+    };
   }, [router]);
 
   const scheduledCount = posts.filter((p) => p.status === 'scheduled').length;

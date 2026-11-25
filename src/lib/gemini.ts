@@ -54,39 +54,76 @@ async function callPollinationsTextAPI(systemPrompt: string, userPrompt: string)
   return null;
 }
 
-async function callGeminiAPI(payload: Record<string, unknown>): Promise<string | null> {
+async function callGeminiDirect(payload: Record<string, unknown>): Promise<{
+  text: string | null;
+  error?: string;
+  status?: number;
+}> {
   const apiKey = getGeminiApiKey();
 
-  // Try Google Gemini API if key is present
-  if (apiKey && apiKey.length > 5) {
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-    for (const model of models) {
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': apiKey,
-            },
-            body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(9000),
-          }
-        );
+  if (!apiKey || apiKey.length <= 5) {
+    return {
+      text: null,
+      status: 503,
+      error: 'Clé API GEMINI_API_KEY manquante côté serveur. Configurez GEMINI_API_KEY dans les variables d’environnement.',
+    };
+  }
 
-        if (res.ok) {
-          const data = await res.json();
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) return text;
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+  let lastStatus = 502;
+  let lastError = 'Échec de communication avec l’API Gemini.';
+
+  for (const model of models) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(12000),
         }
-      } catch {
-        // try next model
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          return { text };
+        }
+        lastStatus = 502;
+        lastError = `Réponse vide reçue du modèle Gemini (${model}).`;
+        continue;
       }
+
+      lastStatus = res.status;
+      try {
+        const errJson = await res.json();
+        lastError = errJson?.error?.message || res.statusText || `Erreur Gemini (${res.status})`;
+      } catch {
+        lastError = res.statusText || `Erreur HTTP ${res.status} depuis l'API Gemini`;
+      }
+
+      if (res.status === 400 || res.status === 401 || res.status === 403) {
+        return { text: null, status: res.status, error: `Erreur API Gemini (${res.status}) : ${lastError}` };
+      }
+    } catch (err: unknown) {
+      lastStatus = 504;
+      lastError = err instanceof Error ? err.message : 'Délai dépassé lors de la requête Gemini';
     }
   }
 
-  // Resilient fallback: Call high-performance text generation engine
+  return { text: null, status: lastStatus, error: lastError };
+}
+
+async function callGeminiAPI(payload: Record<string, unknown>): Promise<string | null> {
+  const direct = await callGeminiDirect(payload);
+  if (direct.text) return direct.text;
+
+  // Resilient fallback for non-strict copy/caption helpers
   try {
     const systemText =
       typeof payload.systemInstruction === 'object' && payload.systemInstruction !== null
@@ -253,6 +290,9 @@ export interface CopilotAttachment {
 }
 
 export type CopilotActionType =
+  | 'get_workspace_summary'
+  | 'create_composio_connect_link'
+  | 'create_draft_post'
   | 'create_post'
   | 'delete_post'
   | 'update_post'
@@ -279,12 +319,22 @@ export interface CopilotMemory {
   notes?: string[];
 }
 
+export class GeminiApiError extends Error {
+  status: number;
+  constructor(message: string, status = 502) {
+    super(message);
+    this.name = 'GeminiApiError';
+    this.status = status;
+  }
+}
+
 export async function runPulseAICopilot(params: {
   message: string;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
   currentPath: string;
   attachments: CopilotAttachment[];
   memory?: CopilotMemory;
+  strictRealLLM?: boolean;
   projectStats: {
     postsCount: number;
     accountsCount: number;
@@ -300,30 +350,24 @@ export async function runPulseAICopilot(params: {
   const currentMemory = params.memory || {};
 
   const systemInstruction = `Tu es PulseAI, l'assistant personnel exécutif et Directeur Stratégie & Opérations de PulseSocial.
-POSTURE ET CAPACITÉS EXÉCUTIVES (HUMAN-GRADE AI) :
-1. Tu parles et interagis exactement comme un être humain brillant, empathique, percutant et proactif (dans le style de l'agent vocal de Claude).
-2. Tu as PLEIN ACCÈS CRUD EN DIRECT SUR TOUTE LA PLATEFORME PulseSocial :
-   - POSTS : créer, programmer, modifier, supprimer des posts.
-   - CRM / SOCIAL SELLING : ajouter un prospect, changer son étape de vente (lead, contacted, proposal, won, lost), supprimer un prospect.
-   - MESSAGES / INBOX : envoyer une réponse aux clients, archiver un fil de discussion.
-   - PULSE PAGES (Link-in-Bio) : créer ou mettre à jour une bio page.
-   - ÉQUIPE : inviter un membre d'équipe (manager, editor, viewer).
-   - FACTURATION & PAIEMENTS : générer un lien Paystack en FCFA (XOF), EUR ou USD.
-   - NAVIGATION : emmener l'utilisateur vers n'importe quelle section du site.
-3. GESTION DE LA MÉMOIRE & DU CONTEXTE :
-   - Tu conserves en permanence la mémoire des échanges passés, du nom de l'utilisateur, des objectifs de la marque, et des consignes données.
-   - Mémoire actuelle enregistrée : ${JSON.stringify(currentMemory)}.
-   - Si l'utilisateur te donne une information personnelle ou une consigne permanente, retiens-la dans "updatedMemory".
-4. INTERDICTION ABSOLUE de répéter des statistiques ou des messages automatiques du genre "Bien reçu, sur /chat vous avez X posts...".
-5. Si tu as tenté la même action 2 fois sans succès, arrête-toi et demande à l'utilisateur de reformuler.
-6. Sois chaleureux, naturel, concis et directement orienté vers le passage à l'action.
+POSTURE ET CAPACITÉS EXÉCUTIVES :
+1. Réponds de façon précise, naturelle, concise et professionnelle en français.
+2. OUTILS SERVEUR RÉELS FILTRÉS PAR WORKSPACE (workspace_id de la session) :
+   - "get_workspace_summary" (lecture seule) : récupère en direct le résumé réel du workspace (posts, réseaux connectés, prospects CRM, Pulse Pages). À utiliser dès que l'utilisateur demande l'état ou le résumé de son espace. Payload : {}.
+   - "create_composio_connect_link" : génère un vrai lien OAuth 2.0 Composio pour connecter un réseau social. Payload : { "platform": "instagram" | "facebook" | "linkedin" | "twitter" | "tiktok" | "whatsapp" | "google_business" | "youtube" | "pinterest" | "threads" }.
+   - "create_draft_post" (écriture — confirmation utilisateur requise avant enregistrement) : prépare un brouillon de post dans la base Supabase. Payload : { "content": "...", "post_type": "post" | "reel" | "story" | "carousel", "scheduled_for": "ISO8601" }.
+   - "create_pulse_page" (écriture — confirmation utilisateur requise avant création) : prépare une page bio PulseSocial. Payload : { "title": "...", "slug": "...", "bio": "..." }.
+   - Autres actions : "create_post", "delete_post", "update_post", "create_crm_prospect", "update_crm_prospect_stage", "delete_crm_prospect", "invite_team_member", "generate_paystack_link", "navigate".
+3. RÈGLE DE CONFIRMATION : Lorsque tu proposes une action d'écriture (create_draft_post, create_post, create_pulse_page, create_crm_prospect, update_crm_prospect_stage, delete_post, delete_crm_prospect, invite_team_member), décris clairement dans "reply" ce que l'action va créer/modifier et demande explicitement à l'utilisateur de cliquer sur le bouton de confirmation.
+4. GESTION DE LA MÉMOIRE : Mémoire actuelle = ${JSON.stringify(currentMemory)}.
+5. INTERDICTION ABSOLUE de répondre par une salutation générique figée ou de répéter des slogans vides. Si le contexte outil précédent (previousToolResult) contient des données réelles du workspace, synthétise-les clairement.
 
 RÉPONSE STRICTEMENT AU FORMAT JSON SUIVANT (aucun texte hors du JSON) :
 {
-  "reply": "Ta réponse humaine, fluide et naturelle en français",
+  "reply": "Ta réponse humaine et précise en français",
   "action": null OU {
-    "type": "create_post" | "delete_post" | "update_post" | "create_crm_prospect" | "update_crm_prospect_stage" | "delete_crm_prospect" | "send_inbox_reply" | "create_pulse_page" | "invite_team_member" | "generate_paystack_link" | "navigate",
-    "label": "Libellé clair de l'action exécutée",
+    "type": "get_workspace_summary" | "create_composio_connect_link" | "create_draft_post" | "create_pulse_page" | "create_post" | "delete_post" | "update_post" | "create_crm_prospect" | "update_crm_prospect_stage" | "delete_crm_prospect" | "send_inbox_reply" | "invite_team_member" | "generate_paystack_link" | "navigate",
+    "label": "Libellé clair de l'action",
     "payload": { ... }
   },
   "updatedMemory": null OU {
@@ -347,8 +391,8 @@ RÉPONSE STRICTEMENT AU FORMAT JSON SUIVANT (aucun texte hors du JSON) :
   // Current turn with multimodal files
   const currentTurnParts: Array<Record<string, unknown>> = [
     {
-      text: `[Page actuelle: ${params.currentPath} | Espace: ${params.projectStats.workspaceName} | Posts: ${params.projectStats.postsCount} | Prospects CRM: ${params.projectStats.crmCount}]
-Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil précédent (${params.previousToolResult.actionType}) : ${params.previousToolResult.success ? 'Succès' : 'Échec'} — ${params.previousToolResult.output}]` : ''}`,
+      text: `[Page actuelle: ${params.currentPath} | Espace: ${params.projectStats.workspaceName} | Posts: ${params.projectStats.postsCount} | Comptes sociaux: ${params.projectStats.accountsCount} | Prospects CRM: ${params.projectStats.crmCount}]
+Message: ${params.message}${params.previousToolResult ? `\n[Résultat outil serveur (${params.previousToolResult.actionType}) : ${params.previousToolResult.success ? 'Succès' : 'Échec'} — ${params.previousToolResult.output}]` : ''}`,
     },
   ];
 
@@ -371,15 +415,41 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
 
   contents.push({ role: 'user', parts: currentTurnParts });
 
-  const rawText = await callGeminiAPI({
+  const generationPayload = {
     systemInstruction: { parts: [{ text: systemInstruction }] },
     contents,
     generationConfig: {
-      temperature: 0.65,
-      maxOutputTokens: 600,
+      temperature: 0.6,
+      maxOutputTokens: 800,
       responseMimeType: 'application/json',
     },
-  });
+  };
+
+  if (params.strictRealLLM) {
+    const directRes = await callGeminiDirect(generationPayload);
+    if (!directRes.text) {
+      throw new GeminiApiError(
+        directRes.error || 'Impossible de contacter Gemini pour le moment.',
+        directRes.status || 502
+      );
+    }
+    try {
+      const cleaned = directRes.text.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed?.reply) {
+        return {
+          reply: parsed.reply,
+          action: parsed.action || undefined,
+          updatedMemory: parsed.updatedMemory || undefined,
+        };
+      }
+    } catch {
+      return { reply: directRes.text };
+    }
+    return { reply: directRes.text };
+  }
+
+  const rawText = await callGeminiAPI(generationPayload);
 
   if (rawText) {
     try {
@@ -397,27 +467,28 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     }
   }
 
-  // Conversational Intent Resolution Fallback (Human-like conversational intelligence with full CRUD)
+  // Deterministic offline contract handlers for unit tests only (no silent greeting loop)
   const lower = params.message.toLowerCase();
 
-  // 1. Post Creation CRUD
   if (
     lower.includes('crée un post') ||
     lower.includes('programme un post') ||
     lower.includes('publie') ||
     lower.includes('rédige un post') ||
-    lower.includes('nouveau post')
+    lower.includes('nouveau post') ||
+    lower.includes('brouillon')
   ) {
     const topic =
       params.message
-        .replace(/crée un post|programme un post|publie|rédige un post|sur|pour|un post/gi, '')
+        .replace(/crée un post|programme un post|publie|rédige un post|brouillon|sur|pour|un post/gi, '')
         .trim() || 'Notre offre spéciale';
     const content = `🎯 ${topic}\n\nDans votre activité, chaque détail compte pour convaincre.\nVoici les 3 leviers qui font la différence auprès de vos clients cette semaine.\n\n👇 Commentez « INFOS » pour recevoir la présentation en message privé. #SocialSelling #PulseSocial`;
+    const isDraft = lower.includes('brouillon');
     return {
-      reply: `C'est noté ! J'ai rédigé et programmé une publication percutante sur « ${topic} ». Elle est déjà visible dans votre Planificateur.`,
+      reply: `Brouillon prêt sur « ${topic} ». Confirmez l'enregistrement pour l'ajouter à votre espace.`,
       action: {
-        type: 'create_post',
-        label: `Post programmé : ${topic.slice(0, 30)}`,
+        type: isDraft ? 'create_draft_post' : 'create_post',
+        label: `${isDraft ? 'Brouillon' : 'Post'} : ${topic.slice(0, 30)}`,
         payload: {
           content,
           post_type: 'post',
@@ -427,19 +498,17 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     };
   }
 
-  // 2. Post Deletion CRUD
   if (lower.includes('supprime le post') || lower.includes('efface le post') || lower.includes('annule le post')) {
     return {
-      reply: `Le post a été retiré de votre calendrier éditorial avec succès.`,
+      reply: `Confirmez-vous la suppression du post sélectionné ?`,
       action: {
         type: 'delete_post',
-        label: 'Post supprimé du calendrier',
+        label: 'Supprimer le post',
         payload: { query: params.message },
       },
     };
   }
 
-  // 3. CRM Prospect Creation CRUD
   if (
     lower.includes('ajoute un prospect') ||
     lower.includes('nouveau prospect') ||
@@ -452,7 +521,7 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     const prospectName = nameMatch ? nameMatch[1].trim() : 'Nouveau Prospect PulseSocial';
 
     return {
-      reply: `Parfait, j'ai inscrit ${prospectName} dans votre Pipeline CRM avec une valeur estimée de ${amount.toLocaleString('fr-FR')} FCFA. Vous pouvez le suivre en direct sur votre tableau Kanban.`,
+      reply: `Prospect ${prospectName} (${amount.toLocaleString('fr-FR')} FCFA) préparé pour le Pipeline CRM. Confirmez pour enregistrer.`,
       action: {
         type: 'create_crm_prospect',
         label: `Prospect ajouté : ${prospectName} (${amount.toLocaleString('fr-FR')} FCFA)`,
@@ -468,7 +537,6 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     };
   }
 
-  // 4. CRM Stage Update CRUD
   if (
     lower.includes('passe le prospect') ||
     lower.includes('gagné') ||
@@ -478,7 +546,7 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     const isWon = lower.includes('gagné') || lower.includes('converti') || lower.includes('signé');
     const stage = isWon ? 'won' : 'proposal';
     return {
-      reply: `Excellente nouvelle ! L'étape du prospect a été mise à jour vers « ${isWon ? 'Gagné (Won)' : 'Proposition envoyée'} » dans votre Pipeline CRM.`,
+      reply: `Mise à jour préparée vers l'étape « ${isWon ? 'Gagné (Won)' : 'Proposition envoyée'} ».`,
       action: {
         type: 'update_crm_prospect_stage',
         label: `Étape CRM mise à jour : ${isWon ? 'Gagné' : 'Proposition'}`,
@@ -487,19 +555,16 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     };
   }
 
-  // 5. Payment Link Paystack
   if (
     lower.includes('lien de paiement') ||
     lower.includes('paystack') ||
     lower.includes('encaisser') ||
-    lower.includes('facturer') ||
-    lower.includes('wave') ||
-    lower.includes('orange money')
+    lower.includes('facturer')
   ) {
     const amountMatch = params.message.match(/(\d[\d\s]{2,})/);
     const amount = amountMatch ? Number(amountMatch[1].replace(/\s/g, '')) : 15000;
     return {
-      reply: `Votre lien de paiement Paystack de ${amount.toLocaleString('fr-FR')} FCFA est généré en direct (compatible Wave, Orange Money et Cartes bancaires). Vos clients peuvent régler en 1 clic.`,
+      reply: `Lien Paystack de ${amount.toLocaleString('fr-FR')} FCFA généré.`,
       action: {
         type: 'generate_paystack_link',
         label: `Lien Paystack (${amount.toLocaleString('fr-FR')} FCFA)`,
@@ -508,11 +573,10 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     };
   }
 
-  // 6. Pulse Pages (Bio-Link) CRUD
   if (lower.includes('crée une page bio') || lower.includes('nouvelle page bio') || lower.includes('pulse page')) {
     const slug = `page-${Date.now().toString(36)}`;
     return {
-      reply: `Votre nouvelle Pulse Page Bio est créée ! Vous pouvez la personnaliser et ajouter vos liens sur /pulse-pages.`,
+      reply: `Page Bio PulseSocial préparée (/p/${slug}). Confirmez pour la créer.`,
       action: {
         type: 'create_pulse_page',
         label: `Bio Page créée : /p/${slug}`,
@@ -521,17 +585,16 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     };
   }
 
-  // 7. Team Invitation CRUD
   if (lower.includes('invite') && (lower.includes('équipe') || lower.includes('membre') || lower.includes('@'))) {
     const emailMatch = params.message.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
     if (!emailMatch) {
       return {
-        reply: "Veuillez spécifier l'adresse email du collaborateur à inviter (ex: 'invite sarah@entreprise.ci dans l'équipe').",
+        reply: "Veuillez spécifier l'adresse email du collaborateur à inviter.",
       };
     }
     const email = emailMatch[1];
     return {
-      reply: `Une invitation a été préparée pour ${email} afin de rejoindre votre espace PulseSocial.`,
+      reply: `Invitation préparée pour ${email}.`,
       action: {
         type: 'invite_team_member',
         label: `Invitation préparée : ${email}`,
@@ -540,56 +603,28 @@ Message: ${params.message}${params.previousToolResult ? `\n[Résultat de l'outil
     };
   }
 
-  // 8. Navigation Intent
-  if (
-    lower.includes('ouvre') ||
-    lower.includes('va sur') ||
-    lower.includes('aller sur') ||
-    lower.includes('affiche') ||
-    lower.includes('montre-moi')
-  ) {
-    const routes: Array<{ keys: string[]; path: string; name: string }> = [
-      { keys: ['crm', 'pipeline', 'kanban', 'deal'], path: '/crm', name: 'votre Pipeline CRM' },
-      { keys: ['inbox', 'boîte', 'radar', 'message', 'dm'], path: '/inbox', name: 'votre Boîte de réception' },
-      { keys: ['publish', 'planificateur', 'calendrier', 'post'], path: '/publish', name: 'le Planificateur de posts' },
-      { keys: ['analytics', 'statistique', 'rapport', 'chiffre'], path: '/analytics', name: 'les Analytics' },
-      { keys: ['settings', 'paramètre', 'oauth', 'compte'], path: '/settings', name: 'les Paramètres de comptes' },
-      { keys: ['billing', 'abonnement', 'tarif', 'forfait'], path: '/billing', name: 'les Forfaits & Abonnements' },
-      { keys: ['avis', 'review', 'google'], path: '/reviews', name: 'la Gestion des Avis' },
-      { keys: ['page', 'bio', 'link-in-bio'], path: '/pulse-pages', name: 'vos Pulse Pages' },
-    ];
-    for (const r of routes) {
-      if (r.keys.some((k) => lower.includes(k))) {
-        return {
-          reply: `Je vous emmène directement sur ${r.name}.`,
-          action: { type: 'navigate', label: `Ouvrir ${r.name}`, payload: { path: r.path } },
-        };
-      }
-    }
-  }
-
-  // 9. Natural conversation & memory recall
-  if (lower.includes('bonjour') || lower.includes('salut') || lower.includes('coucou') || lower.includes('hello')) {
+  if (lower.includes('résumé') || lower.includes('bilan') || lower.includes('workspace')) {
     return {
-      reply: `Bonjour ! Ravi de vous retrouver. Je suis votre bras droit pour piloter vos réseaux sociaux, concevoir des publications à fort impact et suivre vos opportunités commerciales. Que souhaitons-nous accomplir ensemble aujourd'hui ?`,
+      reply: `Voici l'outil de résumé de votre workspace.`,
+      action: {
+        type: 'get_workspace_summary',
+        label: 'Résumé du workspace',
+        payload: {},
+      },
     };
   }
 
-  if (lower.includes('qui es-tu') || lower.includes('comment tu t\'appelles') || lower.includes('présente-toi')) {
+  if (lower.includes('idée') || lower.includes('secteur') || lower.includes('stratégie')) {
+    const sector = currentMemory.keyEntities?.secteur || params.projectStats.workspaceName;
     return {
-      reply: `Je suis PulseAI, votre assistant personnel exécutif et Directeur Stratégie Social Media. Je peux concevoir et programmer vos publications, enrichir votre CRM, gérer vos avis et générer vos liens de paiement Paystack en direct.`,
+      reply: `Pour votre activité (${sector}), misez sur un carrousel LinkedIn/Instagram présentant une étude de cas client chiffrée suivie d'un appel à l'action en DM.`,
     };
   }
 
-  if (lower.includes('conseil') || lower.includes('stratégie') || lower.includes('comment') || lower.includes('aide-moi') || lower.includes('idée')) {
-    return {
-      reply: `Pour maximiser votre impact en ce moment, je vous conseille de miser sur un format court axé sur un problème concret de vos clients, suivi d'une incitation à échanger en message privé (DM). Souhaitez-vous que je vous rédige un exemple clé en main pour Instagram ou LinkedIn ?`,
-    };
-  }
-
-  return {
-    reply: `Absolument, je suis à votre disposition. Je peux concevoir une publication percutante pour vos réseaux, analyser un visuel, ajouter ou mettre à jour un prospect dans votre CRM ou générer un lien d'encaissement Paystack. Que préférez-vous lancer ?`,
-  };
+  throw new GeminiApiError(
+    'Service Gemini indisponible hors ligne ou clé GEMINI_API_KEY manquante.',
+    503
+  );
 }
 
 export interface OptimizedVisualDesign {

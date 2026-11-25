@@ -16,6 +16,7 @@ import {
   Loader2,
   Lock,
   Globe2,
+  Mail,
 } from 'lucide-react';
 
 interface PlanPrice {
@@ -110,6 +111,7 @@ export default function BillingPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>('pro');
   const [selectedProvider, setSelectedProvider] = useState<string>('orange_money');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [billingEmail, setBillingEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [workspaceId, setWorkspaceId] = useState<string>('');
@@ -145,6 +147,7 @@ export default function BillingPage() {
           setUserRole(r);
           setIsLifetimeFree(Boolean(data.user.isLifetimeFree));
           if (data.user.workspaceId) setWorkspaceId(data.user.workspaceId);
+          if (data.user.email) setBillingEmail(data.user.email);
         }
       })
       .catch(() => {});
@@ -171,34 +174,30 @@ export default function BillingPage() {
     setCheckoutModalOpen(true);
   };
 
+  const isCardProvider = selectedProvider === 'card';
+
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setPaymentResult(null);
 
     try {
-      let paystackSecretKey: string | undefined;
-      try {
-        const savedTokens = localStorage.getItem('pulsesocial_manual_tokens');
-        if (savedTokens) {
-          paystackSecretKey = JSON.parse(savedTokens).paystackSecretKey;
-        }
-      } catch {
-        // ignore
+      const payload: Record<string, unknown> = {
+        email: billingEmail.trim() || undefined,
+        workspaceId: workspaceId || undefined,
+        plan: selectedPlan,
+        provider: selectedProvider,
+        currency,
+        amount: activePrice.amount,
+      };
+      if (!isCardProvider) {
+        payload.phoneNumber = phoneNumber.trim() || '+2250700000000';
       }
 
       const res = await fetch('/api/billing/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId: workspaceId || undefined,
-          plan: selectedPlan,
-          provider: selectedProvider,
-          phoneNumber: phoneNumber.trim() || '+2250700000000',
-          currency,
-          amount: activePrice.amount,
-          paystackSecretKey,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -223,9 +222,13 @@ export default function BillingPage() {
       }
 
       const timer = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(timer);
-          setLoading(false);
+        try {
+          if (popup.closed) {
+            clearInterval(timer);
+            setLoading(false);
+          }
+        } catch {
+          // ignore cross-origin COOP check errors
         }
       }, 600);
     } catch (err: unknown) {
@@ -490,25 +493,49 @@ export default function BillingPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Numéro de Téléphone (Orange / MTN / Wave / Moov)
-                  </label>
-                  <div className="relative">
-                    <Smartphone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+225 07 00 00 00 00"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-violet-500 transition-all font-mono"
-                    />
+                {isCardProvider ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                        Email de facturation (Paystack Checkout • Visa / Mastercard)
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input
+                          type="email"
+                          required
+                          placeholder="facturation@entreprise.ci"
+                          value={billingEmail}
+                          onChange={(e) => setBillingEmail(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-violet-500 transition-all"
+                        />
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-indigo-950/50 border border-indigo-500/30 text-[11px] text-indigo-200 leading-relaxed">
+                      💳 Vous serez redirigé vers le guichet sécurisé <strong>Paystack Checkout (Visa / Mastercard • 3D-Secure)</strong>. Aucun code USSD n&apos;est requis ; votre reçu officiel sera envoyé à cet email.
+                    </div>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Un prompt de confirmation USSD sécurisé sera transmis à votre téléphone.
-                  </p>
-                </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Numéro de Téléphone (Orange / MTN / Wave / Moov)
+                    </label>
+                    <div className="relative">
+                      <Smartphone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+225 07 00 00 00 00"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-violet-500 transition-all font-mono"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Un prompt de confirmation USSD sécurisé sera transmis à votre téléphone.
+                    </p>
+                  </div>
+                )}
 
                 <div className="pt-2">
                   <button
@@ -524,7 +551,11 @@ export default function BillingPage() {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 text-yellow-300" />
-                        <span>Valider le paiement de {activePrice.amount.toLocaleString()} {activePrice.symbol}</span>
+                        <span>
+                          {isCardProvider
+                            ? `Payer par Carte (${activePrice.amount.toLocaleString()} ${activePrice.symbol}) via Paystack`
+                            : `Valider le paiement de ${activePrice.amount.toLocaleString()} ${activePrice.symbol}`}
+                        </span>
                       </>
                     )}
                   </button>

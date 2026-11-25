@@ -26,6 +26,8 @@ const pulsePageSaveSchema = z.object({
 });
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PULSE_PAGE_COLUMNS =
+  'id, workspace_id, title, slug, bio, avatar_url, theme_config, blocks, views_count, created_at, updated_at';
 
 function normalizePulsePageRow(row: Record<string, any> | null) {
   if (!row) return null;
@@ -36,21 +38,16 @@ function normalizePulsePageRow(row: Record<string, any> | null) {
   const theme_config =
     row.theme_config && typeof row.theme_config === 'object' && row.theme_config.bg_gradient
       ? row.theme_config
-      : row.social_links && typeof row.social_links === 'object' && row.social_links.bg_gradient
-      ? row.social_links
       : DEFAULT_THEME_CONFIG;
 
-  const blocks = Array.isArray(row.blocks)
-    ? row.blocks
-    : Array.isArray(row.links)
-    ? row.links
-    : [];
+  const blocks = Array.isArray(row.blocks) ? row.blocks : [];
 
   return {
     ...row,
     avatar_url,
     theme_config,
     blocks,
+    views_count: Number(row.views_count || 0),
   };
 }
 
@@ -69,7 +66,7 @@ export async function GET(req: NextRequest) {
     if (slug) {
       const { data, error } = await supabase
         .from('pulse_pages')
-        .select('id, workspace_id, title, slug, bio, theme, avatar_url, links, social_links, is_published, created_at, updated_at')
+        .select(PULSE_PAGE_COLUMNS)
         .eq('slug', slug)
         .maybeSingle();
 
@@ -99,7 +96,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('pulse_pages')
-      .select('id, workspace_id, title, slug, bio, theme, avatar_url, links, social_links, is_published, created_at, updated_at')
+      .select(PULSE_PAGE_COLUMNS)
       .eq('workspace_id', targetWsId)
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -185,10 +182,8 @@ export async function POST(req: NextRequest) {
         !pageData.avatar_url || pageData.avatar_url.includes('images.unsplash.com')
           ? '/logo.svg'
           : pageData.avatar_url,
-      theme: typeof theme_config?.bg_gradient === 'string' ? theme_config.bg_gradient : 'default',
-      links: Array.isArray(blocks) ? blocks : [],
-      social_links: theme_config || DEFAULT_THEME_CONFIG,
-      is_published: true,
+      theme_config: theme_config || DEFAULT_THEME_CONFIG,
+      blocks: Array.isArray(blocks) ? blocks : [],
       workspace_id: targetWsId,
       updated_at: new Date().toISOString(),
     };
@@ -200,7 +195,7 @@ export async function POST(req: NextRequest) {
         .from('pulse_pages')
         .update(dbPayload)
         .eq('id', existingPageId)
-        .select('id, workspace_id, title, slug, bio, theme, avatar_url, links, social_links, is_published, created_at, updated_at')
+        .select(PULSE_PAGE_COLUMNS)
         .single();
 
       if (updateError) {
@@ -211,7 +206,7 @@ export async function POST(req: NextRequest) {
       const { data: inserted, error: insertError } = await supabase
         .from('pulse_pages')
         .insert(dbPayload)
-        .select('id, workspace_id, title, slug, bio, theme, avatar_url, links, social_links, is_published, created_at, updated_at')
+        .select(PULSE_PAGE_COLUMNS)
         .single();
 
       if (insertError) {

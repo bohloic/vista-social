@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" fill="none">
+  <defs>
+    <linearGradient id="saleBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#450A0A" />
+      <stop offset="50%" stop-color="#991B1B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <radialGradient id="saleGlow" cx="50%" cy="32%" r="48%">
+      <stop offset="0%" stop-color="#F97316" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#saleBg)" />
+  <rect width="1080" height="1350" fill="url(#saleGlow)" />
+  <g transform="translate(540, 340)">
+    <circle cx="0" cy="0" r="200" fill="#EF4444" fill-opacity="0.22" stroke="#FCA5A5" stroke-width="4" stroke-dasharray="20 12" />
+    <path d="M-110 -50 L110 -50 L130 140 L-130 140 Z" fill="#F97316" stroke="#FFEDD5" stroke-width="6" stroke-linejoin="round" />
+    <path d="M-55 -50 C-55 -115, 55 -115, 55 -50" fill="none" stroke="#FFEDD5" stroke-width="10" stroke-linecap="round" />
+    <polygon points="15,-10 -25,45 5,45 -10,95 35,35 5,35" fill="#FEF08A" />
+  </g>
+</svg>

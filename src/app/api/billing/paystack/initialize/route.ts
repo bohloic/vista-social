@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const paystackInitSchema = z
   .object({
-    email: z.string().email('Email client invalide'),
+    email: z.string().email('Email client invalide').optional(),
     amount: z.number().positive('Montant invalide'),
     currency: z.enum(['XOF', 'EUR', 'USD', 'NGN', 'GHS']).default('XOF'),
     plan: z.string().default('pro'),
@@ -51,6 +51,9 @@ export async function POST(req: NextRequest) {
     const reference = `PSTK-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const callbackUrl = `${origin}/api/billing/paystack/verify?reference=${encodeURIComponent(reference)}&plan=${encodeURIComponent(validated.plan)}&amount=${validated.amount}&currency=${validated.currency}&provider=${encodeURIComponent(validated.provider)}&workspaceId=${encodeURIComponent(targetWorkspaceId || '')}&prospectId=${encodeURIComponent(validated.prospectId || '')}`;
 
+    const customerEmail = validated.email || user.email || 'billing@pulsesocial.app';
+    const channels = validated.provider === 'card' ? ['card'] : ['mobile_money', 'card'];
+
     if (secretKey && secretKey.startsWith('sk_')) {
       try {
         const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -60,9 +63,10 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email: validated.email,
+            email: customerEmail,
             amount: Math.round(validated.amount * 100),
             currency: validated.currency,
+            channels,
             reference,
             callback_url: callbackUrl,
             metadata: {

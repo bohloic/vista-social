@@ -13,78 +13,17 @@ import {
   TrendingUp,
   CreditCard,
   CheckCircle2,
+  AlertCircle,
   Users,
   ChevronRight,
   ChevronLeft,
   Trash2,
   Calendar,
-  ExternalLink,
   Flame,
-  Phone,
-  MessageCircle,
   Copy,
   Check,
   Search,
-  Filter,
 } from 'lucide-react';
-
-const DEFAULT_CRM_PROSPECTS: CRMProspect[] = [
-  {
-    id: 'crm-1',
-    name: 'Amadou Diallo',
-    platform: 'whatsapp',
-    handle: '+225 07 48 12 90 33',
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop',
-    deal_value: 150000,
-    currency: 'FCFA',
-    status: 'contacted',
-    lead_score: 94,
-    notes: 'Intéressé par 3 packs Pro avec livraison Plateau. En attente lien Wave.',
-    last_interaction: new Date().toISOString(),
-    phone: '+2250748129033',
-  },
-  {
-    id: 'crm-2',
-    name: 'Sarah Bamba',
-    platform: 'linkedin',
-    handle: 'sarah-bamba-cmo',
-    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&fit=crop',
-    deal_value: 350000,
-    currency: 'FCFA',
-    status: 'proposal',
-    lead_score: 88,
-    notes: 'Devis envoyé pour gestion des réseaux groupe agroalimentaire.',
-    last_interaction: new Date().toISOString(),
-    phone: '+2250501223344',
-  },
-  {
-    id: 'crm-3',
-    name: 'Kevin Koffi',
-    platform: 'instagram',
-    handle: '@kevin.koffi_ci',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop',
-    deal_value: 45000,
-    currency: 'FCFA',
-    status: 'lead',
-    lead_score: 79,
-    notes: 'Demande d\'infos polo noir taille L + livraison Yopougon.',
-    last_interaction: new Date().toISOString(),
-    phone: '+2250102030405',
-  },
-  {
-    id: 'crm-4',
-    name: 'Entreprise Ivoire Tech',
-    platform: 'linkedin',
-    handle: 'ivoire-tech-sa',
-    avatar_url: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=120&h=120&fit=crop',
-    deal_value: 500000,
-    currency: 'FCFA',
-    status: 'won',
-    lead_score: 99,
-    notes: 'Contrat annuel signé et réglé par virement bancaire / Mobile Money.',
-    last_interaction: new Date().toISOString(),
-  },
-];
 
 const COLUMNS: { id: CRMStage; label: string; color: string; badgeBg: string; borderColor: string }[] = [
   {
@@ -119,9 +58,11 @@ const COLUMNS: { id: CRMStage; label: string; color: string; badgeBg: string; bo
 
 export default function CRMPage() {
   const [prospects, setProspects] = useState<CRMProspect[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [workspaceId, setWorkspaceId] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState('');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // New Prospect Modal
   const [newModalOpen, setNewModalOpen] = useState(false);
@@ -139,25 +80,33 @@ export default function CRMPage() {
   const [paymentAmount, setPaymentAmount] = useState<number>(100000);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
   };
 
   const getStorageKey = (wsId: string) => `pulsesocial_crm_prospects_${wsId || 'default'}`;
 
-  const loadProspects = (wsId = workspaceId) => {
+  const loadProspects = async (wsId = workspaceId) => {
     try {
-      const saved = localStorage.getItem(getStorageKey(wsId));
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setProspects(Array.isArray(parsed) ? parsed : []);
-      } else {
-        // Real authenticated accounts start with 0 demo prospects (clean empty state)
-        setProspects([]);
+      const res = await fetch('/api/crm/prospects', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data.prospects) ? data.prospects : [];
+        setProspects(list);
+        try {
+          localStorage.setItem(getStorageKey(wsId), JSON.stringify(list));
+        } catch {
+          // ignore
+        }
+        return;
       }
+      const errData = await res.json().catch(() => ({}));
+      showToast('error', errData.error || `Erreur lors du chargement du CRM (${res.status})`);
     } catch {
-      setProspects([]);
+      showToast('error', 'Erreur réseau lors du chargement du CRM Supabase.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -187,30 +136,32 @@ export default function CRMPage() {
     const handleUpdate = () => loadProspects(activeWs);
     window.addEventListener('crm-updated', handleUpdate);
 
-    const handlePaystackMsg = (event: MessageEvent) => {
+    const handlePaystackMsg = async (event: MessageEvent) => {
       if (event.data?.type === 'PAYSTACK_PAYMENT_SUCCESS' && event.data?.prospectId) {
-        setProspects((prev) => {
-          const updated = prev.map((p) =>
-            p.id === event.data.prospectId
-              ? {
-                  ...p,
-                  status: 'won' as CRMStage,
-                  deal_value: Number(event.data.amount) || p.deal_value,
-                  last_interaction: `Payé via Paystack (${event.data.reference})`,
-                }
-              : p
-          );
-          try {
-            localStorage.setItem(getStorageKey(activeWs), JSON.stringify(updated));
-          } catch {
-            // ignore
+        try {
+          const res = await fetch('/api/crm/prospects', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: event.data.prospectId,
+              status: 'won',
+              deal_value: Number(event.data.amount) || undefined,
+            }),
+          });
+          if (res.ok) {
+            await loadProspects(activeWs);
+            setPaymentModalOpen(false);
+            showToast(
+              'success',
+              `✓ Paiement Paystack reçu (${Number(event.data.amount).toLocaleString('fr-FR')} FCFA) ! Prospect passé en Payé ✅`
+            );
+          } else {
+            const err = await res.json().catch(() => ({}));
+            showToast('error', err.error || 'Échec de mise à jour du prospect après paiement.');
           }
-          return updated;
-        });
-        setPaymentModalOpen(false);
-        showToast(
-          `✓ Paiement Paystack reçu (${Number(event.data.amount).toLocaleString('fr-FR')} FCFA) ! Prospect passé en Payé ✅`
-        );
+        } catch {
+          showToast('error', 'Erreur réseau lors de la confirmation du prospect.');
+        }
       }
     };
 
@@ -221,74 +172,96 @@ export default function CRMPage() {
     };
   }, []);
 
-  const saveProspects = (updated: CRMProspect[]) => {
-    setProspects(updated);
+  // Move stage
+  const handleMoveStage = async (id: string, direction: 'prev' | 'next') => {
+    const target = prospects.find((p) => p.id === id);
+    if (!target) return;
+    const stageOrder: CRMStage[] = ['lead', 'contacted', 'proposal', 'won'];
+    const currentIndex = stageOrder.indexOf(target.status);
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= stageOrder.length) newIndex = stageOrder.length - 1;
+    const nextStatus = stageOrder[newIndex];
+
     try {
-      localStorage.setItem(getStorageKey(workspaceId), JSON.stringify(updated));
-      localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify(updated));
-      window.dispatchEvent(new Event('crm-updated'));
-    } catch (e) {
-      console.warn('Failed to save CRM prospects', e);
+      const res = await fetch('/api/crm/prospects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: nextStatus }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        await loadProspects();
+        window.dispatchEvent(new Event('crm-updated'));
+        showToast('success', '✓ Étape du prospect mise à jour dans Supabase !');
+      } else {
+        showToast('error', data.error || `Impossible de déplacer le prospect (${res.status})`);
+      }
+    } catch {
+      showToast('error', 'Erreur réseau lors de la mise à jour de l’étape.');
     }
   };
 
-  // Move stage
-  const handleMoveStage = (id: string, direction: 'prev' | 'next') => {
-    const stageOrder: CRMStage[] = ['lead', 'contacted', 'proposal', 'won'];
-    const updated = prospects.map((p) => {
-      if (p.id !== id) return p;
-      const currentIndex = stageOrder.indexOf(p.status);
-      let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-      if (newIndex < 0) newIndex = 0;
-      if (newIndex >= stageOrder.length) newIndex = stageOrder.length - 1;
-
-      return {
-        ...p,
-        status: stageOrder[newIndex],
-        last_interaction: new Date().toISOString(),
-      };
-    });
-
-    saveProspects(updated);
-    showToast('✓ Étape du prospect mise à jour !');
-  };
-
   // Delete
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Supprimer ${name} du pipeline commercial ?`)) return;
-    const updated = prospects.filter((p) => p.id !== id);
-    saveProspects(updated);
-    showToast(`✓ ${name} retiré du pipeline.`);
+    try {
+      const res = await fetch(`/api/crm/prospects?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        await loadProspects();
+        window.dispatchEvent(new Event('crm-updated'));
+        showToast('success', `✓ ${name} retiré du pipeline.`);
+      } else {
+        showToast('error', data.error || `Impossible de supprimer ${name}`);
+      }
+    } catch {
+      showToast('error', 'Erreur réseau lors de la suppression.');
+    }
   };
 
   // Create
-  const handleCreateProspect = (e: React.FormEvent) => {
+  const handleCreateProspect = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newName.trim() || submitting) return;
 
-    const newProspect: CRMProspect = {
-      id: `crm-${Date.now()}`,
-      name: newName.trim(),
-      platform: newPlatform,
-      handle: newHandle.trim() || '@prospect',
-      avatar_url: '/logo.svg',
-      deal_value: Number(newDealValue) || 50000,
-      currency: 'FCFA',
-      status: newStatus,
-      lead_score: 85,
-      notes: newNotes.trim() || 'Ajouté manuellement dans le CRM PulseSocial',
-      last_interaction: new Date().toISOString(),
-    };
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/crm/prospects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newName.trim(),
+          platform: newPlatform,
+          handle: newHandle.trim() || '@prospect',
+          deal_value: Number(newDealValue) || 0,
+          currency: 'FCFA',
+          status: newStatus,
+          lead_score: 85,
+          notes: newNotes.trim() || 'Ajouté dans le CRM PulseSocial',
+        }),
+      });
 
-    const updated = [newProspect, ...prospects];
-    saveProspects(updated);
-
-    setNewModalOpen(false);
-    setNewName('');
-    setNewHandle('');
-    setNewNotes('');
-    setNewDealValue(100000);
-    showToast(`✓ Nouveau prospect ${newProspect.name} ajouté au pipeline !`);
+      const data = await res.json().catch(() => ({}));
+      if ((res.status === 200 || res.status === 201) && data.success) {
+        await loadProspects();
+        window.dispatchEvent(new Event('crm-updated'));
+        setNewModalOpen(false);
+        setNewName('');
+        setNewHandle('');
+        setNewNotes('');
+        setNewDealValue(100000);
+        showToast('success', `✓ Nouveau prospect ${data.prospect?.name || newName.trim()} enregistré !`);
+      } else {
+        showToast('error', data.error || `Échec d'enregistrement (${res.status})`);
+      }
+    } catch {
+      showToast('error', 'Erreur réseau lors de la création du prospect.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Open Payment Link Modal
@@ -307,7 +280,7 @@ export default function CRMPage() {
     navigator.clipboard.writeText(link);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 3000);
-    showToast('✓ Lien de paiement Paystack sécurisé copié dans le presse-papier !');
+    showToast('success', '✓ Lien de paiement Paystack sécurisé copié dans le presse-papier !');
   };
 
   const openLivePaystackWindow = async () => {
@@ -336,9 +309,11 @@ export default function CRMPage() {
           'PaystackCRMWindow',
           `width=${width},height=${height},left=${left},top=${top}`
         );
+        const errData = await res.json().catch(() => ({}));
+        showToast('error', errData.error || 'Erreur lors de l’initialisation Paystack');
       }
     } catch {
-      showToast('Erreur lors de l’ouverture de la fenêtre Paystack');
+      showToast('error', 'Erreur lors de l’ouverture de la fenêtre Paystack');
     }
   };
 
@@ -355,7 +330,7 @@ export default function CRMPage() {
       // ignore
     }
     navigator.clipboard.writeText(calUrl);
-    showToast(`✓ Lien Cal.com copié pour ${p.name} !`);
+    showToast('success', `✓ Lien Cal.com copié pour ${p.name} !`);
   };
 
   // KPI Calculations
@@ -382,10 +357,19 @@ export default function CRMPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Toast Alert */}
-      {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 p-4 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{toastMessage}</span>
+      {toast && (
+        <div
+          role={toast.type === 'error' ? 'alert' : 'status'}
+          className={`fixed top-5 right-5 z-50 p-4 rounded-2xl text-white font-bold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-4 ${
+            toast.type === 'error' ? 'bg-rose-600' : 'bg-emerald-600'
+          }`}
+        >
+          {toast.type === 'error' ? (
+            <AlertCircle className="w-4 h-4 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+          )}
+          <span>{toast.message}</span>
         </div>
       )}
 
@@ -644,11 +628,11 @@ export default function CRMPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-slate-300 font-bold block mb-1">Canal Réseau :</label>
+                  <label className="text-[#1E1B4B] font-bold block mb-1">Canal Réseau :</label>
                   <select
                     value={newPlatform}
                     onChange={(e) => setNewPlatform(e.target.value as SocialPlatform)}
-                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white"
+                    className="w-full p-2.5 rounded-xl bg-violet-50/50 border border-violet-200 text-[#1E1B4B]"
                   >
                     <option value="whatsapp">WhatsApp</option>
                     <option value="linkedin">LinkedIn</option>
@@ -659,34 +643,35 @@ export default function CRMPage() {
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-bold block mb-1">Identifiant / N° Tél :</label>
+                  <label className="text-[#1E1B4B] font-bold block mb-1">Identifiant / N° Tél :</label>
                   <input
                     type="text"
                     placeholder="+225 07..."
                     value={newHandle}
                     onChange={(e) => setNewHandle(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-violet-500"
+                    className="w-full p-2.5 rounded-xl bg-violet-50/50 border border-violet-200 text-[#1E1B4B] focus:outline-none focus:border-[#7C3AED]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-slate-300 font-bold block mb-1">Valeur Estimée (FCFA) :</label>
+                  <label className="text-[#1E1B4B] font-bold block mb-1">Valeur Estimée (FCFA) :</label>
                   <input
                     type="number"
+                    min={0}
                     value={newDealValue}
                     onChange={(e) => setNewDealValue(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white font-bold"
+                    className="w-full p-2.5 rounded-xl bg-violet-50/50 border border-violet-200 text-[#1E1B4B] font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-bold block mb-1">Étape Initiale :</label>
+                  <label className="text-[#1E1B4B] font-bold block mb-1">Étape Initiale :</label>
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value as CRMStage)}
-                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white"
+                    className="w-full p-2.5 rounded-xl bg-violet-50/50 border border-violet-200 text-[#1E1B4B]"
                   >
                     <option value="lead">Nouveau Contact</option>
                     <option value="contacted">Discussion en cours</option>
@@ -697,29 +682,30 @@ export default function CRMPage() {
               </div>
 
               <div>
-                <label className="text-slate-300 font-bold block mb-1">Notes / Besoins du Client :</label>
+                <label className="text-[#1E1B4B] font-bold block mb-1">Notes / Besoins du Client :</label>
                 <textarea
                   rows={2}
                   placeholder="Détails de la demande, articles choisis, relance..."
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-violet-500"
+                  className="w-full p-2.5 rounded-xl bg-violet-50/50 border border-violet-200 text-[#1E1B4B] focus:outline-none focus:border-[#7C3AED]"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-violet-100">
                 <button
                   type="button"
                   onClick={() => setNewModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                  disabled={submitting}
+                  className="px-4 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-xs font-bold shadow-md cursor-pointer"
                 >
-                  Enregistrer l&apos;Opportunité
+                  {submitting ? 'Enregistrement...' : "Enregistrer l'Opportunité"}
                 </button>
               </div>
             </form>

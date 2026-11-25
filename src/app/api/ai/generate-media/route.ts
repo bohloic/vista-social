@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { requireUser, handleApiError, sanitizePromptForLLM } from '@/lib/security/guards';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 import { optimizeVisualPromptForFlyer } from '@/lib/gemini';
-import { CURATED_FLYER_PRESETS, CuratedFlyerPreset } from '@/lib/flyer-studio';
+import { CURATED_FLYER_PRESETS, getLocalFlyerFallback } from '@/lib/flyer-studio';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,23 +18,6 @@ const generateMediaSchema = z
     optimizeWithLLM: z.boolean().default(true),
   })
   .strict();
-
-function getCuratedPhotoFallback(prompt: string): string {
-  const p = prompt.toLowerCase();
-  for (const preset of CURATED_FLYER_PRESETS) {
-    if (
-      (preset.id === 'food-burger' && /burger|restau|food|manger|plat|cuisine|nourriture/i.test(p)) ||
-      (preset.id === 'fashion-afro' && /mode|robe|habit|couture|vetement|fashion|tissu/i.test(p)) ||
-      (preset.id === 'tech-saas' && /tech|ia|digital|webinaire|saas|logiciel|b2b/i.test(p)) ||
-      (preset.id === 'event-concert' && /soiree|concert|party|event|club|afrobeat|musique/i.test(p)) ||
-      (preset.id === 'beauty-spa' && /spa|soin|massage|beaute|peau|coiffure|cheveux/i.test(p)) ||
-      (preset.id === 'sale-flash' && /solde|promo|vente|flash|discount|reduction/i.test(p))
-    ) {
-      return preset.imageUrl;
-    }
-  }
-  return CURATED_FLYER_PRESETS[0].imageUrl;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -81,16 +64,29 @@ export async function POST(req: NextRequest) {
     const finalVisualPrompt = designAnalysis.englishPrompt || `${sanitizedPrompt}, 8k commercial photography, advertising key visual, clean composition with negative space for typography, no baked-in text`;
     const encodedPrompt = encodeURIComponent(finalVisualPrompt);
 
-    // 2. High-Performance Photorealistic Model Generation (FLUX.1 / Nano-Banana Hybrid Architecture)
+    // 2. Verify external AI image endpoint availability; fall back seamlessly to local SVG studio background if unreachable
     const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux&enhance=true`;
+    const localPhotoFallback = getLocalFlyerFallback(validated.prompt);
+    let resolvedImageUrl = localPhotoFallback;
 
-    const realPhotoFallback = getCuratedPhotoFallback(validated.prompt);
+    try {
+      const probe = await fetch(pollinationsUrl, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(3500),
+      });
+      const contentType = probe.headers.get('content-type') || '';
+      if (probe.ok && contentType.startsWith('image/')) {
+        resolvedImageUrl = pollinationsUrl;
+      }
+    } catch {
+      resolvedImageUrl = localPhotoFallback;
+    }
 
     return NextResponse.json({
       success: true,
-      imageUrl: pollinationsUrl,
-      url: pollinationsUrl,
-      fallbackUrl: realPhotoFallback,
+      imageUrl: resolvedImageUrl,
+      url: resolvedImageUrl,
+      fallbackUrl: localPhotoFallback,
       prompt: validated.prompt,
       aspectRatio: validated.aspectRatio,
       style: validated.style,
@@ -105,8 +101,8 @@ export async function POST(req: NextRequest) {
         accentColor: designAnalysis.accentColor,
       },
       curatedPresets: CURATED_FLYER_PRESETS,
-      architecture: 'Hybrid: FLUX/Nano-Banana AI Background + Client-Side Dynamic Typography Overlay',
-      costEstimate: '0.003$ - 0.025$ / image (Économie de 80% grâce à la séparation texte/fond)',
+      architecture: 'Hybrid: AI/Local SVG Studio Background + Client-Side Dynamic Typography Overlay',
+      costEstimate: '0.000$ - 0.025$ / image',
     });
   } catch (err) {
     return handleApiError(err);

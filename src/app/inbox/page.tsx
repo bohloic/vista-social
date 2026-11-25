@@ -35,6 +35,7 @@ import {
   Check,
   DollarSign,
   Phone,
+  AlertCircle,
 } from 'lucide-react';
 
 const INITIAL_DEMO_CONVERSATIONS: InboxConversation[] = [
@@ -45,7 +46,7 @@ const INITIAL_DEMO_CONVERSATIONS: InboxConversation[] = [
     platform: 'whatsapp',
     customer_name: 'Amadou Diallo',
     customer_username: '+225 07 48 12 90 33',
-    customer_avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop',
+    customer_avatar_url: '/logo.svg',
     status: 'open',
     sentiment: 'positive',
     tags: ['Achat Immédiat', 'Wave'],
@@ -65,7 +66,7 @@ const INITIAL_DEMO_CONVERSATIONS: InboxConversation[] = [
     platform: 'linkedin',
     customer_name: 'Sarah Bamba',
     customer_username: 'sarah-bamba-cmo',
-    customer_avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&fit=crop',
+    customer_avatar_url: '/logo.svg',
     status: 'open',
     sentiment: 'positive',
     tags: ['B2B Décideur', 'Corporate'],
@@ -84,7 +85,7 @@ const INITIAL_DEMO_CONVERSATIONS: InboxConversation[] = [
     platform: 'instagram',
     customer_name: 'Kevin Koffi',
     customer_username: '@kevin.koffi_ci',
-    customer_avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop',
+    customer_avatar_url: '/logo.svg',
     status: 'open',
     sentiment: 'neutral',
     tags: ['Commande B2C', 'Instagram'],
@@ -104,7 +105,7 @@ const INITIAL_DEMO_CONVERSATIONS: InboxConversation[] = [
     platform: 'tiktok',
     customer_name: 'Aïssata Touré',
     customer_username: '@aissata_style',
-    customer_avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&h=120&fit=crop',
+    customer_avatar_url: '/logo.svg',
     status: 'open',
     sentiment: 'positive',
     tags: ['Tendance TikTok'],
@@ -188,7 +189,7 @@ export default function InboxPage() {
   const [paymentAmount, setPaymentAmount] = useState<number>(150000);
   const [paymentOperator, setPaymentOperator] = useState<string>('wave');
   const [paymentCurrency, setPaymentCurrency] = useState<string>('XOF');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedScript, setCopiedScript] = useState(false);
 
   // Initialize from localStorage or default
@@ -220,9 +221,9 @@ export default function InboxPage() {
     }
   }, []);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ type, message: msg });
+    setTimeout(() => setToast(null), 4000);
   };
 
   const handleSendMessage = () => {
@@ -267,7 +268,7 @@ export default function InboxPage() {
       platform: 'whatsapp',
       customer_name: randomName,
       customer_username: '+225 07 ' + Math.floor(10000000 + Math.random() * 90000000),
-      customer_avatar_url: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 9999999)}?w=120&h=120&fit=crop`,
+      customer_avatar_url: '/logo.svg',
       status: 'open',
       sentiment: 'positive',
       tags: ['Prospect Chaud 🔥', 'WhatsApp'],
@@ -307,44 +308,39 @@ export default function InboxPage() {
     showToast(`🔥 Nouveau prospect chaud simulé : ${randomName} (Score: 96%)`);
   };
 
-  // Dispatch to CRM
-  const handleSendToCRM = () => {
+  // Dispatch to CRM (Real Supabase persistence via /api/crm/prospects, toast only after HTTP 200/201)
+  const handleSendToCRM = async () => {
     if (!activeConv) return;
 
     try {
-      const existingCRMStr = localStorage.getItem('pulsesocial_crm_prospects');
-      const crmList: CRMProspect[] = existingCRMStr ? JSON.parse(existingCRMStr) : [];
+      const res = await fetch('/api/crm/prospects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: activeConv.customer_name,
+          platform: (activeConv.platform || 'whatsapp') as SocialPlatform,
+          handle: activeConv.customer_username,
+          avatar_url: activeConv.customer_avatar_url,
+          deal_value: activeConv.deal_value || 75000,
+          currency: 'FCFA',
+          status: 'contacted',
+          lead_score: activeConv.lead_score || 85,
+          notes: `Issu du Radar à Prospects PulseSocial. Dernier message : "${activeConv.last_message_preview}"`,
+          phone: activeConv.phone,
+          inbox_conversation_id: activeConv.id,
+        }),
+      });
 
-      // Check if already in CRM
-      const existsIndex = crmList.findIndex((p) => p.inbox_conversation_id === activeConv.id);
-      const crmProspect: CRMProspect = {
-        id: `crm-${activeConv.id}`,
-        name: activeConv.customer_name,
-        platform: (activeConv.platform || 'whatsapp') as SocialPlatform,
-        handle: activeConv.customer_username,
-        avatar_url: activeConv.customer_avatar_url,
-        deal_value: activeConv.deal_value || 75000,
-        currency: 'FCFA',
-        status: 'contacted',
-        lead_score: activeConv.lead_score || 85,
-        notes: `Issu du Radar à Prospects PulseSocial. Dernier message : "${activeConv.last_message_preview}"`,
-        last_interaction: new Date().toISOString(),
-        phone: activeConv.phone,
-        inbox_conversation_id: activeConv.id,
-      };
-
-      if (existsIndex >= 0) {
-        crmList[existsIndex] = crmProspect;
+      const data = await res.json().catch(() => ({}));
+      if ((res.status === 200 || res.status === 201) && data.success) {
+        window.dispatchEvent(new Event('crm-updated'));
+        showToast(`✓ ${activeConv.customer_name} enregistré dans le Pipeline CRM Supabase !`, 'success');
       } else {
-        crmList.unshift(crmProspect);
+        showToast(data.error || `Échec d'enregistrement dans le CRM (${res.status})`, 'error');
       }
-
-      localStorage.setItem('pulsesocial_crm_prospects', JSON.stringify(crmList));
-      window.dispatchEvent(new Event('crm-updated'));
-      showToast(`✓ ${activeConv.customer_name} ajouté au Pipeline CRM (Discussion en cours) !`);
     } catch (e) {
       console.error('Error saving to CRM', e);
-      showToast('✓ Prospect enregistré dans le CRM !');
+      showToast('Erreur réseau lors de l’envoi vers le CRM Supabase.', 'error');
     }
   };
 
@@ -425,16 +421,27 @@ export default function InboxPage() {
   return (
     <div className="space-y-4 max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 p-4 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{toastMessage}</span>
-          <Link
-            href="/crm"
-            className="ml-2 underline text-[11px] bg-emerald-700/60 px-2 py-0.5 rounded hover:bg-emerald-700"
-          >
-            Voir CRM →
-          </Link>
+      {toast && (
+        <div
+          role={toast.type === 'error' ? 'alert' : 'status'}
+          className={`fixed top-5 right-5 z-50 p-4 rounded-2xl text-white font-bold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-4 ${
+            toast.type === 'error' ? 'bg-rose-600' : 'bg-emerald-600'
+          }`}
+        >
+          {toast.type === 'error' ? (
+            <AlertCircle className="w-4 h-4 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+          {toast.type === 'success' && (
+            <Link
+              href="/crm"
+              className="ml-2 underline text-[11px] bg-emerald-700/60 px-2 py-0.5 rounded hover:bg-emerald-700"
+            >
+              Voir CRM →
+            </Link>
+          )}
         </div>
       )}
 

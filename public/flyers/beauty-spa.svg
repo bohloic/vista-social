@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" fill="none">
+  <defs>
+    <linearGradient id="spaBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#022C22" />
+      <stop offset="55%" stop-color="#065F46" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <radialGradient id="spaGlow" cx="50%" cy="34%" r="48%">
+      <stop offset="0%" stop-color="#34D399" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1080" height="1080" fill="url(#spaBg)" />
+  <rect width="1080" height="1080" fill="url(#spaGlow)" />
+  <g transform="translate(540, 340)">
+    <circle cx="0" cy="0" r="190" fill="#10B981" fill-opacity="0.16" stroke="#6EE7B7" stroke-width="3" />
+    <path d="M0 -130 C55 -70, 55 30, 0 90 C-55 30, -55 -70, 0 -130 Z" fill="#A7F3D0" fill-opacity="0.85" />
+    <path d="M0 90 C70 30, 140 -10, 145 -80 C70 -65, 20 -10, 0 90 Z" fill="#34D399" fill-opacity="0.8" />
+    <path d="M0 90 C-70 30, -140 -10, -145 -80 C-70 -65, -20 -10, 0 90 Z" fill="#34D399" fill-opacity="0.8" />
+  </g>
+</svg>

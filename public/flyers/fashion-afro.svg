@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" fill="none">
+  <defs>
+    <linearGradient id="fashionBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B0764" />
+      <stop offset="55%" stop-color="#831843" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <radialGradient id="fashionGlow" cx="50%" cy="32%" r="48%">
+      <stop offset="0%" stop-color="#EC4899" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="waxGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F472B6" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#fashionBg)" />
+  <rect width="1080" height="1350" fill="url(#fashionGlow)" />
+  <g opacity="0.22" stroke="url(#waxGold)" stroke-width="5">
+    <polygon points="540,120 720,300 540,480 360,300" fill="none" />
+    <polygon points="540,175 665,300 540,425 415,300" fill="none" />
+    <circle cx="540" cy="300" r="195" fill="none" stroke-dasharray="16 14" />
+  </g>
+  <g transform="translate(540, 320)">
+    <circle cx="0" cy="0" r="145" fill="url(#waxGold)" fill-opacity="0.24" stroke="#F9A8D4" stroke-width="4" />
+    <path d="M-85 -35 L-35 -95 L35 -95 L85 -35 L55 110 L-55 110 Z" fill="url(#waxGold)" />
+    <path d="M-40 -95 L0 -40 L40 -95" fill="none" stroke="#FFF1F2" stroke-width="8" stroke-linecap="round" />
+    <circle cx="0" cy="-128" r="24" fill="#FDE68A" />
+  </g>
+</svg>
