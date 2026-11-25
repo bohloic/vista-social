@@ -405,6 +405,22 @@ test('21. [MFA-TOTP-RFC6238] totp.ts generates valid Base32 secrets, 6-digit RFC
   assert.ok(svg.startsWith('<svg') && svg.includes('</svg>'), 'QR generator must return valid inline SVG');
 });
 
+test('22. [LOGOUT-PURGE] /api/auth/logout purges all auth, MFA, OAuth, and request cookies + Clear-Site-Data header', async () => {
+  const fs = await import('node:fs');
+  const logoutRoute = fs.readFileSync('src/app/api/auth/logout/route.ts', 'utf-8');
+  assert.ok(logoutRoute.includes('Clear-Site-Data'), 'Logout must send Clear-Site-Data header');
+  for (const cookieName of [
+    'pulsesocial_session',
+    'pulsesocial_mfa_factors',
+    'pulsesocial_email_otp',
+    'pulsesocial_email_verified',
+    'pulsesocial_oauth_state',
+  ]) {
+    assert.ok(logoutRoute.includes(cookieName), `Logout must explicitly purge ${cookieName}`);
+  }
+  assert.ok(logoutRoute.includes('req.cookies.getAll()'), 'Logout must also iterate and expire all incoming request cookies');
+});
+
 
 
 

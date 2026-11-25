@@ -61,12 +61,19 @@ export default function LoginPage() {
         setResetEmail(savedEmail);
       }
 
-      // Purge any stale unauthenticated state in localStorage
-      fetch('/api/auth/me')
-        .then((res) => {
-          if (!res.ok) {
+      // Purge any stale unauthenticated state in localStorage & client cookies
+      fetch('/api/auth/me', { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : { authenticated: false }))
+        .then((data) => {
+          if (!data?.authenticated) {
             localStorage.removeItem('pulsesocial_user');
             localStorage.removeItem('pulsesocial_active_workspace');
+            document.cookie.split(';').forEach((c) => {
+              const name = c.split('=')[0]?.trim();
+              if (name && (name.startsWith('pulsesocial_') || name.startsWith('sb-'))) {
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;max-age=0;path=/;SameSite=Lax`;
+              }
+            });
           }
         })
         .catch(() => {});

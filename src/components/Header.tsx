@@ -166,14 +166,24 @@ export function Header({ onOpenComposer, onToggleMobileMenu, title: propTitle, s
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+      });
     } catch {
       // ignore
     } finally {
       if (typeof window !== 'undefined') {
         localStorage.clear();
         sessionStorage.clear();
-        window.location.href = '/login';
+        document.cookie.split(';').forEach((c) => {
+          const name = c.split('=')[0]?.trim();
+          if (name) {
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;max-age=0;path=/;SameSite=Lax`;
+          }
+        });
+        window.location.replace('/login');
       }
     }
   };

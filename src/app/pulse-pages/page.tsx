@@ -100,13 +100,13 @@ function sanitizePulsePageState(raw: any): PulsePage {
       raw.theme_config && typeof raw.theme_config === 'object' && raw.theme_config.bg_gradient
         ? raw.theme_config
         : raw.social_links && typeof raw.social_links === 'object' && raw.social_links.bg_gradient
-        ? raw.social_links
-        : DEFAULT_PAGE.theme_config,
+          ? raw.social_links
+          : DEFAULT_PAGE.theme_config,
     blocks: Array.isArray(raw.blocks)
       ? raw.blocks
       : Array.isArray(raw.links)
-      ? raw.links
-      : DEFAULT_PAGE.blocks,
+        ? raw.links
+        : DEFAULT_PAGE.blocks,
   };
 }
 

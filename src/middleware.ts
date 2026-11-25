@@ -201,8 +201,16 @@ export async function middleware(request: NextRequest) {
     }
 
     const response = NextResponse.redirect(loginUrl);
-    if (sessionCookie) {
-      response.cookies.delete('pulsesocial_session');
+    for (const cName of [
+      'pulsesocial_session',
+      'pulsesocial_mfa_factors',
+      'pulsesocial_email_otp',
+      'pulsesocial_email_verified',
+      'pulsesocial_oauth_state',
+    ]) {
+      if (request.cookies.has(cName)) {
+        response.cookies.delete(cName);
+      }
     }
     return response;
   }
