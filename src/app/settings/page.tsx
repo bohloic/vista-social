@@ -328,6 +328,37 @@ export default function SettingsPage() {
       // ignore
     }
 
+    // Handle OAuth callback return query parameters (?tab=accounts&connected=... or ?composio_error=...)
+    let requestedUrlTab: 'oauth' | 'accounts' | null = null;
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const tabParam = sp.get('tab');
+      const connectedParam = sp.get('connected');
+      const composioErrParam = sp.get('composio_error');
+      const toolkitErrParam = sp.get('toolkit');
+
+      if (tabParam === 'accounts' || tabParam === 'oauth') {
+        requestedUrlTab = tabParam;
+        setActiveTab(tabParam);
+      }
+
+      if (connectedParam) {
+        setConnectMessage(
+          `✓ Compte ${connectedParam.toUpperCase()} connecté et synchronisé avec succès via Composio !`
+        );
+        if (!requestedUrlTab) {
+          requestedUrlTab = 'accounts';
+          setActiveTab('accounts');
+        }
+        window.history.replaceState({}, '', '/settings');
+      } else if (composioErrParam) {
+        setConnectMessage(
+          `Erreur OAuth Composio (${toolkitErrParam || 'réseau'}) : ${composioErrParam}`
+        );
+        window.history.replaceState({}, '', '/settings');
+      }
+    }
+
     // 2. Authoritative verification from /api/auth/me
     fetch('/api/auth/me', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
@@ -343,13 +374,15 @@ export default function SettingsPage() {
           if (r === 'super_admin' || r === 'admin') {
             fetchAccounts();
             fetchTeamMembers();
-            setActiveTab((prev) => (prev === 'profile' && initialRole === 'client' ? 'oauth' : prev));
+            setActiveTab((prev) =>
+              requestedUrlTab || (prev === 'profile' && initialRole === 'client' ? 'oauth' : prev)
+            );
           } else {
             setActiveTab((prev) => (['profile', 'security'].includes(prev) ? prev : 'profile'));
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     fetchMfaStatus();
 
@@ -390,7 +423,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Launch Real External OAuth 2.0 Popup Window via Composio Gateway
+  // Launch Multi-Tenant Composio Connect Link with automatic callback redirect
   const handleOpenOAuthModal = async (provider: typeof OAUTH_PROVIDERS[0]) => {
     setConnectingPlatform(provider.id);
     setConnectMessage(null);
@@ -404,60 +437,29 @@ export default function SettingsPage() {
         // ignore
       }
 
-      const res = await fetch('/api/social/oauth/initiate', {
+      const res = await fetch('/api/composio/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           platform: provider.platform,
+          next: '/settings',
           workspaceId: workspaceId || undefined,
-          composioApiKey: tokens.composioApiKey || undefined,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.redirectUrl) {
-        setConnectMessage(`Erreur OAuth : ${data.error || 'Impossible d’ouvrir la fenêtre OAuth 2.0'}`);
+        setConnectMessage(
+          `Erreur OAuth : ${data.error || 'Impossible de générer le lien Composio Connect.'}`
+        );
         setConnectingPlatform(null);
         return;
       }
 
-      const width = 560;
-      const height = 740;
-      const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2));
-      const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2));
-
-      const popup = window.open(
-        data.redirectUrl,
-        `ComposioOAuth_${provider.platform}`,
-        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=yes,scrollbars=yes`
-      );
-
-      if (!popup) {
-        setConnectMessage('Veuillez autoriser les fenêtres pop-up dans votre navigateur pour ouvrir le portail OAuth.');
-        setConnectingPlatform(null);
-        return;
-      }
-
-      let timer: NodeJS.Timeout | null = null;
-      let elapsed = 0;
-      timer = setInterval(() => {
-        elapsed += 600;
-        let isClosed = false;
-        try {
-          // Wrapped in try/catch to prevent Cross-Origin-Opener-Policy browser error
-          isClosed = Boolean(popup && popup.closed);
-        } catch {
-          // COOP policy blocks accessing cross-origin window properties
-        }
-
-        if (isClosed || elapsed >= 180000) {
-          if (timer) clearInterval(timer);
-          setConnectingPlatform(null);
-          fetchAccounts();
-        }
-      }, 600);
+      // Direct browser redirect so Composio returns to /api/composio/callback with session cookie
+      window.location.href = data.redirectUrl;
     } catch {
-      setConnectMessage('Erreur réseau lors de l’ouverture de la passerelle OAuth 2.0 Composio.');
+      setConnectMessage('Erreur réseau lors de la connexion à la passerelle OAuth 2.0 Composio.');
       setConnectingPlatform(null);
     }
   };
@@ -601,11 +603,10 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setActiveTab('oauth')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === 'oauth'
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${activeTab === 'oauth'
                   ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
                   : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-              }`}
+                }`}
             >
               <Zap className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>OAuth 1-Clic</span>
@@ -613,11 +614,10 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setActiveTab('accounts')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === 'accounts'
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${activeTab === 'accounts'
                   ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
                   : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-              }`}
+                }`}
             >
               <Share2 className="w-4 h-4 shrink-0" />
               <span>Comptes ({accounts.length})</span>
@@ -629,11 +629,10 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('team')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-              activeTab === 'team'
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${activeTab === 'team'
                 ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
                 : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-            }`}
+              }`}
           >
             <Users className="w-4 h-4 shrink-0" />
             <span>Équipe ({teamMembers.length})</span>
@@ -644,11 +643,10 @@ export default function SettingsPage() {
           type="button"
           data-testid="tab-profile"
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'profile'
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${activeTab === 'profile'
               ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
               : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-          }`}
+            }`}
         >
           <UserCheck className="w-4 h-4 shrink-0" />
           <span>Mon Profil</span>
@@ -658,11 +656,10 @@ export default function SettingsPage() {
           type="button"
           data-testid="tab-security"
           onClick={() => setActiveTab('security')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-            activeTab === 'security'
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${activeTab === 'security'
               ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
               : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-          }`}
+            }`}
         >
           <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>Sécurité &amp; MFA</span>
@@ -672,11 +669,10 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('tokens')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-              activeTab === 'tokens'
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${activeTab === 'tokens'
                 ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
                 : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-            }`}
+              }`}
           >
             <Lock className="w-4 h-4 shrink-0" />
             <span>Tokens Manuels</span>
@@ -687,11 +683,10 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('api')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-              activeTab === 'api'
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-semibold font-jakarta border-b-2 whitespace-nowrap transition-all cursor-pointer ${activeTab === 'api'
                 ? 'border-[#7C3AED] text-[#7C3AED] font-bold'
                 : 'border-transparent text-slate-500 hover:text-[#1E1B4B]'
-            }`}
+              }`}
           >
             <Key className="w-4 h-4 shrink-0" />
             <span>Supabase &amp; IA</span>
@@ -701,9 +696,19 @@ export default function SettingsPage() {
 
       {/* Feedback Alert */}
       {connectMessage && (
-        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between animate-in fade-in font-jakarta">
+        <div
+          className={`p-3.5 rounded-2xl text-xs flex items-center justify-between animate-in fade-in font-jakarta border ${connectMessage.startsWith('Erreur') || connectMessage.startsWith('⚠️')
+              ? 'bg-rose-50 border-rose-200 text-rose-800'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            }`}
+        >
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2
+              className={`w-4 h-4 shrink-0 ${connectMessage.startsWith('Erreur') || connectMessage.startsWith('⚠️')
+                  ? 'text-rose-600'
+                  : 'text-emerald-600'
+                }`}
+            />
             <span>{connectMessage}</span>
           </div>
           <button
@@ -767,11 +772,10 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => handleOpenOAuthModal(prov)}
                     disabled={isProcessing}
-                    className={`w-full py-2.5 px-3.5 rounded-xl font-bold font-jakarta text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      isConnected
+                    className={`w-full py-2.5 px-3.5 rounded-xl font-bold font-jakarta text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${isConnected
                         ? 'bg-violet-50 hover:bg-violet-100 text-[#7C3AED] border border-violet-200/60'
                         : 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-lg shadow-violet-600/25 active:scale-98'
-                    }`}
+                      }`}
                   >
                     {isProcessing ? (
                       <>
@@ -864,15 +868,16 @@ export default function SettingsPage() {
 
                   <div className="flex flex-col items-end gap-2">
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      <Check className="w-3 h-3" /> Synchronisé
+                      <Check className="w-3 h-3" /> ACTIVE
                     </span>
                     <button
                       type="button"
                       onClick={() => handleDisconnectAccount(acc.id, acc.account_name)}
-                      className="text-slate-500 hover:text-red-400 text-xs p-1 rounded transition-colors cursor-pointer"
-                      title="Déconnecter ce compte"
+                      className="inline-flex items-center gap-1 text-slate-400 hover:text-red-400 text-[10px] font-semibold px-2 py-1 rounded-lg border border-slate-700/80 hover:border-red-500/40 transition-colors cursor-pointer"
+                      title="Déconnecter / Révoquer ce compte"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
+                      <span>Révoquer</span>
                     </button>
                   </div>
                 </div>
@@ -990,9 +995,8 @@ export default function SettingsPage() {
             </div>
             <button
               type="submit"
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-md cursor-pointer ${
-                savedTokens ? 'bg-emerald-600 shadow-emerald-600/30' : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-md cursor-pointer ${savedTokens ? 'bg-emerald-600 shadow-emerald-600/30' : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
+                }`}
             >
               {savedTokens ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
               <span>{savedTokens ? 'Tokens Enregistrés !' : 'Enregistrer les Tokens'}</span>
@@ -1328,11 +1332,10 @@ export default function SettingsPage() {
             </div>
             <span
               data-testid="mfa-aal-badge"
-              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${
-                mfaCurrentLevel === 'aal2'
+              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${mfaCurrentLevel === 'aal2'
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-amber-50 text-amber-800 border-amber-200'
-              }`}
+                }`}
             >
               <Lock className="w-3.5 h-3.5" />
               <span>Niveau d&apos;assurance : {mfaCurrentLevel.toUpperCase()}</span>

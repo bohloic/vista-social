@@ -8,6 +8,18 @@ import {
 } from '@/lib/gemini';
 import { requireUser, handleApiError, sanitizePromptForLLM } from '@/lib/security/guards';
 import { checkRateLimit } from '@/lib/security/rate-limit';
+import { encryptToken } from '@/lib/security/encryption';
+import {
+  buildComposioCallbackUrl,
+  ComposioApiError,
+  createComposioConnectLink,
+  executeComposioTool,
+  isComposioConfigured,
+  listComposioConnectedAccounts,
+  normalizePlatformAndToolkit,
+  resolveAppOrigin,
+  syncComposioAccountsToSupabase,
+} from '@/lib/composio';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +31,7 @@ interface ToolExecutionResult {
   output: string;
   isClientAction?: boolean;
   connectUrl?: string;
+  connectPlatform?: string;
 }
 
 const WRITE_TOOLS = new Set([
@@ -128,7 +141,7 @@ async function executeServerTool(
       };
     }
 
-    // 2. Real Composio Connect Link generator (scoped by workspace_id)
+    // 2. Real Composio Connect Link generator (multi-tenant userId = user.id + callbackUrl -> /chat)
     if (act.type === 'create_composio_connect_link') {
       if (!allowedMutators.includes(user.role)) {
         return {
@@ -138,76 +151,144 @@ async function executeServerTool(
         };
       }
 
-      const rawPlatform = String(act.payload?.platform || 'instagram').toLowerCase().trim();
-      const platform = rawPlatform === 'x' ? 'twitter' : rawPlatform;
-      if (!COMPOSIO_TOOLKIT_MAP[platform]) {
+      const rawPlatform = String(act.payload?.platform || act.payload?.toolkit || 'instagram')
+        .toLowerCase()
+        .trim();
+      const normalized = normalizePlatformAndToolkit(rawPlatform);
+      if (!normalized) {
         return {
           executed: true,
           success: false,
-          output: `Plateforme "${rawPlatform}" non supportée. Plateformes disponibles : ${Object.keys(COMPOSIO_TOOLKIT_MAP).join(', ')}.`,
+          output: `Plateforme "${rawPlatform}" non supportée. Plateformes disponibles : ${Object.keys(COMPOSIO_TOOLKIT_MAP).join(', ')}, gmail.`,
         };
       }
 
-      const toolkitSlug = COMPOSIO_TOOLKIT_MAP[platform];
-      const apiKey = process.env.COMPOSIO_API_KEY?.trim();
-      let connectUrl: string | null = null;
+      const callbackUrl = buildComposioCallbackUrl(origin, {
+        next: '/chat',
+        toolkit: normalized.toolkitSlug,
+        platform: normalized.platform,
+      });
 
-      if (apiKey && apiKey.length > 8) {
+      if (isComposioConfigured()) {
         try {
-          const mcpRes = await fetch('https://connect.composio.dev/mcp', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json, text/event-stream',
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              method: 'tools/call',
-              params: {
-                name: 'COMPOSIO_MANAGE_CONNECTIONS',
-                arguments: { toolkits: [toolkitSlug] },
-              },
-              id: Date.now(),
-            }),
-            signal: AbortSignal.timeout(8000),
+          const link = await createComposioConnectLink({
+            userId: user.id,
+            platformOrToolkit: normalized.platform,
+            callbackUrl,
           });
-
-          if (mcpRes.ok) {
-            const mcpText = await mcpRes.text();
-            for (const line of mcpText.split('\n')) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const parsedLine = JSON.parse(line.slice(6));
-                  const resText = parsedLine?.result?.content?.[0]?.text;
-                  if (resText) {
-                    const parsedResult = JSON.parse(resText);
-                    const toolkitData = parsedResult?.data?.results?.[toolkitSlug];
-                    if (toolkitData?.redirect_url) {
-                      connectUrl = toolkitData.redirect_url;
-                      break;
-                    }
-                  }
-                } catch {
-                  // ignore SSE parse chunk
-                }
-              }
-            }
-          }
-        } catch {
-          // fall back to official portal below
+          return {
+            executed: true,
+            success: true,
+            connectUrl: link.redirectUrl,
+            connectPlatform: link.platform,
+            output: `Lien OAuth Composio généré pour ${link.platform} (utilisateur ${user.id}) avec retour automatique vers /chat.`,
+          };
+        } catch (err: unknown) {
+          const msg = err instanceof ComposioApiError ? err.message : 'Erreur génération lien Composio.';
+          return {
+            executed: true,
+            success: false,
+            output: msg,
+          };
         }
       }
 
-      if (!connectUrl) {
-        connectUrl = `${origin}/oauth-popup?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId)}&gateway=composio`;
+      const fallbackUrl = `${origin}/oauth-popup?platform=${encodeURIComponent(normalized.platform)}&workspaceId=${encodeURIComponent(workspaceId)}&gateway=composio`;
+      return {
+        executed: true,
+        success: true,
+        connectUrl: fallbackUrl,
+        connectPlatform: normalized.platform,
+        output: `Lien OAuth généré pour ${normalized.platform} (espace ${workspaceId}).`,
+      };
+    }
+
+    // 2b. Execute any Composio Tool using user's ACTIVE connected account
+    if (act.type === 'execute_composio_action') {
+      const p = act.payload || {};
+      const rawToolkit = String(p.toolkit || p.platform || '').trim();
+      const toolSlug = String(p.tool_slug || p.toolSlug || '').trim();
+      const normalized = rawToolkit ? normalizePlatformAndToolkit(rawToolkit) : null;
+
+      if (!toolSlug) {
+        return {
+          executed: true,
+          success: false,
+          output: 'tool_slug Composio requis pour exécuter une action.',
+        };
+      }
+
+      if (!isComposioConfigured()) {
+        return {
+          executed: true,
+          success: false,
+          output: 'COMPOSIO_API_KEY manquante côté serveur.',
+        };
+      }
+
+      const activeAccounts = await listComposioConnectedAccounts(user.id, ['ACTIVE']);
+      const matchedAccount = normalized
+        ? activeAccounts.find(
+            (a) =>
+              a.toolkitSlug === normalized.toolkitSlug ||
+              a.platform === normalized.platform
+          )
+        : activeAccounts[0];
+
+      if (!matchedAccount) {
+        const targetPlatform = normalized?.platform || rawToolkit || 'instagram';
+        const targetToolkit = normalized?.toolkitSlug || targetPlatform;
+        try {
+          const link = await createComposioConnectLink({
+            userId: user.id,
+            platformOrToolkit: targetPlatform,
+            callbackUrl: buildComposioCallbackUrl(origin, {
+              next: '/chat',
+              toolkit: targetToolkit,
+              platform: targetPlatform,
+            }),
+          });
+          return {
+            executed: true,
+            success: false,
+            connectUrl: link.redirectUrl,
+            connectPlatform: link.platform,
+            output: `Aucun compte ${targetPlatform} connecté pour votre session. Cliquez sur « Connecter ${link.platform} » pour autoriser l'accès via Composio.`,
+          };
+        } catch (err: unknown) {
+          return {
+            executed: true,
+            success: false,
+            output:
+              err instanceof Error
+                ? err.message
+                : `Compte ${targetPlatform} non connecté sur Composio.`,
+          };
+        }
+      }
+
+      const execRes = await executeComposioTool({
+        userId: user.id,
+        toolSlug,
+        connectedAccountId: matchedAccount.id,
+        arguments:
+          typeof p.arguments === 'object' && p.arguments !== null
+            ? (p.arguments as Record<string, unknown>)
+            : {},
+      });
+
+      if (!execRes.ok) {
+        return {
+          executed: true,
+          success: false,
+          output: execRes.error || `Échec exécution ${toolSlug}.`,
+        };
       }
 
       return {
         executed: true,
         success: true,
-        connectUrl,
-        output: `Lien OAuth Composio généré pour ${platform} (espace ${workspaceId}) : ${connectUrl}`,
+        output: JSON.stringify(execRes.data).slice(0, 1500),
       };
     }
 
@@ -546,7 +627,7 @@ export async function POST(req: NextRequest) {
     const parsed = copilotRequestSchema.parse(body);
 
     const { message, history, currentPath, attachments, memory, clientStats, confirmedAction } = parsed;
-    const origin = new URL(req.url).origin;
+    const origin = resolveAppOrigin(req);
 
     // Resolve tenant workspaceId strictly from authenticated session / DB profile
     let workspaceId: string | undefined = user.workspaceId || user.workspace_id;
@@ -581,26 +662,44 @@ export async function POST(req: NextRequest) {
           action: toolExec.success ? confirmedAction : null,
           executedOnServer: toolExec.executed,
           connectUrl: toolExec.connectUrl,
+          connectPlatform: toolExec.connectPlatform,
           error: toolExec.success ? undefined : toolExec.output,
         },
         { status: toolExec.success ? 200 : 400 }
       );
     }
 
-    // Gather live project stats strictly scoped to the user's tenant workspaceId
+    // Gather live project stats & ACTIVE Composio toolkits strictly scoped to user.id / workspaceId
     let postsCount = 0;
     let accountsCount = 0;
     let crmCount = clientStats?.crmCount || 0;
+    let activeToolkits: string[] = [];
+
+    if (isComposioConfigured()) {
+      try {
+        const synced = await syncComposioAccountsToSupabase({
+          supabase,
+          userId: user.id,
+          workspaceId,
+          encryptTokenFn: encryptToken,
+        });
+        activeToolkits = synced.activeToolkits;
+      } catch {
+        // Non-blocking Composio toolkit lookup
+      }
+    }
 
     if (supabase && workspaceId) {
       try {
         const [postsRes, accsRes, leadsRes] = await Promise.all([
           supabase.from('posts').select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
-          supabase.from('social_accounts').select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
+          supabase.from('social_accounts').select('platform').eq('workspace_id', workspaceId).eq('is_connected', true),
           supabase.from('leads').select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
         ]);
         postsCount = postsRes.count || 0;
-        accountsCount = accsRes.count || 0;
+        const dbPlatforms = (accsRes.data || []).map((a: { platform?: string }) => String(a.platform || '')).filter(Boolean);
+        activeToolkits = Array.from(new Set([...activeToolkits, ...dbPlatforms]));
+        accountsCount = Math.max(accsRes.data?.length || 0, activeToolkits.length);
         crmCount = leadsRes.count || crmCount;
       } catch {
         // non-blocking
@@ -616,6 +715,7 @@ export async function POST(req: NextRequest) {
     let finalResult: { reply: string; action?: any; updatedMemory?: any } | null = null;
     let executedOnServer = false;
     let connectUrl: string | undefined;
+    let connectPlatform: string | undefined;
     let pendingConfirmation:
       | { type: string; label: string; payload: Record<string, unknown>; summary: string }
       | null = null;
@@ -636,6 +736,7 @@ export async function POST(req: NextRequest) {
             accountsCount,
             crmCount,
             workspaceName: clientStats?.workspaceName || 'PulseSocial',
+            activeToolkits,
           },
           previousToolResult,
         });
@@ -663,7 +764,10 @@ export async function POST(req: NextRequest) {
       const act = result.action;
 
       // Require explicit user confirmation before executing any write tool
-      if (WRITE_TOOLS.has(act.type)) {
+      const requiresConfirmation =
+        WRITE_TOOLS.has(act.type) ||
+        (act.type === 'execute_composio_action' && act.payload?.is_write !== false);
+      if (requiresConfirmation) {
         pendingConfirmation = {
           type: act.type,
           label: String(act.label || act.type),
@@ -697,6 +801,7 @@ export async function POST(req: NextRequest) {
       }
       if (toolExec.connectUrl) {
         connectUrl = toolExec.connectUrl;
+        connectPlatform = toolExec.connectPlatform;
       }
 
       previousToolResult = {
@@ -705,8 +810,11 @@ export async function POST(req: NextRequest) {
         output: toolExec.output,
       };
 
-      // If get_workspace_summary succeeded, feed the real workspace data back into Gemini to synthesize the answer
-      if (act.type === 'get_workspace_summary' && toolExec.success) {
+      // Feed read-only workspace/Composio results back into Gemini to synthesize the final reply
+      if (
+        (act.type === 'get_workspace_summary' || act.type === 'execute_composio_action') &&
+        toolExec.success
+      ) {
         continue;
       }
 
@@ -722,9 +830,11 @@ export async function POST(req: NextRequest) {
           reply: `⚠️ Outil indisponible : ${previousToolResult.output}`,
           action: null,
           executedOnServer: false,
+          connectUrl,
+          connectPlatform,
           error: previousToolResult.output,
         },
-        { status: 502 }
+        { status: connectUrl ? 200 : 502 }
       );
     }
 
@@ -734,6 +844,8 @@ export async function POST(req: NextRequest) {
       action: pendingConfirmation ? null : finalResult?.action || null,
       pendingConfirmation,
       connectUrl,
+      connectPlatform,
+      activeToolkits,
       executedOnServer,
       updatedMemory: finalResult?.updatedMemory || null,
     });

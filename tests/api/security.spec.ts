@@ -491,6 +491,30 @@ test('28. [BUG5-BILLING-CARD] /billing hides USSD phone input and shows Paystack
   assert.ok(paystackInit.includes("validated.provider === 'card' ? ['card']"), 'Paystack initialize must pass card channel when provider=card');
 });
 
+test('29. [COMPOSIO-MULTI-TENANT] /api/composio/connect, /api/composio/callback & middleware enforce session user.id, ownership & zero client secret exposure', async () => {
+  const fs = await import('node:fs');
+  const connectRoute = fs.readFileSync('src/app/api/composio/connect/route.ts', 'utf-8');
+  const callbackRoute = fs.readFileSync('src/app/api/composio/callback/route.ts', 'utf-8');
+  const accountsRoute = fs.readFileSync('src/app/api/composio/accounts/route.ts', 'utf-8');
+  const middlewareSrc = fs.readFileSync('src/middleware.ts', 'utf-8');
+  const settingsPage = fs.readFileSync('src/app/settings/page.tsx', 'utf-8');
+  const copilotPanel = fs.readFileSync('src/components/PulseAICopilotPanel.tsx', 'utf-8');
+
+  assert.ok(connectRoute.includes('requireUser(req)'), '/api/composio/connect must enforce requireUser');
+  assert.ok(connectRoute.includes('.strict()'), '/api/composio/connect must enforce strict Zod schema');
+  assert.ok(connectRoute.includes('userId: user.id'), '/api/composio/connect must bind Connect Link to authenticated user.id');
+  assert.ok(connectRoute.includes('buildComposioCallbackUrl'), '/api/composio/connect must pass explicit callbackUrl');
+
+  assert.ok(middlewareSrc.includes("pathname.startsWith('/api/composio/callback')"), 'Middleware must allow /api/composio/callback');
+  assert.ok(callbackRoute.includes('verifyComposioAccountOwnership(user.id'), 'Callback must verify connectedAccountId belongs to user.id');
+  assert.ok(callbackRoute.includes('sanitizeNextPath'), 'Callback must guard next URL against Open Redirect');
+  assert.ok(callbackRoute.includes('/login?redirect='), 'Callback must redirect unauthenticated callers to /login');
+
+  assert.ok(accountsRoute.includes('revokeComposioConnectedAccount(user.id'), 'Accounts DELETE must verify ownership and revoke on Composio');
+  assert.equal(/process\.env\.COMPOSIO_API_KEY|NEXT_PUBLIC_COMPOSIO|composioApiKey:\s*tokens/.test(settingsPage), false, 'Client settings page must never read or transmit COMPOSIO_API_KEY');
+  assert.equal(/process\.env\.COMPOSIO_API_KEY|NEXT_PUBLIC_COMPOSIO/.test(copilotPanel), false, 'Client copilot panel must never read COMPOSIO_API_KEY');
+});
+
 
 
 

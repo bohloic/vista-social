@@ -3,6 +3,11 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { requireUser, requireWorkspaceRole, ApiError, handleApiError } from '@/lib/security/guards';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { encryptToken } from '@/lib/security/encryption';
+import {
+  isComposioConfigured,
+  revokeComposioConnectedAccount,
+  syncComposioAccountsToSupabase,
+} from '@/lib/composio';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -65,6 +70,20 @@ export async function GET(req: NextRequest) {
 
     const supabase = getAdminSupabase();
     if (!supabase) return NextResponse.json({ accounts: [] });
+
+    // Non-blocking sync of active Composio v3 accounts owned by this authenticated user.id
+    if (isComposioConfigured()) {
+      try {
+        await syncComposioAccountsToSupabase({
+          supabase,
+          userId: user.id,
+          workspaceId: targetWsId,
+          encryptTokenFn: encryptToken,
+        });
+      } catch {
+        // Non-blocking fallback to persisted Supabase social_accounts
+      }
+    }
 
     // [C4 Fix]: Strictly omit access_token, refresh_token from select query
     const { data: rawAccounts, error } = await supabase
@@ -252,7 +271,7 @@ export async function DELETE(req: NextRequest) {
 
     const { data: targetAccount } = await supabase
       .from('social_accounts')
-      .select('id, workspace_id')
+      .select('id, workspace_id, platform_account_id, metadata')
       .eq('id', id)
       .maybeSingle();
 
@@ -261,6 +280,22 @@ export async function DELETE(req: NextRequest) {
     }
 
     await requireWorkspaceRole(user.id, targetAccount.workspace_id, ['super_admin', 'admin', 'manager']);
+
+    // Revoke upstream Composio connection if linked via Composio
+    const meta = (targetAccount.metadata || {}) as Record<string, unknown>;
+    const composioConnId =
+      (typeof meta.composio_connection_id === 'string' && meta.composio_connection_id) ||
+      (typeof targetAccount.platform_account_id === 'string' &&
+      targetAccount.platform_account_id.startsWith('ca_')
+        ? targetAccount.platform_account_id
+        : '');
+    if (composioConnId && isComposioConfigured()) {
+      try {
+        await revokeComposioConnectedAccount(user.id, composioConnId);
+      } catch {
+        // Best-effort remote revocation before local removal
+      }
+    }
 
     const { error } = await supabase.from('social_accounts').delete().eq('id', id);
     if (error) {

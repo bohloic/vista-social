@@ -191,6 +191,7 @@ export default function InboxPage() {
   const [paymentCurrency, setPaymentCurrency] = useState<string>('XOF');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedScript, setCopiedScript] = useState(false);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
 
   // Initialize from localStorage or default
   useEffect(() => {
@@ -219,6 +220,24 @@ export default function InboxPage() {
       setMessages(INITIAL_DEMO_MESSAGES);
       setActiveConvId(INITIAL_DEMO_CONVERSATIONS[0].id);
     }
+
+    fetch('/api/social/connect', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.accounts)) {
+          setConnectedPlatforms(
+            Array.from(
+              new Set(
+                data.accounts
+                  .filter((a: { is_connected?: boolean; status?: string }) => a.is_connected || a.status === 'active')
+                  .map((a: { platform?: string }) => String(a.platform || '').toUpperCase())
+                  .filter(Boolean)
+              )
+            )
+          );
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -455,6 +474,22 @@ export default function InboxPage() {
           <p className="text-xs text-slate-600 font-medium">
             Détectez les intentions d&apos;achat en temps réel, qualifiez avec l&apos;IA et convertissez via WhatsApp, LinkedIn et liens de paiement.
           </p>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {connectedPlatforms.length > 0 ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
+                <CheckCircle2 className="w-3 h-3" />
+                Composio ACTIVE : {connectedPlatforms.join(', ')}
+              </span>
+            ) : (
+              <Link
+                href="/settings?tab=oauth"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[10px] font-bold hover:bg-violet-100"
+              >
+                <Plus className="w-3 h-3" />
+                Connecter vos canaux via Composio
+              </Link>
+            )}
+          </div>
         </div>
 
         {process.env.NODE_ENV === 'development' && (

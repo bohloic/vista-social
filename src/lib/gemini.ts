@@ -292,6 +292,7 @@ export interface CopilotAttachment {
 export type CopilotActionType =
   | 'get_workspace_summary'
   | 'create_composio_connect_link'
+  | 'execute_composio_action'
   | 'create_draft_post'
   | 'create_post'
   | 'delete_post'
@@ -340,6 +341,7 @@ export async function runPulseAICopilot(params: {
     accountsCount: number;
     crmCount: number;
     workspaceName: string;
+    activeToolkits?: string[];
   };
   previousToolResult?: {
     actionType: string;
@@ -354,11 +356,12 @@ POSTURE ET CAPACITÉS EXÉCUTIVES :
 1. Réponds de façon précise, naturelle, concise et professionnelle en français.
 2. OUTILS SERVEUR RÉELS FILTRÉS PAR WORKSPACE (workspace_id de la session) :
    - "get_workspace_summary" (lecture seule) : récupère en direct le résumé réel du workspace (posts, réseaux connectés, prospects CRM, Pulse Pages). À utiliser dès que l'utilisateur demande l'état ou le résumé de son espace. Payload : {}.
-   - "create_composio_connect_link" : génère un vrai lien OAuth 2.0 Composio pour connecter un réseau social. Payload : { "platform": "instagram" | "facebook" | "linkedin" | "twitter" | "tiktok" | "whatsapp" | "google_business" | "youtube" | "pinterest" | "threads" }.
+   - "create_composio_connect_link" : génère un vrai lien OAuth 2.0 Composio (avec callbackUrl vers /chat) pour connecter un réseau social ou outil Google/Gmail pour cet utilisateur. Payload : { "platform": "instagram" | "facebook" | "linkedin" | "twitter" | "tiktok" | "whatsapp" | "google_business" | "gmail" | "youtube" | "pinterest" | "threads" }.
+   - "execute_composio_action" : exécute une action Composio sur un toolkit ACTIF de cet utilisateur. Toolkits Composio actuellement ACTIVE : ${JSON.stringify(params.projectStats.activeToolkits || [])}. Payload : { "toolkit": "...", "tool_slug": "EX: GMAIL_FETCH_EMAILS | LINKEDIN_CREATE_LINKED_IN_POST | INSTAGRAM_GET_USER_INFO", "arguments": { ... }, "is_write": true | false }. Si le toolkit demandé n'est PAS dans la liste active, propose plutôt "create_composio_connect_link" pour le connecter en 1 clic !
    - "create_draft_post" (écriture — confirmation utilisateur requise avant enregistrement) : prépare un brouillon de post dans la base Supabase. Payload : { "content": "...", "post_type": "post" | "reel" | "story" | "carousel", "scheduled_for": "ISO8601" }.
    - "create_pulse_page" (écriture — confirmation utilisateur requise avant création) : prépare une page bio PulseSocial. Payload : { "title": "...", "slug": "...", "bio": "..." }.
    - Autres actions : "create_post", "delete_post", "update_post", "create_crm_prospect", "update_crm_prospect_stage", "delete_crm_prospect", "invite_team_member", "generate_paystack_link", "navigate".
-3. RÈGLE DE CONFIRMATION : Lorsque tu proposes une action d'écriture (create_draft_post, create_post, create_pulse_page, create_crm_prospect, update_crm_prospect_stage, delete_post, delete_crm_prospect, invite_team_member), décris clairement dans "reply" ce que l'action va créer/modifier et demande explicitement à l'utilisateur de cliquer sur le bouton de confirmation.
+3. RÈGLE DE CONFIRMATION : Lorsque tu proposes une action d'écriture (create_draft_post, create_post, create_pulse_page, create_crm_prospect, update_crm_prospect_stage, delete_post, delete_crm_prospect, invite_team_member, ou execute_composio_action avec is_write=true), décris clairement dans "reply" ce que l'action va créer/modifier et demande explicitement à l'utilisateur de cliquer sur le bouton de confirmation.
 4. GESTION DE LA MÉMOIRE : Mémoire actuelle = ${JSON.stringify(currentMemory)}.
 5. INTERDICTION ABSOLUE de répondre par une salutation générique figée ou de répéter des slogans vides. Si le contexte outil précédent (previousToolResult) contient des données réelles du workspace, synthétise-les clairement.
 
@@ -366,7 +369,7 @@ RÉPONSE STRICTEMENT AU FORMAT JSON SUIVANT (aucun texte hors du JSON) :
 {
   "reply": "Ta réponse humaine et précise en français",
   "action": null OU {
-    "type": "get_workspace_summary" | "create_composio_connect_link" | "create_draft_post" | "create_pulse_page" | "create_post" | "delete_post" | "update_post" | "create_crm_prospect" | "update_crm_prospect_stage" | "delete_crm_prospect" | "send_inbox_reply" | "invite_team_member" | "generate_paystack_link" | "navigate",
+    "type": "get_workspace_summary" | "create_composio_connect_link" | "execute_composio_action" | "create_draft_post" | "create_pulse_page" | "create_post" | "delete_post" | "update_post" | "create_crm_prospect" | "update_crm_prospect_stage" | "delete_crm_prospect" | "send_inbox_reply" | "invite_team_member" | "generate_paystack_link" | "navigate",
     "label": "Libellé clair de l'action",
     "payload": { ... }
   },
@@ -392,7 +395,7 @@ RÉPONSE STRICTEMENT AU FORMAT JSON SUIVANT (aucun texte hors du JSON) :
   const currentTurnParts: Array<Record<string, unknown>> = [
     {
       text: `[Page actuelle: ${params.currentPath} | Espace: ${params.projectStats.workspaceName} | Posts: ${params.projectStats.postsCount} | Comptes sociaux: ${params.projectStats.accountsCount} | Prospects CRM: ${params.projectStats.crmCount}]
-Message: ${params.message}${params.previousToolResult ? `\n[Résultat outil serveur (${params.previousToolResult.actionType}) : ${params.previousToolResult.success ? 'Succès' : 'Échec'} — ${params.previousToolResult.output}]` : ''}`,
+Message: ${params.message}${params.projectStats.activeToolkits?.length ? `\n[Toolkits Composio actifs : ${params.projectStats.activeToolkits.join(', ')}]` : ''}${params.previousToolResult ? `\n[Résultat outil serveur (${params.previousToolResult.actionType}) : ${params.previousToolResult.success ? 'Succès' : 'Échec'} — ${params.previousToolResult.output}]` : ''}`,
     },
   ];
 

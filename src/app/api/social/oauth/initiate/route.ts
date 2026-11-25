@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUser, requireWorkspaceRole, handleApiError } from '@/lib/security/guards';
+import {
+  buildComposioCallbackUrl,
+  ComposioApiError,
+  createComposioConnectLink,
+  isComposioConfigured,
+  resolveAppOrigin,
+} from '@/lib/composio';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,8 +126,7 @@ export async function POST(req: NextRequest) {
       await requireWorkspaceRole(user.id, workspaceId, ['super_admin', 'admin', 'manager', 'editor'], user.role);
     }
 
-    const origin = new URL(req.url).origin;
-    const apiKey = process.env.COMPOSIO_API_KEY?.trim();
+    const origin = resolveAppOrigin(req);
     const callbackUrl = `${origin}/api/social/oauth/callback?platform=${encodeURIComponent(platform)}&workspaceId=${encodeURIComponent(workspaceId || '')}`;
 
     // 1. Direct custom developer credentials (if explicitly configured by the user)
@@ -133,78 +139,38 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Automated 1-Click OAuth via Composio Connect MCP Gateway
-    // (https://connect.composio.dev/mcp - Official Composio Connect Endpoint)
-    if (apiKey && apiKey.length > 8) {
+    // 2. Multi-Tenant 1-Click OAuth via Composio v3/v3.1 Connect Links (userId = Supabase user.id + callbackUrl)
+    if (isComposioConfigured()) {
       const toolkitSlug = COMPOSIO_TOOLKIT_MAP[platform] || platform;
-
       try {
-        const mcpRes = await fetch('https://connect.composio.dev/mcp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json, text/event-stream',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'tools/call',
-            params: {
-              name: 'COMPOSIO_MANAGE_CONNECTIONS',
-              arguments: {
-                toolkits: [toolkitSlug],
-              },
-            },
-            id: Date.now(),
-          }),
-          signal: AbortSignal.timeout(8000),
+        const composioCallback = buildComposioCallbackUrl(origin, {
+          next: '/settings',
+          toolkit: toolkitSlug,
+          platform,
         });
-
-        if (mcpRes.ok) {
-          const mcpText = await mcpRes.text();
-          let redirectUrl: string | null = null;
-          let errorMessage: string | null = null;
-
-          for (const line of mcpText.split('\n')) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                const resText = data?.result?.content?.[0]?.text;
-                if (resText) {
-                  const parsedResult = JSON.parse(resText);
-                  const toolkitData = parsedResult?.data?.results?.[toolkitSlug];
-                  if (toolkitData) {
-                    redirectUrl = toolkitData.redirect_url || null;
-                    errorMessage = toolkitData.error_message || null;
-                  }
-                }
-              } catch {
-                // Ignore chunk parse error
-              }
-            }
-          }
-
-          if (redirectUrl) {
-            return NextResponse.json({
-              success: true,
-              redirectUrl,
-              mode: 'composio_connect_managed',
-            });
-          }
-
-          // If toolkit needs custom configuration (e.g. Twitter / TikTok)
-          if (errorMessage && errorMessage.includes('dashboard.composio.dev')) {
-            const dashboardSetupUrl = `https://dashboard.composio.dev/~/org/connect/apps/${toolkitSlug}?open=true`;
-            return NextResponse.json({
-              success: true,
-              redirectUrl: dashboardSetupUrl,
-              mode: 'composio_setup_required',
-              message: `Pour ${platform}, connectez votre application une seule fois sur le dashboard Composio.`,
-            });
-          }
+        const link = await createComposioConnectLink({
+          userId: user.id,
+          platformOrToolkit: platform,
+          callbackUrl: composioCallback,
+        });
+        return NextResponse.json({
+          success: true,
+          redirectUrl: link.redirectUrl,
+          connectedAccountId: link.connectedAccountId,
+          mode: 'composio_connect_managed',
+        });
+      } catch (composioErr: unknown) {
+        if (composioErr instanceof ComposioApiError) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: composioErr.message,
+              code: composioErr.code,
+            },
+            { status: composioErr.status }
+          );
         }
-      } catch (mcpErr) {
-        console.warn('Composio Connect MCP fetch error:', mcpErr);
+        console.warn('Composio v3 Connect Link error:', composioErr);
       }
     }
 

@@ -41,6 +41,7 @@ interface ChatMessage {
   pendingConfirmation?: PendingConfirmation | null;
   confirmationHandled?: 'confirmed' | 'cancelled';
   connectUrl?: string;
+  connectPlatform?: string;
   isError?: boolean;
   paystackUrl?: string;
   timestamp: string;
@@ -99,14 +100,15 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isListening]);
 
-  // Restore history and memory on mount
+  // Restore history and memory on mount, plus handle Composio OAuth callback feedback (?connected=...)
   useEffect(() => {
+    let initialMsgs: ChatMessage[] | null = null;
     try {
       const saved = localStorage.getItem('pulsesocial_copilot_history');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed.slice(-30));
+          initialMsgs = parsed.slice(-30);
         }
       }
 
@@ -116,6 +118,43 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
       }
     } catch {
       // ignore
+    }
+
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const connected = sp.get('connected');
+      const composioErr = sp.get('composio_error');
+      const toolkit = sp.get('toolkit');
+      if (connected || composioErr) {
+        const feedbackMsg: ChatMessage = connected
+          ? {
+            id: `composio-cb-${Date.now()}`,
+            role: 'assistant',
+            content: `✓ Compte ${connected.toUpperCase()} connecté via Composio ! Vous pouvez maintenant me demander d'agir directement dessus.`,
+            timestamp: new Date().toISOString(),
+          }
+          : {
+            id: `composio-err-${Date.now()}`,
+            role: 'assistant',
+            content: `⚠️ Échec de connexion Composio (${toolkit || 'réseau'}) : ${composioErr}`,
+            isError: true,
+            timestamp: new Date().toISOString(),
+          };
+        const base = initialMsgs || messages;
+        const merged = [...base.slice(-29), feedbackMsg];
+        setMessages(merged);
+        try {
+          localStorage.setItem('pulsesocial_copilot_history', JSON.stringify(merged));
+        } catch {
+          // ignore
+        }
+        window.history.replaceState({}, '', pathname);
+        return;
+      }
+    }
+
+    if (initialMsgs) {
+      setMessages(initialMsgs);
     }
   }, []);
 
@@ -523,6 +562,7 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
         action: data.pendingConfirmation ? null : data.action || null,
         pendingConfirmation: data.pendingConfirmation || null,
         connectUrl: data.connectUrl || undefined,
+        connectPlatform: data.connectPlatform || undefined,
         paystackUrl,
         timestamp: new Date().toISOString(),
       };
@@ -603,6 +643,7 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
           content: data.reply || '✓ Action confirmée et exécutée.',
           action: data.action || { type: pending.type as any, label: pending.label, payload: pending.payload },
           connectUrl: data.connectUrl,
+          connectPlatform: data.connectPlatform,
           timestamp: new Date().toISOString(),
         },
       ]);
@@ -725,8 +766,8 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
               className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed space-y-2 ${msg.role === 'user'
                 ? 'bg-violet-600 text-white rounded-br-sm'
                 : msg.isError
-                ? 'bg-rose-950/70 border border-rose-500/40 text-rose-200 rounded-bl-sm'
-                : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
+                  ? 'bg-rose-950/70 border border-rose-500/40 text-rose-200 rounded-bl-sm'
+                  : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
                 }`}
             >
               <p className="whitespace-pre-line">{msg.content}</p>
@@ -780,16 +821,18 @@ export function PulseAICopilotPanel({ compact = false, onClose }: PulseAICopilot
                 </div>
               )}
 
-              {/* Direct Composio Connect Link */}
+              {/* Direct Composio Connect Link (same-tab redirect to preserve OAuth callback flow) */}
               {msg.connectUrl && (
                 <div className="pt-1.5 border-t border-slate-800/80">
                   <button
                     type="button"
-                    onClick={() => window.open(msg.connectUrl, 'ComposioConnectOAuth', 'width=560,height=740')}
+                    onClick={() => {
+                      if (msg.connectUrl) window.location.href = msg.connectUrl;
+                    }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold cursor-pointer"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    Ouvrir le lien de connexion OAuth
+                    Connecter {msg.connectPlatform ? msg.connectPlatform.toUpperCase() : 'le réseau'} via Composio
                   </button>
                 </div>
               )}

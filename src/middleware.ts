@@ -173,6 +173,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/api/health' ||
     pathname === '/api/setup' ||
     pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/api/composio/callback') ||
     pathname.startsWith('/api/social/oauth/callback') ||
     pathname === '/api/billing/paystack/webhook' ||
     pathname === '/api/webhooks/mobile-money';
