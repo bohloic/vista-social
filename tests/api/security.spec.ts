@@ -515,6 +515,30 @@ test('29. [COMPOSIO-MULTI-TENANT] /api/composio/connect, /api/composio/callback 
   assert.equal(/process\.env\.COMPOSIO_API_KEY|NEXT_PUBLIC_COMPOSIO/.test(copilotPanel), false, 'Client copilot panel must never read COMPOSIO_API_KEY');
 });
 
+test('30. [AUTH-OAUTH-AND-GEMINI] Gemini uses 3.5-flash-lite, and /login + /api/auth/oauth support Google, Facebook & Apple with Supabase PKCE persistence', async () => {
+  const fs = await import('node:fs');
+  const geminiSrc = fs.readFileSync('src/lib/gemini.ts', 'utf-8');
+  const oauthRoute = fs.readFileSync('src/app/api/auth/oauth/route.ts', 'utf-8');
+  const callbackRoute = fs.readFileSync('src/app/api/auth/callback/route.ts', 'utf-8');
+  const loginPage = fs.readFileSync('src/app/login/page.tsx', 'utf-8');
+  const oauthHelper = fs.readFileSync('src/lib/oauth-user.ts', 'utf-8');
+
+  assert.ok(geminiSrc.includes('gemini-3.5-flash-lite'), 'Gemini client must use gemini-3.5-flash-lite');
+  assert.equal(/gemini-2\.0-flash-lite|gemini-2\.0-flash/.test(geminiSrc), false, 'Deprecated gemini-2.0 models must be removed');
+
+  assert.ok(oauthRoute.includes('createServerClient'), '/api/auth/oauth must use @supabase/ssr createServerClient PKCE');
+  assert.ok(oauthRoute.includes('isSupportedAuthProvider') && oauthHelper.includes("'google'") && oauthHelper.includes("'facebook'") && oauthHelper.includes("'apple'"), '/api/auth/oauth must support google, facebook, apple');
+  assert.equal(oauthRoute.includes('connect.composio.dev/mcp'), false, '/api/auth/oauth must never route user login to Composio Gmail');
+
+  assert.ok(callbackRoute.includes('createServerClient'), '/api/auth/callback must use @supabase/ssr createServerClient for PKCE code_verifier');
+  assert.ok(callbackRoute.includes('resolveOrCreateOAuthUser'), '/api/auth/callback must persist user profile & workspace');
+  assert.ok(oauthHelper.includes('workspace_members'), 'OAuth user helper must link user to workspace_members');
+
+  assert.ok(loginPage.includes("handleOAuthSignIn('google')"), '/login must wire Google OAuth');
+  assert.ok(loginPage.includes("handleOAuthSignIn('apple')"), '/login must wire Apple OAuth');
+  assert.ok(loginPage.includes("handleOAuthSignIn('facebook')"), '/login must wire Facebook OAuth');
+});
+
 
 
 

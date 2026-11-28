@@ -47,6 +47,6 @@ export async function GET(request: NextRequest) {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     supabase: { status: supabaseStatus, latencyMs: supabaseLatencyMs },
-    ai: { status: aiStatus, model: 'gemini-2.0-flash' },
+    ai: { status: aiStatus, model: 'gemini-3.5-flash-lite' },
   });
 }

@@ -1,121 +1,92 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminSupabase } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { resolveAppOrigin, sanitizeNextPath } from '@/lib/composio';
+import { checkSupabaseProviderEnabled } from '@/lib/oauth-user';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const origin = new URL(req.url).origin;
+    const origin = resolveAppOrigin(req);
     const body = await req.json().catch(() => ({}));
-    const usePopup = body.popup !== false;
+    const usePopup = body?.popup === true;
+    const safeNext = sanitizeNextPath(body?.next, '/');
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
 
-    // 1. Check if native Google OAuth Provider is enabled on the Supabase project
-    let isSupabaseGoogleProviderActive = false;
-    if (supabaseUrl && supabaseAnonKey && process.env.GOOGLE_OAUTH_ENABLED === 'true') {
-      try {
-        const settingsRes = await fetch(`${supabaseUrl}/auth/v1/settings`, {
-          headers: { apikey: supabaseAnonKey },
-        });
-        if (settingsRes.ok) {
-          const settings = await settingsRes.json();
-          isSupabaseGoogleProviderActive = Boolean(settings?.external?.google);
-        }
-      } catch {
-        isSupabaseGoogleProviderActive = false;
-      }
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json(
+        { success: false, error: 'Configuration Supabase Auth manquante.' },
+        { status: 503 }
+      );
     }
 
-    if (isSupabaseGoogleProviderActive) {
-      const supabase = getAdminSupabase();
-      if (supabase) {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${origin}/api/auth/callback${usePopup ? '?popup=1' : ''}`,
-            skipBrowserRedirect: true,
-          },
-        });
-
-        if (!error && data?.url) {
-          return NextResponse.json({
-            success: true,
-            url: data.url,
-            mode: 'supabase_google_oauth',
-          });
-        }
-      }
+    const googleEnabled = await checkSupabaseProviderEnabled('google');
+    if (googleEnabled === false) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'PROVIDER_NOT_CONFIGURED',
+          error:
+            "Le fournisseur Google n'est pas encore activé dans Supabase → Authentication → Providers.",
+        },
+        { status: 400 }
+      );
     }
 
-    // 2. Automated Google Sign-In via Composio Connect MCP Gateway
-    // Uses official Google/Gmail Managed Auth link
-    const composioApiKey = process.env.COMPOSIO_API_KEY?.trim();
-    if (composioApiKey && composioApiKey.length > 8) {
-      try {
-        const mcpRes = await fetch('https://connect.composio.dev/mcp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json, text/event-stream',
-            'Authorization': `Bearer ${composioApiKey}`,
-          },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'tools/call',
-            params: {
-              name: 'COMPOSIO_MANAGE_CONNECTIONS',
-              arguments: {
-                toolkits: ['gmail'],
-              },
-            },
-            id: Date.now(),
-          }),
-          signal: AbortSignal.timeout(8000),
-        });
-
-        if (mcpRes.ok) {
-          const mcpText = await mcpRes.text();
-          let redirectUrl: string | null = null;
-          for (const line of mcpText.split('\n')) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                const resText = data?.result?.content?.[0]?.text;
-                if (resText) {
-                  const parsedResult = JSON.parse(resText);
-                  const gmailData = parsedResult?.data?.results?.['gmail'];
-                  if (gmailData?.redirect_url) {
-                    redirectUrl = gmailData.redirect_url;
-                  }
-                }
-              } catch {
-                // Ignore parse errors on SSE chunks
-              }
-            }
-          }
-
-          if (redirectUrl) {
-            return NextResponse.json({
-              success: true,
-              url: redirectUrl,
-              mode: 'composio_google_oauth',
-            });
-          }
-        }
-      } catch (err) {
-        console.warn('Composio Google OAuth warning:', err);
-      }
-    }
-
-    // 3. Fallback to developer integration modal
-    const popupUrl = `${origin}/oauth-popup?provider=google&popup=${usePopup ? '1' : '0'}`;
-    return NextResponse.json({
-      success: true,
-      url: popupUrl,
-      mode: 'google_oauth_window',
+    const pendingCookies: Array<{ name: string; value: string; options?: Record<string, unknown> }> = [];
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          pendingCookies.push(...cookiesToSet);
+        },
+      },
     });
+
+    const redirectTo = `${origin}/api/auth/callback?provider=google&next=${encodeURIComponent(safeNext)}${usePopup ? '&popup=1' : ''}`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+        scopes: 'openid email profile',
+      },
+    });
+
+    if (error || !data?.url) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error?.message || "Impossible d'initialiser l'authentification Google Supabase.",
+        },
+        { status: 502 }
+      );
+    }
+
+    const res = NextResponse.json({
+      success: true,
+      url: data.url,
+      mode: 'supabase_google_oauth',
+    });
+
+    for (const c of pendingCookies) {
+      res.cookies.set(c.name, c.value, {
+        ...(c.options || {}),
+        path: (c.options?.path as string | undefined) || '/',
+        sameSite: (c.options?.sameSite as 'lax' | 'strict' | 'none' | undefined) || 'lax',
+        httpOnly: c.options?.httpOnly !== undefined ? Boolean(c.options.httpOnly) : true,
+        secure:
+          c.options?.secure !== undefined
+            ? Boolean(c.options.secure)
+            : process.env.NODE_ENV === 'production',
+      });
+    }
+
+    return res;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur OAuth Google';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

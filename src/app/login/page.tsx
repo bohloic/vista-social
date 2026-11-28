@@ -50,15 +50,38 @@ export default function LoginPage() {
 
   // Legal modal state
   const [legalModalType, setLegalModalType] = useState<'privacy' | 'terms' | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | 'apple' | null>(null);
+  const [redirectPath, setRedirectPath] = useState<string>('/');
 
-  // Restore email from sessionStorage and check setup status on mount
+  // Restore email from sessionStorage, read OAuth query errors, and check setup status on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedEmail = sessionStorage.getItem('pulsesocial_login_email');
       if (savedEmail) {
         setEmail(savedEmail);
         setResetEmail(savedEmail);
+      }
+
+      const sp = new URLSearchParams(window.location.search);
+      const nextParam = sp.get('redirect');
+      if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) {
+        setRedirectPath(nextParam);
+      }
+
+      const errParam = sp.get('error');
+      const provParam = (sp.get('provider') || 'OAuth').toUpperCase();
+      if (errParam) {
+        const errorMessages: Record<string, string> = {
+          provider_not_configured: `La connexion ${provParam} n'est pas encore activée dans Supabase → Authentication → Providers.`,
+          auth_cancelled: `Authentification ${provParam} annulée.`,
+          oauth_exchange_failed: `Impossible de valider le code d'autorisation ${provParam}. Vérifiez les Redirect URLs Supabase.`,
+          oauth_init_failed: `Impossible de démarrer la connexion ${provParam}.`,
+          oauth_failed: `Échec de l'authentification ${provParam}. Veuillez réessayer.`,
+          unsupported_provider: `Fournisseur OAuth non supporté.`,
+          database_unavailable: `Service d'authentification temporairement indisponible.`,
+        };
+        setGeneralError(errorMessages[errParam] || `Erreur ${provParam} : ${errParam}`);
+        window.history.replaceState({}, '', '/login');
       }
 
       // Purge any stale unauthenticated state in localStorage & client cookies
@@ -79,6 +102,7 @@ export default function LoginPage() {
         .catch(() => {});
 
       const handleOAuthMessage = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
         if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
           if (event.data.user) {
             localStorage.setItem('pulsesocial_user', JSON.stringify(event.data.user));
@@ -92,8 +116,8 @@ export default function LoginPage() {
               );
             }
           }
-          setGoogleLoading(false);
-          router.push('/');
+          setOauthLoading(null);
+          router.push(redirectPath);
           router.refresh();
         }
       };
@@ -101,7 +125,7 @@ export default function LoginPage() {
       window.addEventListener('message', handleOAuthMessage);
       return () => window.removeEventListener('message', handleOAuthMessage);
     }
-  }, [router]);
+  }, [router, redirectPath]);
 
   useEffect(() => {
     const checkInit = async () => {
@@ -118,101 +142,33 @@ export default function LoginPage() {
     checkInit();
   }, []);
 
-  const handleGoogleSignIn = async () => {
+  const handleOAuthSignIn = async (provider: 'google' | 'facebook' | 'apple') => {
     setGeneralError(null);
-    setGoogleLoading(true);
+    setOauthLoading(provider);
     try {
-      const res = await fetch('/api/auth/google', {
+      const res = await fetch('/api/auth/oauth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ popup: true }),
+        body: JSON.stringify({
+          provider,
+          next: redirectPath || '/',
+          popup: false,
+        }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.url) {
-        setGeneralError(data.error || 'Impossible d’ouvrir la fenêtre Google OAuth.');
-        setGoogleLoading(false);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.url) {
+        setGeneralError(
+          data?.error || `Impossible de lancer l’authentification ${provider.toUpperCase()}.`
+        );
+        setOauthLoading(null);
         return;
       }
 
-      const width = 520;
-      const height = 680;
-      const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2));
-      const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2));
-
-      const popup = window.open(
-        data.url,
-        'GoogleOAuthPopup',
-        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=no`
-      );
-
-      if (!popup) {
-        window.location.href = data.url.replace('popup=1', 'popup=0');
-        return;
-      }
-
-      let timer: NodeJS.Timeout | null = null;
-      let elapsed = 0;
-
-      const handleSuccess = (user: any) => {
-        if (timer) clearInterval(timer);
-        window.removeEventListener('message', onMessage);
-        localStorage.setItem('pulsesocial_user', JSON.stringify(user));
-        if (user.workspaceName) {
-          localStorage.setItem(
-            'pulsesocial_active_workspace',
-            JSON.stringify({
-              id: user.workspaceId || 'ws-default',
-              name: user.workspaceName,
-            })
-          );
-        }
-        setGoogleLoading(false);
-        router.push('/');
-        router.refresh();
-      };
-
-      const onMessage = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
-        if (event.data?.type === 'GOOGLE_AUTH_SUCCESS' && event.data?.user) {
-          handleSuccess(event.data.user);
-        }
-      };
-      window.addEventListener('message', onMessage);
-
-      timer = setInterval(async () => {
-        elapsed += 600;
-        let isClosed = false;
-        try {
-          // Safe try-catch to prevent Cross-Origin-Opener-Policy blocking
-          isClosed = Boolean(popup && popup.closed);
-        } catch {
-          // Cross-Origin-Opener-Policy policy catch
-        }
-
-        if (isClosed || elapsed >= 180000) {
-          if (timer) clearInterval(timer);
-          window.removeEventListener('message', onMessage);
-
-          if (isClosed) {
-            try {
-              const verifyRes = await fetch('/api/auth/google/verify', { method: 'POST' });
-              if (verifyRes.ok) {
-                const verifyData = await verifyRes.json();
-                if (verifyData.success && verifyData.user) {
-                  handleSuccess(verifyData.user);
-                  return;
-                }
-              }
-            } catch {
-              // ignore
-            }
-          }
-          setGoogleLoading(false);
-        }
-      }, 600);
+      // Direct same-tab PKCE redirect so /api/auth/callback persists profile + cookie and lands on dashboard
+      window.location.href = data.url;
     } catch {
-      setGeneralError('Erreur lors de l’initialisation de Google Sign-In.');
-      setGoogleLoading(false);
+      setGeneralError(`Erreur réseau lors de l’initialisation ${provider.toUpperCase()} Sign-In.`);
+      setOauthLoading(null);
     }
   };
 
@@ -609,12 +565,13 @@ export default function LoginPage() {
               {/* Google Button */}
               <button
                 type="button"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading || loading}
+                onClick={() => handleOAuthSignIn('google')}
+                disabled={Boolean(oauthLoading) || loading}
                 title="Continuer avec Google"
-                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer"
+                aria-label="Continuer avec Google"
+                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer disabled:opacity-60"
               >
-                {googleLoading ? (
+                {oauthLoading === 'google' ? (
                   <Loader2 className="w-4 h-4 animate-spin text-violet-600" />
                 ) : (
                   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -641,25 +598,37 @@ export default function LoginPage() {
               {/* Apple Button */}
               <button
                 type="button"
-                onClick={() => setGeneralError('Connexion Apple bientôt disponible dans votre région.')}
+                onClick={() => handleOAuthSignIn('apple')}
+                disabled={Boolean(oauthLoading) || loading}
                 title="Continuer avec Apple"
-                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer text-slate-900"
+                aria-label="Continuer avec Apple"
+                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer text-slate-900 disabled:opacity-60"
               >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.89c.66-.82 1.11-1.96.99-3.1-.96.04-2.12.64-2.8 1.44-.59.69-1.11 1.84-.97 2.96 1.08.08 2.12-.48 2.78-1.3z" />
-                </svg>
+                {oauthLoading === 'apple' ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-900" />
+                ) : (
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.89c.66-.82 1.11-1.96.99-3.1-.96.04-2.12.64-2.8 1.44-.59.69-1.11 1.84-.97 2.96 1.08.08 2.12-.48 2.78-1.3z" />
+                  </svg>
+                )}
               </button>
 
               {/* Facebook Button */}
               <button
                 type="button"
-                onClick={() => setGeneralError('Connexion Facebook en cours d’authentification.')}
+                onClick={() => handleOAuthSignIn('facebook')}
+                disabled={Boolean(oauthLoading) || loading}
                 title="Continuer avec Facebook"
-                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer text-[#1877F2]"
+                aria-label="Continuer avec Facebook"
+                className="clay-social-btn w-12 h-12 flex items-center justify-center cursor-pointer text-[#1877F2] disabled:opacity-60"
               >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
+                {oauthLoading === 'facebook' ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-[#1877F2]" />
+                ) : (
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>

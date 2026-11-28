@@ -69,7 +69,14 @@ async function callGeminiDirect(payload: Record<string, unknown>): Promise<{
     };
   }
 
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+  const models = Array.from(
+    new Set([
+      ...(process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL.trim()] : []),
+      'gemini-3.5-flash-lite',
+      'gemini-2.5-flash',
+      'gemini-2.5-flash-lite',
+    ])
+  );
   let lastStatus = 502;
   let lastError = 'Échec de communication avec l’API Gemini.';
 

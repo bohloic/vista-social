@@ -102,6 +102,26 @@ const OAUTH_PROVIDERS = [
     suggestedName: 'PulseSocial WhatsApp Pro',
     scopes: ['whatsapp_business_messaging', 'whatsapp_business_management'],
   },
+  {
+    id: 'google_business',
+    name: 'Google Business Profile',
+    platform: 'google_business' as const,
+    color: 'from-blue-600 via-indigo-600 to-emerald-600',
+    description: 'Publication d’actualités Google Maps et réponses IA aux avis clients',
+    suggestedHandle: 'PulseSocial Abidjan',
+    suggestedName: 'Google Business Profile',
+    scopes: ['business.manage'],
+  },
+  {
+    id: 'gmail',
+    name: 'Gmail & Google Workspace',
+    platform: 'gmail' as const,
+    color: 'from-red-500 via-amber-500 to-emerald-600',
+    description: 'Synchronisation des e-mails commerciaux et automatisations IA dans /chat',
+    suggestedHandle: 'contact@pulsesocial.ai',
+    suggestedName: 'Gmail Professionnel',
+    scopes: ['gmail.readonly', 'gmail.send'],
+  },
 ];
 
 export default function SettingsPage() {
@@ -1216,7 +1236,7 @@ export default function SettingsPage() {
                   Clé d&apos;API Gemini connectée et opérationnelle
                 </p>
                 <p className="text-[10px] text-emerald-400">
-                  Modèle : gemini-2.0-flash • Variables d&apos;environnement serveur sécurisées (Production)
+                  Modèle : gemini-3.5-flash-lite • Variables d&apos;environnement serveur sécurisées (Production)
                 </p>
               </div>
             </div>
